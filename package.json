@@ -1,0 +1,8 @@
+{
+  "name": "purescript-formal",
+  "scripts": {
+    "build": "pulp build --to dist/main.js",
+    "test": "pulp test"
+  },
+  "license": "ISC"
+}
