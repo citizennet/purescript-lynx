@@ -5,13 +5,13 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
-import Formal.AppM (runAppM)
-import Formal.Component.Router as Router
-import Formal.Route (routeCodec)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
+import Lynx.AppM (runAppM)
+import Lynx.Component.Router as Router
+import Lynx.Route (routeCodec)
 import Routing.Duplex (parse)
 import Routing.Hash (matchesWith)
 

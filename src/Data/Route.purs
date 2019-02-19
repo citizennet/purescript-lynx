@@ -1,4 +1,4 @@
-module Formal.Route where
+module Lynx.Route where
 
 import Prelude hiding ((/))
 

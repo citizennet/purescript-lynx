@@ -1,12 +1,12 @@
-module Formal.Page.Home where
+module Lynx.Page.Home where
 
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Formal.Route (Route(..))
-import Formal.Util.HTML (safeHref)
 import Halogen as H
 import Halogen.HTML as HH
+import Lynx.Route (Route(..))
+import Lynx.Util.HTML (safeHref)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Table as Table

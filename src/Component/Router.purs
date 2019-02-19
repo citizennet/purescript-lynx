@@ -1,4 +1,4 @@
-module Formal.Component.Router where
+module Lynx.Component.Router where
 
 import Prelude
 
@@ -6,12 +6,12 @@ import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
-import Formal.Page.Form as Form
-import Formal.Page.Home as Home
-import Formal.Route (Route(..))
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
+import Lynx.Page.Form as Form
+import Lynx.Page.Home as Home
+import Lynx.Route (Route(..))
 
 type State = Route
 

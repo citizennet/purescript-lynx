@@ -1,10 +1,10 @@
-module Formal.Util.HTML where
+module Lynx.Util.HTML where
 
 import Prelude
 
-import Formal.Route (Route, routeCodec)
 import Halogen as HH
 import Halogen.HTML.Properties as HP
+import Lynx.Route (Route, routeCodec)
 import Routing.Duplex (print)
 
 safeHref :: ∀ r i. Route -> HH.IProp ( href :: String | r ) i

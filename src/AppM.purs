@@ -1,4 +1,4 @@
-module Formal.AppM where
+module Lynx.AppM where
 
 import Prelude
 
