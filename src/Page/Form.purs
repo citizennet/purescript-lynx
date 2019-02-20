@@ -23,7 +23,7 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.HTML.Properties (css)
 
 type State =
-  { form :: Either String ({ raw :: Page Expr, cur :: Page Identity })
+  { form :: Either String (Page Expr)
   }
 
 data Query a
@@ -61,8 +61,7 @@ component =
       testPageEither
 
   eval (EvalForm form a) = a <$ do
-    -- let cur = hmap (EvalExpr { lookups: Object.empty }) form
-    -- H.modify_ _ { form = pure { raw: form, cur } }
+    H.modify_ _ { form = pure form }
     pure unit
 
   render :: State -> H.ComponentHTML Query
@@ -71,35 +70,35 @@ component =
       case form of
         Left e ->
           [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text e ] ] ]
-        Right ({ cur: page }) ->
+        Right page ->
           append
           [ Format.heading_
             [ HH.text page.name ]
           ]
           $ renderSection <$> page.contents
 
-  renderSection :: Section Identity -> H.ComponentHTML Query
+  renderSection :: Section Expr -> H.ComponentHTML Query
   renderSection (section) =
     Card.card_ $
       append
       [ Format.subHeading_ [ HH.text section.name ] ]
       $ renderField <$> section.contents
 
-  renderField :: Field Identity -> H.ComponentHTML Query
+  renderField :: Field Expr -> H.ComponentHTML Query
   renderField (field) =
     FormField.field_
-      { label: HH.text $ extract field.name
-      , helpText: Just $ extract field.description
+      { label: HH.text $ show field.name
+      , helpText: Just $ show field.description
       , error: Nothing
       , inputId: field.key
       }
       [ renderInput field ]
 
-  renderInput :: Field Identity -> H.ComponentHTML Query
+  renderInput :: Field Expr -> H.ComponentHTML Query
   renderInput (field) = case field.input of
     Text input ->
       Input.input
-        [ HP.placeholder $ extract input.placeholder
+        [ HP.placeholder $ show input.placeholder
         , HP.id_ field.key
         ]
     Toggle toggle ->
