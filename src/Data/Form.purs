@@ -2,12 +2,12 @@ module Lynx.Data.Form where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, fromString, jsonParser, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, fromString, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe)
-import Lynx.Data.Expr (Expr)
+import Data.Maybe (Maybe(..))
+import Lynx.Data.Expr (Expr, ExprF(..), mkExpr)
 import Type.Row (type (+))
 
 -- newtype EvalExpr = EvalExpr
@@ -185,69 +185,73 @@ instance decodeInputSource :: DecodeJson InputSource where
 
 -- Test
 
-testPageEither :: Either String (Page Expr)
-testPageEither = decodeJson =<< jsonParser testPageJson
-
-testPageJson :: String
-testPageJson = """
-  { "name": "Profile"
-  , "contents":
-    [ """ <> testSection <> """
+testPage :: Page Expr
+testPage =
+  { name: "Profile"
+  , contents:
+    [ testSection
     ]
   }
-"""
 
-testSection :: String
-testSection = """
-  { "name": "Name"
-  , "contents":
-    [ """ <> firstName <> """
-    , """ <> lastName <> """
-    , """ <> active <> """
+testSection :: Section Expr
+testSection =
+  { name: "Name"
+  , contents:
+    [ firstName
+    , lastName
+    , active
     ]
   }
-"""
 
-testField :: String -> String -> String -> String
-testField n d i = """
-  { "name": """ <> val n "String" <> """
-  , "visibility": """ <> val true "Boolean" <> """
-  , "description": """ <> val d "String" <> """
-  , "key": "firstName"
-  , "input": """ <> i <> """
+firstName :: Field Expr
+firstName =
+  { name: mkExpr (Val identity "First Name")
+  , visibility: mkExpr (Val identity true)
+  , description: mkExpr (Val identity "Enter your first name")
+  , key: "firstName"
+  , input: Text
+    { default: Nothing
+    , maxLength: Nothing
+    , minLength: Nothing
+    , placeholder: mkExpr (Val identity "")
+    , required: mkExpr (Val identity true)
+    , value:
+      { source: Nothing
+      , value: Nothing
+      }
+    }
   }
-"""
 
-textInput :: String
-textInput = """
-  { "type": "Text"
-  , "required": """ <> val true "Boolean" <> """
-  , "placeholder": """ <> val "" "String" <> """
-  , "value": { "value": null, "source": null }
-  , "default": null
-  , "maxLength": null
-  , "minLength": null
+lastName :: Field Expr
+lastName =
+  { name: mkExpr (Val identity "Last Name")
+  , visibility: mkExpr (Val identity true)
+  , description: mkExpr (Val identity "Enter your last name")
+  , key: "lastName"
+  , input: Text
+    { default: Nothing
+    , maxLength: Nothing
+    , minLength: Nothing
+    , placeholder: mkExpr (Val identity "")
+    , required: mkExpr (Val identity true)
+    , value:
+      { source: Nothing
+      , value: Nothing
+      }
+    }
   }
-"""
 
-toggleInput :: String
-toggleInput = """
-  { "type": "Toggle"
-  , "value": { "value": null, "source": null }
-  , "default": """ <> val false "Boolean" <> """
+active :: Field Expr
+active =
+  { name: mkExpr (Val identity "Active")
+  , visibility: mkExpr (Val identity true)
+  , description: mkExpr (Val identity "Is user's account active")
+  , key: "firstName"
+  , input: Toggle
+    { default: Just (mkExpr $ Val identity false)
+    , value:
+      { source: Nothing
+      , value: Nothing
+      }
+    }
   }
-"""
-
-firstName :: String
-firstName = testField "First Name" "Enter your first name" textInput
-
-lastName :: String
-lastName = testField "Last Name" "Enter your last name" textInput
-
-active :: String
-active = testField "Active" "Is user's account active" toggleInput
-
-val :: ∀ a. Show a => a -> String -> String
-val x o  = """
-  { "op": "Val", "param": """ <> show x <> """, "in": "Void", "out": """ <> show o <> """ }
-"""

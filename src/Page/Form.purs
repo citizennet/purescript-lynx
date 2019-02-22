@@ -9,7 +9,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Field, Input(..), Page, Section, testPageEither)
+import Lynx.Data.Form (Field, Input(..), Page, Section, testPage)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
@@ -54,7 +54,7 @@ component =
     void $ bitraverse_
       (\e -> H.modify _ { form = Left e })
       (\f -> eval $ EvalForm f a)
-      testPageEither
+      (Right testPage)
 
   eval (EvalForm form a) = a <$ do
     H.modify_ _ { form = pure form }
