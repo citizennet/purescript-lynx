@@ -246,7 +246,7 @@ active =
   { name: mkExpr (Val identity "Active")
   , visibility: mkExpr (Val identity true)
   , description: mkExpr (Val identity "Is user's account active")
-  , key: "firstName"
+  , key: "active"
   , input: Toggle
     { default: Just (mkExpr $ Val identity false)
     , value:
