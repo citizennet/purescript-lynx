@@ -2,18 +2,14 @@ module Lynx.Page.Form where
 
 import Prelude
 
-import Control.Comonad (extract)
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
-import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
-import Foreign.Object as Object
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
-import Heterogeneous.Mapping (hmap)
 import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Field(..), Input(..), Page(..), Section(..), testPageEither)
+import Lynx.Data.Form (Field, Input(..), Page, Section, testPageEither)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format

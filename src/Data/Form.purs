@@ -6,12 +6,8 @@ import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Identity (Identity)
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, over, unwrap, wrap)
-import Foreign.Object (Object)
-import Heterogeneous.Mapping (class HMap, class Mapping, hmap, mapping)
-import Lynx.Data.Expr (class Expressible, Expr, evalExpr')
+import Lynx.Data.Expr (Expr)
 import Type.Row (type (+))
 
 -- newtype EvalExpr = EvalExpr
