@@ -1,18 +1,18 @@
-module Test.Main where
+module Test.Lynx.Data.Form (suite) where
 
 import Prelude
 
 import Data.Argonaut (decodeJson, jsonParser)
 import Data.Either (Either, either)
-import Effect (Effect)
 import Lynx.Data.Expr (Expr)
 import Lynx.Data.Form (Page)
-import Test.Unit (Test, failure, success, test)
-import Test.Unit.Main (runTest)
+import Test.Unit (Test, TestSuite, failure, success, test)
+import Test.Unit as Test.Unit
 
-main :: Effect Unit
-main = runTest do
-  test "JSON parses to an Expr" (assertRight testPageEither)
+suite :: TestSuite
+suite =
+  Test.Unit.suite "Test.Lynx.Data.Form" do
+    test "JSON parses to an Expr" (assertRight testPageEither)
 
 assertRight :: forall a. Either String a -> Test
 assertRight = either failure (const success)
