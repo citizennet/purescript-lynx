@@ -1,0 +1,53 @@
+version: 2
+
+defaults: &defaults
+  working_directory: ~/lynx
+  docker:
+    - image: circleci/node:10.8-browsers
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v0.1-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
+            - v0.1-npm-cache-{{ .Branch }}
+            - v0.1-npm-cache
+
+      - restore_cache:
+          keys:
+            - v0.1-purs-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+            - v0.1-purs-cache-{{ .Branch }}
+            - v0.1-purs-cache
+
+      - run:
+          name: Install Node and Bower dependencies
+          command: npm i && npx bower i
+
+      - run:
+          name: Verify the project builds successfully
+          command: npm run build
+
+      - run:
+          name: Verify the tests run successfully
+          command: npm run test
+
+      - save_cache:
+          key: v0.1-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
+          paths:
+            - ~/lynx/node_modules
+
+      - save_cache:
+          key: v0.1-purs-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+          paths:
+            - ~/lynx/bower_components
+            - ~/lynx/output
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - test
