@@ -64,6 +64,33 @@ mkExpr
   -> Expr o
 mkExpr e = Expr (_ $ e)
 
+val_ :: forall o. Expressible o => o -> Expr o
+val_ x = mkExpr (Val identity x)
+
+if_
+  :: forall o
+   . Expressible o
+  => Expr Boolean
+  -> Expr o
+  -> Expr o
+  -> Expr o
+if_ x y z = mkExpr (If identity x y z)
+
+equal_
+  :: forall o
+   . Expressible o
+  => Expr o
+  -> Expr o
+  -> Expr Boolean
+equal_ x y = mkExpr (Equal identity x y)
+
+print_
+  :: forall o
+   . Expressible o
+  => Expr o
+  -> Expr String
+print_ x = mkExpr (Print identity x)
+
 runExpr
   :: ∀ o e
    . (∀ i. Expressible i => ExprF i o -> e)

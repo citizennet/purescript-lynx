@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (Expr, ExprF(..), mkExpr)
+import Lynx.Data.Expr (Expr, val_)
 import Type.Row (type (+))
 
 -- newtype EvalExpr = EvalExpr
@@ -205,16 +205,16 @@ testSection =
 
 firstName :: Field Expr
 firstName =
-  { name: mkExpr (Val identity "First Name")
-  , visibility: mkExpr (Val identity true)
-  , description: mkExpr (Val identity "Enter your first name")
+  { name: val_ "First Name"
+  , visibility: val_ true
+  , description: val_ "Enter your first name"
   , key: "firstName"
   , input: Text
     { default: Nothing
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: mkExpr (Val identity "")
-    , required: mkExpr (Val identity true)
+    , placeholder: val_ ""
+    , required: val_ true
     , value:
       { source: Nothing
       , value: Nothing
@@ -224,16 +224,16 @@ firstName =
 
 lastName :: Field Expr
 lastName =
-  { name: mkExpr (Val identity "Last Name")
-  , visibility: mkExpr (Val identity true)
-  , description: mkExpr (Val identity "Enter your last name")
+  { name: val_ "Last Name"
+  , visibility: val_ true
+  , description: val_ "Enter your last name"
   , key: "lastName"
   , input: Text
     { default: Nothing
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: mkExpr (Val identity "")
-    , required: mkExpr (Val identity true)
+    , placeholder: val_ ""
+    , required: val_ true
     , value:
       { source: Nothing
       , value: Nothing
@@ -243,12 +243,12 @@ lastName =
 
 active :: Field Expr
 active =
-  { name: mkExpr (Val identity "Active")
-  , visibility: mkExpr (Val identity true)
-  , description: mkExpr (Val identity "Is user's account active")
+  { name: val_ "Active"
+  , visibility: val_ true
+  , description: val_ "Is user's account active"
   , key: "active"
   , input: Toggle
-    { default: Just (mkExpr $ Val identity false)
+    { default: Just (val_ false)
     , value:
       { source: Nothing
       , value: Nothing
