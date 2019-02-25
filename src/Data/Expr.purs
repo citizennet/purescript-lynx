@@ -2,10 +2,9 @@ module Lynx.Data.Expr where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, jsonParser, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Leibniz (type (~), coerceSymm)
-import Data.String (trim)
 import Type.Prelude (Proxy(..))
 
 data ExprType
@@ -234,57 +233,3 @@ decodeEqualF [ x, y ] = do
   y' :: Expr i <- decodeJson y
   pure $ Equal identity x' y'
 decodeEqualF xs = Left "Expected 2 params"
-
-test1Json :: String
-test1Json = """
-  { "op": "Val", "param": 1, "in": "Void", "out": "Int" }
-"""
-
-test2Json :: String
-test2Json = """
-  { "op": "Val", "param": 2, "in": "Void", "out": "Int" }
-"""
-
-testTrueJson :: String
-testTrueJson = """
-  { "op": "Val", "param": true, "in": "Void", "out": "Boolean" }
-"""
-
-testFalseJson :: String
-testFalseJson = """
-  { "op": "Val", "param": false, "in": "Void", "out": "Boolean" }
-"""
-
-test1Either :: Either String (Expr Int)
-test1Either = decodeJson =<< jsonParser test1Json
-
-testAJson :: String
-testAJson = """
-  { "op": "Equal"
-  , "params":
-    [ """ <> trim test1Json <> """
-    , """ <> trim test2Json <> """
-    ]
-  , "in": "Int"
-  , "out": "Boolean"
-  }
-"""
-
-testAEither :: Either String (Expr Boolean)
-testAEither = decodeJson =<< jsonParser testAJson
-
-testBJson :: String
-testBJson = """
-  { "op": "If"
-  , "params":
-    [ """ <> trim testAJson <> """
-    , """ <> trim test1Json <> """
-    , """ <> trim test2Json <> """
-    ]
-  , "in": "Boolean"
-  , "out": "Int"
-  }
-"""
-
-testBEither :: Either String (Expr Int)
-testBEither = decodeJson =<< jsonParser testBJson
