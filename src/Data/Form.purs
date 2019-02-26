@@ -185,21 +185,21 @@ instance decodeInputSource :: DecodeJson InputSource where
 
 -- Test
 
-testPage :: Page Expr
-testPage =
+testPage :: (Key -> Maybe Boolean) -> Page Expr
+testPage f =
   { name: "Profile"
   , contents:
-    [ testSection
+    [ testSection f
     ]
   }
 
-testSection :: Section Expr
-testSection =
+testSection :: (Key -> Maybe Boolean) -> Section Expr
+testSection f =
   { name: "Name"
   , contents:
     [ firstName
     , lastName
-    , active
+    , active f
     ]
   }
 
@@ -241,11 +241,11 @@ lastName =
     }
   }
 
-active :: Field Expr
-active =
+active :: (Key -> Maybe Boolean) -> Field Expr
+active f =
   { name: val_ "Active"
   , visibility: val_ true
-  , description: lookup_ "active" (val_ "Is user's account active")
+  , description: lookup_ "active" (val_ "Is user's account active") (go <<< f)
   , key: "active"
   , input: Toggle
     { default: Just (val_ false)
@@ -255,3 +255,9 @@ active =
       }
     }
   }
+  where
+  go :: Maybe Boolean -> Maybe String
+  go = pure <<< case _ of
+    Nothing -> "Is user's account active?"
+    Just false -> "User's account is not active."
+    Just true -> "User's account is active."

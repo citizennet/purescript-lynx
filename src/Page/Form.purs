@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
+import Data.Identity (Identity)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
@@ -21,9 +21,9 @@ import Ocelot.Block.Layout as Layout
 import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.HTML.Properties (css)
 
-type State = forall o.
+type State =
   { form :: Either String { expr :: Page Expr, evaled :: Page Identity }
-  , values :: Map Key o
+  , values :: Map Key Boolean
   }
 
 data Query a
@@ -35,7 +35,7 @@ type ParentInput = String
 type Message = Void
 
 component
-  :: ∀ m o
+  :: ∀ m
    . H.Component HH.HTML Query ParentInput Message m
 component =
   H.lifecycleComponent
@@ -56,41 +56,52 @@ component =
 
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval (Initialize a) = a <$ do
+    values <- H.gets _.values
+    let get key = Data.Map.lookup key values
     void $ bitraverse_
       (\e -> H.modify _ { form = Left e })
       (\f -> eval $ EvalForm f a)
-      (Right testPage)
+      (Right $ testPage get)
 
   eval (EvalForm expr a) = a <$ do
     values <- H.gets _.values
-    let evaled = evalPage get expr
-        get :: Key -> Maybe o
+    let evaled = evalPage expr
         get key = Data.Map.lookup key values
     H.modify_ _ { form = pure { expr, evaled } }
     pure unit
 
-  evalPage :: (Key -> Maybe o) -> Page Expr -> Page Identity
-  evalPage get page = page
-    { contents = map (evalSection get) page.contents
+  evalPage :: Page Expr -> Page Identity
+  evalPage page = page
+    { contents = map evalSection page.contents
     }
 
-  evalSection :: (Key -> Maybe o) -> Section Expr -> Section Identity
-  evalSection get section = section
-    { contents = map (evalField get) section.contents
+  evalSection :: Section Expr -> Section Identity
+  evalSection section = section
+    { contents = map evalField section.contents
     }
 
-  evalField :: (Key -> Maybe o) -> Field Expr -> Field Identity
-  evalField get field = field
-    { description = pure (evalExpr' get field.description)
+  evalField :: Field Expr -> Field Identity
+  evalField field = field
+    { description = pure (evalExpr' field.description)
     , input = evalInput field.input
-    , name = pure (evalExpr' get field.name)
-    , visibility = pure (evalExpr' get field.visibility)
+    , name = pure (evalExpr' field.name)
+    , visibility = pure (evalExpr' field.visibility)
     }
 
   evalInput :: Input Expr -> Input Identity
   evalInput = case _ of
-    Text input -> Text ?input
-    Toggle input -> Toggle ?input
+    Text input -> Text
+      { default: map (pure <<< evalExpr') input.default
+      , maxLength: map (pure <<< evalExpr') input.maxLength
+      , minLength: map (pure <<< evalExpr') input.minLength
+      , placeholder: (pure <<< evalExpr') input.placeholder
+      , required: (pure <<< evalExpr') input.required
+      , value: input.value
+      }
+    Toggle input -> Toggle
+      { default: map (pure <<< evalExpr') input.default
+      , value: input.value
+      }
 
   render :: State -> H.ComponentHTML Query
   render { form } =

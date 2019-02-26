@@ -50,7 +50,7 @@ data ExprF i o
   | If (i ~ Boolean) (Expr Boolean) (Expr o) (Expr o)
   | Equal (o ~ Boolean) (Expr i) (Expr i)
   | Print (o ~ String) (Expr i)
-  | Lookup (i ~ Key) Key (Expr o)
+  | Lookup (i ~ Key) Key (Expr o) (Key -> Maybe o)
 
 data Expr o = Expr (∀ e. (∀ i. Expressible i => ExprF i o -> e) -> e)
 
@@ -101,8 +101,9 @@ lookup_
    . Expressible o
   => Key
   -> Expr o
+  -> (Key -> Maybe o)
   -> Expr o
-lookup_ x y = mkExpr (Lookup identity x y)
+lookup_ x y z = mkExpr (Lookup identity x y z)
 
 runExpr
   :: ∀ o e
@@ -114,19 +115,18 @@ runExpr r (Expr f) = f r
 evalExpr'
   :: ∀ o
    . Expressible o =>
-   (forall o2. Key -> Maybe o2) ->
    Expr o ->
    o
-evalExpr' get = runExpr eval
+evalExpr' = runExpr eval
   where
   eval :: ∀ i. Expressible i => ExprF i o -> o
   eval (Val _ x) = x
-  eval (If p x y z) = if evalExpr' get x then evalExpr' get y else evalExpr' get z
-  eval (Equal p x y) = coerceSymm p $ evalExpr' get x == evalExpr' get y
-  eval (Print p x) = coerceSymm p $ print $ evalExpr' get x
-  eval (Lookup _ x y) = case get x of
-    Nothing -> evalExpr' get y
-    Just z -> z
+  eval (If p x y z) = if evalExpr' x then evalExpr' y else evalExpr' z
+  eval (Equal p x y) = coerceSymm p $ evalExpr' x == evalExpr' y
+  eval (Print p x) = coerceSymm p $ print $ evalExpr' x
+  eval (Lookup _ x y z) = case z x of
+    Nothing -> evalExpr' y
+    Just w -> w
 
 toExprA :: ∀ o. Expressible o => Expr o -> ExprA
 toExprA = runExpr go
@@ -142,7 +142,7 @@ toExprA = runExpr go
   go (Print _ x) = PrintA (toExprA x)
     (reflectProxy $ Proxy :: Proxy i)
     (reflectProxy $ Proxy :: Proxy o)
-  go (Lookup _ x y) = LookupA x (toExprA y)
+  go (Lookup _ x y _) = LookupA x (toExprA y)
     (reflectProxy $ Proxy :: Proxy i)
     (reflectProxy $ Proxy :: Proxy o)
 
@@ -154,7 +154,7 @@ instance showExpr :: Expressible o => Show (Expr o) where
       go (If _ x y z) = "(If _ " <> show x <> " " <> show y <> " " <> show z <> ")"
       go (Equal _ x y) = "(Equal _ " <> show x <> " " <> show y <> ")"
       go (Print _ x) = "(Print _ " <> show x <> ")"
-      go (Lookup _ x y) = "(Lookup _ " <> show x <> " " <> show y <> ")"
+      go (Lookup _ x y _) = "(Lookup _ " <> show x <> " " <> show y <> " _)"
 
 instance encodeExprType :: EncodeJson ExprType where
   encodeJson (Boolean x) = encodeJson x
