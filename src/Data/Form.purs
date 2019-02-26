@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (Expr, val_)
+import Lynx.Data.Expr (Expr, lookup_, val_)
 import Type.Row (type (+))
 
 -- newtype EvalExpr = EvalExpr
@@ -245,7 +245,7 @@ active :: Field Expr
 active =
   { name: val_ "Active"
   , visibility: val_ true
-  , description: val_ "Is user's account active"
+  , description: lookup_ "active" (val_ "Is user's account active")
   , key: "active"
   , input: Toggle
     { default: Just (val_ false)

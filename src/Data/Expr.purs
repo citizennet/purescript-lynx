@@ -5,7 +5,10 @@ import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Leibniz (type (~), coerceSymm)
+import Data.Maybe (Maybe(..))
 import Type.Prelude (Proxy(..))
+
+type Key = String
 
 data ExprType
   = Boolean Boolean
@@ -47,6 +50,7 @@ data ExprF i o
   | If (i ~ Boolean) (Expr Boolean) (Expr o) (Expr o)
   | Equal (o ~ Boolean) (Expr i) (Expr i)
   | Print (o ~ String) (Expr i)
+  | Lookup (i ~ Key) Key (Expr o)
 
 data Expr o = Expr (∀ e. (∀ i. Expressible i => ExprF i o -> e) -> e)
 
@@ -55,6 +59,7 @@ data ExprA
   | IfA ExprA ExprA ExprA String String
   | EqualA ExprA ExprA String String
   | PrintA ExprA String String
+  | LookupA Key ExprA String String
 
 mkExpr
   :: ∀ i o
@@ -91,6 +96,14 @@ print_
   -> Expr String
 print_ x = mkExpr (Print identity x)
 
+lookup_
+  :: forall o
+   . Expressible o
+  => Key
+  -> Expr o
+  -> Expr o
+lookup_ x y = mkExpr (Lookup identity x y)
+
 runExpr
   :: ∀ o e
    . (∀ i. Expressible i => ExprF i o -> e)
@@ -98,14 +111,22 @@ runExpr
   -> e
 runExpr r (Expr f) = f r
 
-evalExpr' :: ∀ o. Expressible o => Expr o -> o
-evalExpr' = runExpr eval
+evalExpr'
+  :: ∀ o
+   . Expressible o =>
+   (forall o2. Key -> Maybe o2) ->
+   Expr o ->
+   o
+evalExpr' get = runExpr eval
   where
   eval :: ∀ i. Expressible i => ExprF i o -> o
   eval (Val _ x) = x
-  eval (If p x y z) = if evalExpr' x then evalExpr' y else evalExpr' z
-  eval (Equal p x y) = coerceSymm p $ evalExpr' x == evalExpr' y
-  eval (Print p x) = coerceSymm p $ print $ evalExpr' x
+  eval (If p x y z) = if evalExpr' get x then evalExpr' get y else evalExpr' get z
+  eval (Equal p x y) = coerceSymm p $ evalExpr' get x == evalExpr' get y
+  eval (Print p x) = coerceSymm p $ print $ evalExpr' get x
+  eval (Lookup _ x y) = case get x of
+    Nothing -> evalExpr' get y
+    Just z -> z
 
 toExprA :: ∀ o. Expressible o => Expr o -> ExprA
 toExprA = runExpr go
@@ -121,6 +142,9 @@ toExprA = runExpr go
   go (Print _ x) = PrintA (toExprA x)
     (reflectProxy $ Proxy :: Proxy i)
     (reflectProxy $ Proxy :: Proxy o)
+  go (Lookup _ x y) = LookupA x (toExprA y)
+    (reflectProxy $ Proxy :: Proxy i)
+    (reflectProxy $ Proxy :: Proxy o)
 
 instance showExpr :: Expressible o => Show (Expr o) where
   show = runExpr go
@@ -130,6 +154,7 @@ instance showExpr :: Expressible o => Show (Expr o) where
       go (If _ x y z) = "(If _ " <> show x <> " " <> show y <> " " <> show z <> ")"
       go (Equal _ x y) = "(Equal _ " <> show x <> " " <> show y <> ")"
       go (Print _ x) = "(Print _ " <> show x <> ")"
+      go (Lookup _ x y) = "(Lookup _ " <> show x <> " " <> show y <> ")"
 
 instance encodeExprType :: EncodeJson ExprType where
   encodeJson (Boolean x) = encodeJson x
@@ -145,6 +170,8 @@ instance encodeExprA :: EncodeJson ExprA where
     "params" := [ x, y ] ~> encodeHelper "Equal" i o
   encodeJson (PrintA x i o) =
     "params" := [ x ] ~> encodeHelper "Print" i o
+  encodeJson (LookupA x y i o) =
+    "params" := [ x ] ~> encodeHelper "Lookup" i o
 
 instance encodeExprBoolean :: EncodeJson (Expr Boolean) where
   encodeJson = encodeJson <<< toExprA
