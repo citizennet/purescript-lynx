@@ -4,12 +4,17 @@ import Prelude
 
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
+import Data.Foldable (foldMap)
+import Data.Map (Map)
+import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse)
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Field, Input(..), Page, Section, testPage)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, evalExpr)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), InputState, Page, Section, testPage)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
@@ -19,12 +24,14 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.HTML.Properties (css)
 
 type State =
-  { form :: Either String (Page Expr)
+  { form :: Either String { expr :: Page Expr, evaled :: Page ExprType }
+  , values :: Map Key ExprType
   }
 
 data Query a
   = Initialize a
   | EvalForm (Page Expr) a
+  | UpdateKey Key ExprType a
 
 type ParentInput = String
 
@@ -47,18 +54,105 @@ component =
   initialState :: State
   initialState =
     { form: Left "Loading..."
+    , values: mempty
     }
 
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval (Initialize a) = a <$ do
+    let values = keysPage testPage
+    H.modify_ _ { values = values }
     void $ bitraverse_
       (\e -> H.modify _ { form = Left e })
       (\f -> eval $ EvalForm f a)
       (Right testPage)
 
-  eval (EvalForm form a) = a <$ do
-    H.modify_ _ { form = pure form }
-    pure unit
+  eval (EvalForm expr a) = a <$ do
+    let evaled' = evalPage get expr
+        get key = Data.Map.lookup key values
+        values = keysPage expr
+    H.modify_ _ { values = values }
+    case evaled' of
+      Left _ -> pure unit
+      Right evaled -> H.modify_ _ { form = pure { expr, evaled } }
+
+  eval (UpdateKey key val a) = do
+    form <- H.gets _.form
+    case form of
+      Left _ -> pure a
+      Right { expr: expr' } -> do
+        H.modify_ \state ->
+          state { values = Data.Map.insert key val state.values }
+        let expr = setPage key val expr'
+        eval (EvalForm expr a)
+
+  evalPage :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
+  evalPage get page = do
+    contents <- traverse (evalSection get) page.contents
+    pure page { contents = contents }
+
+  evalSection :: (Key -> Maybe ExprType) -> Section Expr -> Either EvalError (Section ExprType)
+  evalSection get section = do
+    contents <- traverse (evalField get) section.contents
+    pure section { contents = contents }
+
+  evalField :: (Key -> Maybe ExprType) -> Field Expr -> Either EvalError (Field ExprType)
+  evalField get field = do
+    description <- evalExpr get field.description
+    input <- evalInput get field.input
+    name <- evalExpr get field.name
+    visibility <- evalExpr get field.visibility
+    pure { description, key: field.key, input, name, visibility }
+
+  evalInput :: (Key -> Maybe ExprType) -> Input Expr -> Either EvalError (Input ExprType)
+  evalInput get = case _ of
+    Text input -> do
+      default <- traverse (evalExpr get) input.default
+      maxLength <- traverse (evalExpr get) input.maxLength
+      minLength <- traverse (evalExpr get) input.minLength
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- evalInputState get input.value
+      pure
+        ( Text
+          { default
+          , maxLength
+          , minLength
+          , placeholder
+          , required
+          , value
+          }
+        )
+    Toggle input -> do
+      default <- traverse (evalExpr get) input.default
+      value <- evalInputState get input.value
+      pure (Toggle { default, value })
+
+  evalInputState :: (Key -> Maybe ExprType) -> Record (InputState Expr ()) -> Either EvalError (Record (InputState ExprType ()))
+  evalInputState get inputState = do
+    value <- traverse (evalExpr get) inputState.value
+    pure inputState { value = value }
+
+  keysPage :: Page Expr -> Map Key ExprType
+  keysPage page = foldMap keysSection page.contents
+
+  keysSection :: Section Expr -> Map Key ExprType
+  keysSection section = foldMap keysField section.contents
+
+  keysField :: Field Expr -> Map Key ExprType
+  keysField field = case field.input of
+    Text { value: { value: Just expr } }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    Text { default: Just expr }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    Toggle { value: { value: Just expr } }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    Toggle { default: Just expr }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    _ -> mempty
 
   render :: State -> H.ComponentHTML Query
   render { form } =
@@ -69,18 +163,18 @@ component =
         Right page ->
           append
           [ Format.heading_
-            [ HH.text page.name ]
+            [ HH.text page.evaled.name ]
           ]
-          $ renderSection <$> page.contents
+          $ renderSection <$> page.evaled.contents
 
-  renderSection :: Section Expr -> H.ComponentHTML Query
+  renderSection :: Section ExprType -> H.ComponentHTML Query
   renderSection (section) =
     Card.card_ $
       append
       [ Format.subHeading_ [ HH.text section.name ] ]
       $ renderField <$> section.contents
 
-  renderField :: Field Expr -> H.ComponentHTML Query
+  renderField :: Field ExprType -> H.ComponentHTML Query
   renderField (field) =
     FormField.field_
       { label: HH.text $ show field.name
@@ -90,7 +184,7 @@ component =
       }
       [ renderInput field ]
 
-  renderInput :: Field Expr -> H.ComponentHTML Query
+  renderInput :: Field ExprType -> H.ComponentHTML Query
   renderInput (field) = case field.input of
     Text input ->
       Input.input
@@ -101,4 +195,24 @@ component =
       Toggle.toggle
         [ HP.checked true
         , HP.id_ field.key
+        , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
+
+  setPage :: Key -> ExprType -> Page Expr -> Page Expr
+  setPage key val page =
+    page { contents = map (setSection key val) page.contents}
+
+  setSection :: Key -> ExprType -> Section Expr -> Section Expr
+  setSection key val section =
+    section { contents = map (setField key val) section.contents}
+
+  setField :: Key -> ExprType -> Field Expr -> Field Expr
+  setField key val field
+    | key == field.key = case field.input of
+      Text input ->
+        let value = { source: Just UserInput,  value: Just (Val val) }
+        in field { input = Text input { value = value }}
+      Toggle input ->
+        let value = { source: Just UserInput,  value: Just (Val val) }
+        in field { input = Toggle input { value = value }}
+    | otherwise = field
