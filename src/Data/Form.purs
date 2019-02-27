@@ -3,11 +3,12 @@ module Lynx.Data.Form where
 import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, fromString, (.:), (:=), (~>))
+import Data.Array (find)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (Expr, lookup_, val_)
+import Lynx.Data.Expr (class HasLookup, Expr, lookup, lookup_, val_)
 import Type.Row (type (+))
 
 -- newtype EvalExpr = EvalExpr
@@ -48,6 +49,25 @@ type LayoutRows c r =
 -- newtype Page f = Page (Record (LayoutRows (Section f) ()))
 
 type Page f = Record (LayoutRows (Section f) ())
+
+newtype PageF = Page (Page Expr)
+
+instance hasLookupPageString :: HasLookup PageF String where
+  lookup k (Page { contents }) = do
+    let fields = (_.contents =<< contents) :: Array (Field Expr)
+        field = find (\f -> f.key == k) fields
+    case field of
+      Just { input: Text { value } } -> value.value
+      Nothing -> Nothing
+else instance hasLookupPageBoolean :: HasLookup PageF Boolean where
+  lookup k (Page { contents }) = do
+    let fields = (_.contents =<< contents) :: Array (Field Expr)
+        field = find (\f -> f.key == k) fields
+    case field of
+      Just { input: Toggle { value } } -> value.value
+      Nothing -> Nothing
+else instance hasLookupPageInt :: HasLookup PageF Int where
+  lookup _ _ = Nothing
 
 -- derive instance newtypePage :: Newtype (Page f) _
 -- derive instance genericPage :: Generic (Page f) _
@@ -241,11 +261,11 @@ lastName =
     }
   }
 
-active :: (Key -> Maybe Boolean) -> Field Expr
+active :: Field Expr
 active f =
   { name: val_ "Active"
   , visibility: val_ true
-  , description: lookup_ "active" (val_ "Is user's account active") (go <<< f)
+  , description: lookup_ "active" (val_ "Is user's account active") (lookup "active")
   , key: "active"
   , input: Toggle
     { default: Just (val_ false)

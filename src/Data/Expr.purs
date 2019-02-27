@@ -2,6 +2,7 @@ module Lynx.Data.Expr where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Leibniz (type (~), coerceSymm)
@@ -9,6 +10,9 @@ import Data.Maybe (Maybe(..))
 import Type.Prelude (Proxy(..))
 
 type Key = String
+
+class HasLookup f o where
+  lookup :: Key -> f -> Maybe o
 
 data ExprType
   = Boolean Boolean
@@ -47,10 +51,10 @@ instance exprVoid :: Expressible Void where
 
 data ExprF i o
   = Val (i ~ Void) o
+  | Lookup (i ~ Void) Key (Expr o) (∀ f. HasLookup f o => f -> Maybe o)
   | If (i ~ Boolean) (Expr Boolean) (Expr o) (Expr o)
   | Equal (o ~ Boolean) (Expr i) (Expr i)
   | Print (o ~ String) (Expr i)
-  | Lookup (i ~ Key) Key (Expr o) (Key -> Maybe o)
 
 data Expr o = Expr (∀ e. (∀ i. Expressible i => ExprF i o -> e) -> e)
 
@@ -59,7 +63,7 @@ data ExprA
   | IfA ExprA ExprA ExprA String String
   | EqualA ExprA ExprA String String
   | PrintA ExprA String String
-  | LookupA Key ExprA String String
+  | LookupA Key ExprA String
 
 mkExpr
   :: ∀ i o
@@ -101,9 +105,9 @@ lookup_
    . Expressible o
   => Key
   -> Expr o
-  -> (Key -> Maybe o)
+  -> (∀ f. f -> Maybe o)
   -> Expr o
-lookup_ x y z = mkExpr (Lookup identity x y z)
+lookup_ k x f = mkExpr (Lookup identity k x f)
 
 runExpr
   :: ∀ o e
@@ -113,20 +117,23 @@ runExpr
 runExpr r (Expr f) = f r
 
 evalExpr'
-  :: ∀ o
-   . Expressible o =>
-   Expr o ->
-   o
-evalExpr' = runExpr eval
+  :: ∀ f o
+   . HasLookup f o
+  => HasLookup f Boolean
+  => Expressible o
+  => f
+  -> Expr o
+  -> o
+evalExpr' f = runExpr eval
   where
-  eval :: ∀ i. Expressible i => ExprF i o -> o
+  eval :: ∀ i. HasLookup f i => Expressible i => ExprF i o -> o
   eval (Val _ x) = x
-  eval (If p x y z) = if evalExpr' x then evalExpr' y else evalExpr' z
-  eval (Equal p x y) = coerceSymm p $ evalExpr' x == evalExpr' y
-  eval (Print p x) = coerceSymm p $ print $ evalExpr' x
-  eval (Lookup _ x y z) = case z x of
-    Nothing -> evalExpr' y
-    Just w -> w
+  eval (If p x y z) = if evalExpr' f x then evalExpr' f y else evalExpr' f z
+  eval (Equal p x y) = coerceSymm p $ evalExpr' f x == evalExpr' f y
+  eval (Print p x) = coerceSymm p $ print $ evalExpr' f x
+  eval (Lookup _ _ x get) = case get f of
+    Nothing -> evalExpr' f x
+    Just y -> y
 
 toExprA :: ∀ o. Expressible o => Expr o -> ExprA
 toExprA = runExpr go
@@ -142,8 +149,7 @@ toExprA = runExpr go
   go (Print _ x) = PrintA (toExprA x)
     (reflectProxy $ Proxy :: Proxy i)
     (reflectProxy $ Proxy :: Proxy o)
-  go (Lookup _ x y _) = LookupA x (toExprA y)
-    (reflectProxy $ Proxy :: Proxy i)
+  go (Lookup _ k x get) = LookupA k (toExprA x)
     (reflectProxy $ Proxy :: Proxy o)
 
 instance showExpr :: Expressible o => Show (Expr o) where
@@ -154,7 +160,7 @@ instance showExpr :: Expressible o => Show (Expr o) where
       go (If _ x y z) = "(If _ " <> show x <> " " <> show y <> " " <> show z <> ")"
       go (Equal _ x y) = "(Equal _ " <> show x <> " " <> show y <> ")"
       go (Print _ x) = "(Print _ " <> show x <> ")"
-      go (Lookup _ x y _) = "(Lookup _ " <> show x <> " " <> show y <> " _)"
+      go (Lookup _ k x _) = "(Lookup _ " <> show k <> " " <> show x <> " _)"
 
 instance encodeExprType :: EncodeJson ExprType where
   encodeJson (Boolean x) = encodeJson x
@@ -170,8 +176,8 @@ instance encodeExprA :: EncodeJson ExprA where
     "params" := [ x, y ] ~> encodeHelper "Equal" i o
   encodeJson (PrintA x i o) =
     "params" := [ x ] ~> encodeHelper "Print" i o
-  encodeJson (LookupA x y i o) =
-    "params" := [ x ] ~> encodeHelper "Lookup" i o
+  encodeJson (LookupA k x o) =
+    "params" := [ encodeJson k, encodeJson x ] ~> encodeHelper "Lookup" "Void" o
 
 instance encodeExprBoolean :: EncodeJson (Expr Boolean) where
   encodeJson = encodeJson <<< toExprA
@@ -236,10 +242,10 @@ else instance decodeExprString :: DecodeJson (Expr String) where
         pure $ mkExpr e
       other -> Left $ other <> " not implemented"
 
-instance decodeVal :: DecodeJson o => DecodeJson (ExprF Void o) where
+instance decodeVal :: (DecodeJson o, DecodeJson (Expr o)) => DecodeJson (ExprF Void o) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "param" >>= pure <<< Val identity
+    (x .: "param" >>= pure <<< Val identity) <|> (x .: "params" >>= decodeLookupF)
 else instance decodeExprFBooleanBoolean :: DecodeJson (ExprF Boolean Boolean) where
   decodeJson json = do
     x <- decodeJson json
@@ -264,6 +270,17 @@ else instance decodeExprFBooleanO :: DecodeJson (Expr o) => DecodeJson (ExprF Bo
       op -> Left $ op <> " invalid op"
 else instance decodeExprFOther :: DecodeJson (ExprF i o) where
   decodeJson _ = Left "Unimplemented"
+
+decodeLookupF
+  :: ∀ o
+   . DecodeJson (Expr o)
+  => Array Json
+  -> Either String (ExprF Void o)
+decodeLookupF [ k, x ] = do
+  k' :: Key <- decodeJson k
+  x' :: Expr o <- decodeJson x
+  pure $ Lookup identity k' x' (lookup k')
+decodeLookupF xs = Left "Expected 2 params"
 
 decodeIfF
   :: ∀ o
