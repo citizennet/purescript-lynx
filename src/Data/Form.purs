@@ -2,7 +2,7 @@ module Lynx.Data.Form where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, fromString)
+import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, fromString, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -63,6 +63,19 @@ data Input f
 
 derive instance genericInput :: Generic (Input Expr) _
 instance showInput :: Show (Input Expr) where show = genericShow
+
+instance encodeInput :: EncodeJson (Input Expr) where
+  encodeJson = case _ of
+    Text r -> "type" := "Text" ~> encodeJson r
+    Toggle r -> "type" := "Toggle" ~> encodeJson r
+
+instance decodeJsonInput :: DecodeJson (Input Expr) where
+  decodeJson json = do
+    x <- decodeJson json
+    x .: "type" >>= case _ of
+      "Text" -> pure <<< Text <=< decodeJson $ json
+      "Toggle" -> pure <<< Toggle <=< decodeJson $ json
+      t -> Left $ "Unsupported Input type: " <> t
 
 data InputSource
   = UserInput
