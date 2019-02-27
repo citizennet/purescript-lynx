@@ -31,10 +31,17 @@ reflectType (Boolean _) = "Boolean"
 reflectType (Int _) = "Int"
 reflectType (String _) = "String"
 
+print :: ExprType -> ExprType
+print = case _ of
+  Boolean x -> String (show x)
+  Int x -> String (show x)
+  String x -> String x
+
 data Expr
   = Val ExprType
   | If Expr Expr Expr
   | Equal Expr Expr
+  | Print Expr
   | Lookup Key
 
 derive instance genericExpr :: Generic Expr _
@@ -67,6 +74,7 @@ data ExprA
   = ValA ExprType
   | IfA ExprA ExprA ExprA String String
   | EqualA ExprA ExprA String String
+  | PrintA ExprA String String
   | LookupA Key String
 
 instance encodeJsonExprA :: EncodeJson ExprA where
@@ -77,6 +85,8 @@ instance encodeJsonExprA :: EncodeJson ExprA where
         "params" := [ x, y, z ] ~> encodeHelper "If" i o
       EqualA x y i o ->
         "params" := [ x, y ] ~> encodeHelper "Equal" i o
+      PrintA x i o ->
+        "params" := [ x ] ~> encodeHelper "Print" i o
       LookupA x o -> "param" := x ~> encodeHelper "Lookup" "Void" o
 
 toExprA :: Expr -> ExprA
@@ -84,6 +94,7 @@ toExprA = case _ of
   Val x -> ValA x
   If x y z -> IfA (toExprA x) (toExprA y) (toExprA z) (reflectIn x) (reflectOut y)
   Equal x y -> EqualA (toExprA x) (toExprA y) (reflectIn x) (reflectOut x)
+  Print x -> PrintA (toExprA x) (reflectIn x) "String"
   Lookup x -> LookupA x "???"
   where
   reflectIn :: Expr -> String
@@ -91,12 +102,14 @@ toExprA = case _ of
     Val _ -> "Void"
     If x _ _ -> reflectIn x
     Equal x _ -> reflectIn x
+    Print x -> reflectIn x
     Lookup _ -> "Void"
   reflectOut :: Expr -> String
   reflectOut = case _ of
     Val x -> reflectType x
     If _ x _ -> reflectOut x
     Equal _ _ -> "Boolean"
+    Print x -> "String"
     Lookup _ -> "???"
 
 encodeHelper :: String -> String -> String -> Json
@@ -123,6 +136,9 @@ evalExpr get = case _ of
     Right left, Right right -> Left (EqualMismatch { left, right })
     Left x, _ -> Left x
     _, Left x -> Left x
+  Print x' -> case evalExpr get x' of
+    Right x -> Right (print x)
+    Left x -> Left x
   Lookup x -> maybe (Left $ MissingKey x) Right (get x)
 
 boolean_ :: Boolean -> Expr
