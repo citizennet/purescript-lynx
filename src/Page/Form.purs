@@ -13,8 +13,9 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, evalExpr)
+import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, evalExpr, reflectType)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), InputState, Page, Section, testPage)
+import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
@@ -24,7 +25,7 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.HTML.Properties (css)
 
 type State =
-  { form :: Either String { expr :: Page Expr, evaled :: Page ExprType }
+  { form :: RemoteData EvalError { expr :: Page Expr, evaled :: Page ExprType }
   , values :: Map Key ExprType
   }
 
@@ -53,37 +54,29 @@ component =
 
   initialState :: State
   initialState =
-    { form: Left "Loading..."
+    { form: Loading
     , values: mempty
     }
 
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval (Initialize a) = a <$ do
-    let values = keysPage testPage
-    H.modify_ _ { values = values }
+    H.modify_ _ { values = keysPage testPage }
     void $ bitraverse_
-      (\e -> H.modify _ { form = Left e })
+      (\e -> H.modify _ { form = Failure e })
       (\f -> eval $ EvalForm f a)
       (Right testPage)
 
   eval (EvalForm expr a) = a <$ do
-    let evaled' = evalPage get expr
-        get key = Data.Map.lookup key values
-        values = keysPage expr
-    H.modify_ _ { values = values }
-    case evaled' of
-      Left _ -> pure unit
-      Right evaled -> H.modify_ _ { form = pure { expr, evaled } }
+    { values } <- H.get
+    let evaled = evalPage (\key -> Data.Map.lookup key values) expr
+    H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
 
   eval (UpdateKey key val a) = do
-    form <- H.gets _.form
+    H.modify_ \state -> state { values = Data.Map.insert key val state.values }
+    { form } <- H.get
     case form of
-      Left _ -> pure a
-      Right { expr: expr' } -> do
-        H.modify_ \state ->
-          state { values = Data.Map.insert key val state.values }
-        let expr = setPage key val expr'
-        eval (EvalForm expr a)
+      Success { expr } -> eval (EvalForm (setPage key val expr) a)
+      _ -> pure a
 
   evalPage :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
   evalPage get page = do
@@ -158,14 +151,35 @@ component =
   render { form } =
     Layout.section_
       case form of
-        Left e ->
-          [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text e ] ] ]
-        Right page ->
+        NotAsked ->
+          []
+        Loading ->
+          [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text "Loading..." ] ] ]
+        Failure e ->
+          [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
+        Success page ->
           append
           [ Format.heading_
             [ HH.text page.evaled.name ]
           ]
           $ renderSection <$> page.evaled.contents
+
+  renderEvalError :: forall a. EvalError -> H.ComponentHTML a
+  renderEvalError = case _ of
+    MissingKey x ->
+      HH.text $ "Could not find input with key: " <> show x
+    IfCondition x ->
+      HH.text $
+        "Expected conditional to be a Boolean, but its type is: "
+          <> reflectType x
+    EqualMismatch x ->
+      HH.text $
+        "Expected both sides of equal to have the same type,"
+          <> " but they are different."
+          <> " left: "
+          <> reflectType x.left
+          <> " right: "
+          <> reflectType x.right
 
   renderSection :: Section ExprType -> H.ComponentHTML Query
   renderSection (section) =
