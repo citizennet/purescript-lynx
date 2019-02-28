@@ -166,8 +166,6 @@ component =
 
   renderEvalError :: forall a. EvalError -> H.ComponentHTML a
   renderEvalError = case _ of
-    MissingKey x ->
-      HH.text $ "Could not find input with key: " <> show x
     IfCondition x ->
       HH.text $
         "Expected conditional to be a Boolean, but its type is: "
