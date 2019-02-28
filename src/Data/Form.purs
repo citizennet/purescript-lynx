@@ -7,37 +7,8 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (Expr, val_)
+import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
 import Type.Row (type (+))
-
--- newtype EvalExpr = EvalExpr
-  -- { lookups :: Object (Array String)
-  -- }
-
--- instance evalMaybeExpr
-  -- :: Expressible o
-  -- => Mapping EvalExpr (Maybe (Expr o)) (Maybe (Identity o))
-  -- where
-  -- mapping f = map $ mapping f
--- else instance evalArr
-  -- :: HMap EvalExpr (n Expr) (n Identity)
-  -- => Mapping EvalExpr (Array (n Expr)) (Array (n Identity))
-  -- where
-  -- mapping f = map $ hmap f
--- else instance evalExpr
-  -- :: Expressible o
-  -- => Mapping EvalExpr (Expr o) (Identity o)
-  -- where
-  -- mapping (EvalExpr f) = do
-    -- pure <<< evalExpr'
--- else instance evalInput
-  -- :: Mapping EvalExpr (Input Expr) (Input Identity)
-  -- where
-  -- mapping f = hmap f
--- else instance evalVal
-  -- :: Mapping EvalExpr a a
-  -- where
-  -- mapping f = identity
 
 type LayoutRows c r =
   ( name :: String
@@ -45,89 +16,38 @@ type LayoutRows c r =
   | r
   )
 
--- newtype Page f = Page (Record (LayoutRows (Section f) ()))
-
 type Page f = Record (LayoutRows (Section f) ())
 
--- derive instance newtypePage :: Newtype (Page f) _
--- derive instance genericPage :: Generic (Page f) _
--- instance showPage :: Show (Page Expr) where show = genericShow
-
--- instance encodePage :: EncodeJson (Page Expr) where
-  -- encodeJson = encodeJson <<< unwrap
-
--- instance decodePage :: DecodeJson (Page Expr) where
-  -- decodeJson = pure <<< wrap <=< decodeJson
-
--- instance hmapPage
-  -- :: HMap EvalExpr (Page Expr) (Page Identity)
-  -- where
-  -- hmap f = over Page $ hmap f
-
--- newtype Section f = Section (Record (LayoutRows (Field f) ()))
-
 type Section f = Record (LayoutRows (Field f) ())
-
--- derive instance newtypeSection :: Newtype (Section f) _
--- derive instance genericSection :: Generic (Section f) _
--- instance showSection :: Show (Section Expr) where show = genericShow
-
--- instance encodeSection :: EncodeJson (Section Expr) where
-  -- encodeJson = encodeJson <<< unwrap
-
--- instance decodeSection :: DecodeJson (Section Expr) where
-  -- decodeJson = pure <<< wrap <=< decodeJson
-
--- instance hmapSection
-  -- :: HMap EvalExpr (Section Expr) (Section Identity)
-  -- where
-  -- hmap f = over Section $ hmap f
 
 type Key = String
 
 type FieldRows f r =
-  ( name :: f String
-  , visibility :: f Boolean
-  , description :: f String
+  ( name :: f
+  , visibility :: f
+  , description :: f
   , key :: Key
   , input :: Input f
   | r
   )
 
--- newtype Field f = Field (Record (FieldRows f ()))
-
 type Field f = Record (FieldRows f ())
 
--- derive instance newtypeField :: Newtype (Field f) _
--- derive instance genericField :: Generic (Field f) _
--- instance showField :: Show (Field Expr) where show = genericShow
-
--- instance encodeField :: EncodeJson (Field Expr) where
-  -- encodeJson = encodeJson <<< unwrap
-
--- instance decodeField :: DecodeJson (Field Expr) where
-  -- decodeJson = pure <<< wrap <=< decodeJson
-
--- instance hmapField
-  -- :: HMap EvalExpr (Field Expr) (Field Identity)
-  -- where
-  -- hmap f = over Field $ hmap f
-
-type SharedRows f t r =
-  ( default :: Maybe (f t)
-  , value :: Record (InputState t ())
+type SharedRows f r =
+  ( default :: Maybe f
+  , value :: Record (InputState f ())
   | r
   )
 
 type RequiredRows f r =
-  ( required :: f Boolean
+  ( required :: f
   | r
   )
 
 type StringRows f r =
-  ( placeholder :: f String
-  , maxLength :: Maybe (f Int)
-  , minLength :: Maybe (f Int)
+  ( placeholder :: f
+  , maxLength :: Maybe f
+  , minLength :: Maybe f
   | r
   )
 
@@ -138,16 +58,11 @@ type InputState t r =
   )
 
 data Input f
-  = Text (Record (SharedRows f String + RequiredRows f + StringRows f ()))
-  | Toggle (Record (SharedRows f Boolean ()))
+  = Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
+  | Toggle (Record (SharedRows f ()))
 
 derive instance genericInput :: Generic (Input f) _
 instance showInput :: Show (Input Expr) where show = genericShow
--- instance hmapInput
-  -- :: HMap EvalExpr (Input Expr) (Input Identity)
-  -- where
-  -- hmap f (Text r) = Text $ hmap f r
-  -- hmap f (Toggle r) = Toggle $ hmap f r
 
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
@@ -205,16 +120,16 @@ testSection =
 
 firstName :: Field Expr
 firstName =
-  { name: val_ "First Name"
-  , visibility: val_ true
-  , description: val_ "Enter your first name"
+  { name: string_ "First Name"
+  , visibility: boolean_ true
+  , description: string_ "Enter your first name"
   , key: "firstName"
   , input: Text
     { default: Nothing
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: val_ ""
-    , required: val_ true
+    , placeholder: string_ ""
+    , required: boolean_ true
     , value:
       { source: Nothing
       , value: Nothing
@@ -224,16 +139,16 @@ firstName =
 
 lastName :: Field Expr
 lastName =
-  { name: val_ "Last Name"
-  , visibility: val_ true
-  , description: val_ "Enter your last name"
+  { name: string_ "Last Name"
+  , visibility: boolean_ true
+  , description: string_ "Enter your last name"
   , key: "lastName"
   , input: Text
     { default: Nothing
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: val_ ""
-    , required: val_ true
+    , placeholder: string_ ""
+    , required: boolean_ true
     , value:
       { source: Nothing
       , value: Nothing
@@ -243,15 +158,19 @@ lastName =
 
 active :: Field Expr
 active =
-  { name: val_ "Active"
-  , visibility: val_ true
-  , description: val_ "Is user's account active"
+  { name: string_ "Active"
+  , visibility: boolean_ true
+  , description
   , key: "active"
   , input: Toggle
-    { default: Just (val_ false)
+    { default: Just (boolean_ true)
     , value:
       { source: Nothing
       , value: Nothing
       }
     }
   }
+  where
+  description = if_ (lookup_ "active" $ boolean_ true)
+    (string_ "User's account is active!")
+    (string_ "User's account is not active")

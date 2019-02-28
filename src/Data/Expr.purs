@@ -4,259 +4,162 @@ import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
-import Data.Leibniz (type (~), coerceSymm)
-import Type.Prelude (Proxy(..))
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
+import Data.Maybe (Maybe, maybe')
+
+type Key = String
 
 data ExprType
   = Boolean Boolean
   | Int Int
   | String String
 
+derive instance genericExprType :: Generic ExprType _
+
+instance showExprType :: Show ExprType where
+  show = genericShow
+
+instance encodeJsonExprType :: EncodeJson ExprType where
+  encodeJson = case _ of
+    Boolean x -> encodeJson x
+    Int x -> encodeJson x
+    String x -> encodeJson x
+
 reflectType :: ExprType -> String
 reflectType (Boolean _) = "Boolean"
 reflectType (Int _) = "Int"
 reflectType (String _) = "String"
 
-class (Show a, Eq a) <= Expressible a where
-  toExprType :: a -> ExprType
-  reflectProxy :: Proxy a -> String
-  print :: a -> String
+print :: ExprType -> String
+print = case _ of
+  Boolean x -> show x
+  Int x -> show x
+  String x -> x
 
-instance exprBoolean :: Expressible Boolean where
-  toExprType = Boolean
-  reflectProxy _ = "Boolean"
-  print = show
+data Expr
+  = Val ExprType
+  | If Expr Expr Expr
+  | Equal Expr Expr
+  | Print Expr
+  | Lookup Key Expr
 
-instance exprInt :: Expressible Int where
-  toExprType = Int
-  reflectProxy _ = "Int"
-  print = show
+derive instance genericExpr :: Generic Expr _
 
-instance exprString :: Expressible String where
-  toExprType = String
-  reflectProxy _ = "String"
-  print = identity
+instance showExpr :: Show Expr where
+  show x = genericShow x
 
-instance exprVoid :: Expressible Void where
-  toExprType = absurd
-  reflectProxy _ = "Void"
-  print = show
+instance encodeJsonExpr :: EncodeJson Expr where
+  encodeJson = encodeJson <<< toExprA
 
-data ExprF i o
-  = Val (i ~ Void) o
-  | If (i ~ Boolean) (Expr Boolean) (Expr o) (Expr o)
-  | Equal (o ~ Boolean) (Expr i) (Expr i)
-  | Print (o ~ String) (Expr i)
-
-data Expr o = Expr (∀ e. (∀ i. Expressible i => ExprF i o -> e) -> e)
+instance decodeJsonExpr :: DecodeJson Expr where
+  decodeJson json = do
+    x' <- decodeJson json
+    x' .: "op" >>= case _ of
+      "Val" -> x' .: "out" >>= case _ of
+        "Boolean" -> x' .: "param" >>= pure <<< boolean_
+        "Int" -> x' .: "param" >>= pure <<< int_
+        "String" -> x' .: "param" >>= pure <<< string_
+        out -> Left $ out <> " not implemented"
+      "If" -> x' .: "params" >>= case _ of
+        [x, y, z] -> pure (if_ x y z)
+        _ -> Left "Expected 3 params"
+      "Equal" -> x' .: "params" >>= case _ of
+        [x, y] -> pure (equal_ x y)
+        _ -> Left "Expected 2 params"
+      "Lookup" -> x' .: "params" >>= case _ of
+        [x, y] -> do
+          key <- decodeJson x
+          default <- decodeJson y
+          pure (lookup_ key default)
+        _ -> Left "Expected 2 params"
+      op -> Left $ op <> " invalid op"
 
 data ExprA
   = ValA ExprType
   | IfA ExprA ExprA ExprA String String
   | EqualA ExprA ExprA String String
   | PrintA ExprA String String
+  | LookupA Key ExprA String
 
-mkExpr
-  :: ∀ i o
-   . Expressible i
-  => Expressible o
-  => ExprF i o
-  -> Expr o
-mkExpr e = Expr (_ $ e)
+instance encodeJsonExprA :: EncodeJson ExprA where
+  encodeJson =
+    case _ of
+      ValA x -> "param" := x ~> encodeHelper "Val" "Void" (reflectType x)
+      IfA x y z i o ->
+        "params" := [ x, y, z ] ~> encodeHelper "If" i o
+      EqualA x y i o ->
+        "params" := [ x, y ] ~> encodeHelper "Equal" i o
+      PrintA x i o ->
+        "params" := [ x ] ~> encodeHelper "Print" i o
+      LookupA x y o ->
+        "params" := [ encodeJson x, encodeJson y ] ~> encodeHelper "Lookup" "Void" o
 
-val_ :: forall o. Expressible o => o -> Expr o
-val_ x = mkExpr (Val identity x)
-
-if_
-  :: forall o
-   . Expressible o
-  => Expr Boolean
-  -> Expr o
-  -> Expr o
-  -> Expr o
-if_ x y z = mkExpr (If identity x y z)
-
-equal_
-  :: forall o
-   . Expressible o
-  => Expr o
-  -> Expr o
-  -> Expr Boolean
-equal_ x y = mkExpr (Equal identity x y)
-
-print_
-  :: forall o
-   . Expressible o
-  => Expr o
-  -> Expr String
-print_ x = mkExpr (Print identity x)
-
-runExpr
-  :: ∀ o e
-   . (∀ i. Expressible i => ExprF i o -> e)
-  -> Expr o
-  -> e
-runExpr r (Expr f) = f r
-
-evalExpr' :: ∀ o. Expressible o => Expr o -> o
-evalExpr' = runExpr eval
+toExprA :: Expr -> ExprA
+toExprA = case _ of
+  Val x -> ValA x
+  If x y z -> IfA (toExprA x) (toExprA y) (toExprA z) (reflectIn x) (reflectOut y)
+  Equal x y -> EqualA (toExprA x) (toExprA y) (reflectIn x) (reflectOut x)
+  Print x -> PrintA (toExprA x) (reflectIn x) "String"
+  Lookup x y -> LookupA x (toExprA y) (reflectOut y)
   where
-  eval :: ∀ i. Expressible i => ExprF i o -> o
-  eval (Val _ x) = x
-  eval (If p x y z) = if evalExpr' x then evalExpr' y else evalExpr' z
-  eval (Equal p x y) = coerceSymm p $ evalExpr' x == evalExpr' y
-  eval (Print p x) = coerceSymm p $ print $ evalExpr' x
-
-toExprA :: ∀ o. Expressible o => Expr o -> ExprA
-toExprA = runExpr go
-  where
-  go :: ∀ i. Expressible i => ExprF i o -> ExprA
-  go (Val _ x) = ValA (toExprType x)
-  go (If _ x y z) = IfA (toExprA x) (toExprA y) (toExprA z)
-    (reflectProxy $ Proxy :: Proxy i)
-    (reflectProxy $ Proxy :: Proxy o)
-  go (Equal _ x y) = EqualA (toExprA x) (toExprA y)
-    (reflectProxy $ Proxy :: Proxy i)
-    (reflectProxy $ Proxy :: Proxy o)
-  go (Print _ x) = PrintA (toExprA x)
-    (reflectProxy $ Proxy :: Proxy i)
-    (reflectProxy $ Proxy :: Proxy o)
-
-instance showExpr :: Expressible o => Show (Expr o) where
-  show = runExpr go
-    where
-      go :: ∀ i. Expressible i => ExprF i o -> String
-      go (Val _ x) = "(Val _ " <> show x <> ")"
-      go (If _ x y z) = "(If _ " <> show x <> " " <> show y <> " " <> show z <> ")"
-      go (Equal _ x y) = "(Equal _ " <> show x <> " " <> show y <> ")"
-      go (Print _ x) = "(Print _ " <> show x <> ")"
-
-instance encodeExprType :: EncodeJson ExprType where
-  encodeJson (Boolean x) = encodeJson x
-  encodeJson (Int x) = encodeJson x
-  encodeJson (String x) = encodeJson x
-
-instance encodeExprA :: EncodeJson ExprA where
-  encodeJson (ValA x) =
-    "param" := x ~> encodeHelper "Val" "Void" (reflectType x)
-  encodeJson (IfA x y z i o) =
-    "params" := [ x, y, z ] ~> encodeHelper "If" i o
-  encodeJson (EqualA x y i o) =
-    "params" := [ x, y ] ~> encodeHelper "Equal" i o
-  encodeJson (PrintA x i o) =
-    "params" := [ x ] ~> encodeHelper "Print" i o
-
-instance encodeExprBoolean :: EncodeJson (Expr Boolean) where
-  encodeJson = encodeJson <<< toExprA
-else instance encodeExprInt :: EncodeJson (Expr Int) where
-  encodeJson = encodeJson <<< toExprA
-else instance encodeExprString :: EncodeJson (Expr String) where
-  encodeJson = encodeJson <<< toExprA
+  reflectIn :: Expr -> String
+  reflectIn = case _ of
+    Val _ -> "Void"
+    If x _ _ -> reflectIn x
+    Equal x _ -> reflectIn x
+    Print x -> reflectIn x
+    Lookup _ _ -> "Void"
+  reflectOut :: Expr -> String
+  reflectOut = case _ of
+    Val x -> reflectType x
+    If _ x _ -> reflectOut x
+    Equal _ _ -> "Boolean"
+    Print x -> "String"
+    Lookup _ x -> reflectOut x
 
 encodeHelper :: String -> String -> String -> Json
 encodeHelper op i o =
   "op" := op ~> "in" := i ~> "out" := o ~> jsonEmptyObject
 
-instance decodeExprBoolean :: DecodeJson (Expr Boolean) where
-  decodeJson json = do
-    x <- decodeJson json
-    x .: "in" >>= case _ of
-      "Boolean" -> do
-        e :: ExprF Boolean Boolean <- decodeJson json
-        pure $ mkExpr e
-      "Int" -> do
-        e :: ExprF Int Boolean <- decodeJson json
-        pure $ mkExpr e
-      "String" -> do
-        e :: ExprF String Boolean <- decodeJson json
-        pure $ mkExpr e
-      "Void" -> do
-        e :: ExprF Void Boolean <- decodeJson json
-        pure $ mkExpr e
-      other -> Left $ other <> " not implemented"
-else instance decodeExprInt :: DecodeJson (Expr Int) where
-  decodeJson json = do
-    x <- decodeJson json
-    x .: "in" >>= case _ of
-      "Boolean" -> do
-        e :: ExprF Boolean Int <- decodeJson json
-        pure $ mkExpr e
-      "Int" -> do
-        e :: ExprF Int Int <- decodeJson json
-        pure $ mkExpr e
-      "String" -> do
-        e :: ExprF String Int <- decodeJson json
-        pure $ mkExpr e
-      "Void" -> do
-        e :: ExprF Void Int <- decodeJson json
-        pure $ mkExpr e
-      other -> Left $ other <> " not implemented"
-else instance decodeExprString :: DecodeJson (Expr String) where
-  decodeJson json = do
-    x <- decodeJson json
-    x .: "in" >>= case _ of
-      "Boolean" -> do
-        e :: ExprF Boolean String <- decodeJson json
-        pure $ mkExpr e
-      "Int" -> do
-        e :: ExprF Int String <- decodeJson json
-        pure $ mkExpr e
-      "String" -> do
-        e :: ExprF String String <- decodeJson json
-        pure $ mkExpr e
-      "Void" -> do
-        e :: ExprF Void String <- decodeJson json
-        pure $ mkExpr e
-      other -> Left $ other <> " not implemented"
+data EvalError
+  = IfCondition ExprType
+  | EqualMismatch { left :: ExprType, right :: ExprType }
 
-instance decodeVal :: DecodeJson o => DecodeJson (ExprF Void o) where
-  decodeJson json = do
-    x <- decodeJson json
-    x .: "param" >>= pure <<< Val identity
-else instance decodeExprFBooleanBoolean :: DecodeJson (ExprF Boolean Boolean) where
-  decodeJson json = do
-    x <- decodeJson json
-    params <- x .: "params"
-    x .: "op" >>= case _ of
-      "If" -> decodeIfF params
-      "Equal" -> decodeEqualF params
-      op -> Left $ op <> " invald op"
-else instance decodeExprFIBoolean :: DecodeJson (Expr i) => DecodeJson (ExprF i Boolean) where
-  decodeJson json = do
-    x <- decodeJson json
-    params <- x .: "params"
-    x .: "op" >>= case _ of
-      "Equal" -> decodeEqualF params
-      op -> Left $ op <> " invalid op"
-else instance decodeExprFBooleanO :: DecodeJson (Expr o) => DecodeJson (ExprF Boolean o) where
-  decodeJson json = do
-    x <- decodeJson json
-    params <- x .: "params"
-    x .: "op" >>= case _ of
-      "If" -> decodeIfF params
-      op -> Left $ op <> " invalid op"
-else instance decodeExprFOther :: DecodeJson (ExprF i o) where
-  decodeJson _ = Left "Unimplemented"
+evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
+evalExpr get = case _ of
+  Val x -> pure x
+  If x' y z -> do
+    x <- evalExpr get x'
+    case x of
+      Boolean false -> evalExpr get z
+      Boolean true -> evalExpr get y
+      _ -> Left (IfCondition x)
+  Equal x' y' -> do
+    left <- evalExpr get x'
+    right <- evalExpr get y'
+    case left, right of
+      Boolean x, Boolean y -> Right (Boolean $ x == y)
+      Int x, Int y -> Right (Boolean $ x == y)
+      String x, String y -> Right (Boolean $ x == y)
+      _, _ -> Left (EqualMismatch { left, right })
+  Print x' -> map (String <<< print) (evalExpr get x')
+  Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
-decodeIfF
-  :: ∀ o
-   . DecodeJson (Expr o)
-  => Array Json
-  -> Either String (ExprF Boolean o)
-decodeIfF [ x, y, z ] = do
-  x' :: Expr Boolean <- decodeJson x
-  y' :: Expr o <- decodeJson y
-  z' :: Expr o <- decodeJson z
-  pure $ If identity x' y' z'
-decodeIfF xs = Left "Expceted 3 params"
+boolean_ :: Boolean -> Expr
+boolean_ = Val <<< Boolean
 
-decodeEqualF
-  :: ∀ i
-   . DecodeJson (Expr i)
-  => Array Json
-  -> Either String (ExprF i Boolean)
-decodeEqualF [ x, y ] = do
-  x' :: Expr i <- decodeJson x
-  y' :: Expr i <- decodeJson y
-  pure $ Equal identity x' y'
-decodeEqualF xs = Left "Expected 2 params"
+int_ :: Int -> Expr
+int_ = Val <<< Int
+
+string_ :: String -> Expr
+string_ = Val <<< String
+
+if_ :: Expr -> Expr -> Expr -> Expr
+if_ = If
+
+equal_ :: Expr -> Expr -> Expr
+equal_ = Equal
+
+lookup_ :: Key -> Expr -> Expr
+lookup_ = Lookup

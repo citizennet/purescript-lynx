@@ -37,7 +37,7 @@ testFalseJson = """
   { "op": "Val", "param": false, "in": "Void", "out": "Boolean" }
 """
 
-test1Either :: Either String (Expr Int)
+test1Either :: Either String Expr
 test1Either = decodeJson =<< jsonParser test1Json
 
 testAJson :: String
@@ -52,7 +52,7 @@ testAJson = """
   }
 """
 
-testAEither :: Either String (Expr Boolean)
+testAEither :: Either String Expr
 testAEither = decodeJson =<< jsonParser testAJson
 
 testBJson :: String
@@ -68,5 +68,5 @@ testBJson = """
   }
 """
 
-testBEither :: Either String (Expr Int)
+testBEither :: Either String Expr
 testBEither = decodeJson =<< jsonParser testBJson
