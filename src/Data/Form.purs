@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (Expr, boolean_, equal_, if_, lookup_, string_)
+import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
 import Type.Row (type (+))
 
 type LayoutRows c r =

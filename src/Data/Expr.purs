@@ -31,11 +31,11 @@ reflectType (Boolean _) = "Boolean"
 reflectType (Int _) = "Int"
 reflectType (String _) = "String"
 
-print :: ExprType -> ExprType
+print :: ExprType -> String
 print = case _ of
-  Boolean x -> String (show x)
-  Int x -> String (show x)
-  String x -> String x
+  Boolean x -> show x
+  Int x -> show x
+  String x -> x
 
 data Expr
   = Val ExprType
@@ -124,21 +124,21 @@ data EvalError
 evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
 evalExpr get = case _ of
   Val x -> pure x
-  If x' y z -> case evalExpr get x' of
-    Right (Boolean false) -> evalExpr get z
-    Right (Boolean true) -> evalExpr get y
-    Right x -> Left (IfCondition x)
-    Left x -> Left x
-  Equal x' y' -> case evalExpr get x', evalExpr get y' of
-    Right (Boolean x), Right (Boolean y) -> Right (Boolean $ x == y)
-    Right (Int x), Right (Int y) -> Right (Boolean $ x == y)
-    Right (String x), Right (String y) -> Right (Boolean $ x == y)
-    Right left, Right right -> Left (EqualMismatch { left, right })
-    Left x, _ -> Left x
-    _, Left x -> Left x
-  Print x' -> case evalExpr get x' of
-    Right x -> Right (print x)
-    Left x -> Left x
+  If x' y z -> do
+    x <- evalExpr get x'
+    case x of
+      Boolean false -> evalExpr get z
+      Boolean true -> evalExpr get y
+      _ -> Left (IfCondition x)
+  Equal x' y' -> do
+    left <- evalExpr get x'
+    right <- evalExpr get y'
+    case left, right of
+      Boolean x, Boolean y -> Right (Boolean $ x == y)
+      Int x, Int y -> Right (Boolean $ x == y)
+      String x, String y -> Right (Boolean $ x == y)
+      _, _ -> Left (EqualMismatch { left, right })
+  Print x' -> map (String <<< print) (evalExpr get x')
   Lookup x -> maybe (Left $ MissingKey x) Right (get x)
 
 boolean_ :: Boolean -> Expr
