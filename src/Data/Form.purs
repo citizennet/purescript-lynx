@@ -61,7 +61,7 @@ data Input f
   = Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
 
-derive instance genericInput :: Generic (Input Expr) _
+derive instance genericInput :: Generic (Input f) _
 instance showInput :: Show (Input Expr) where show = genericShow
 
 instance encodeInput :: EncodeJson (Input Expr) where
@@ -69,7 +69,7 @@ instance encodeInput :: EncodeJson (Input Expr) where
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
 
-instance decodeJsonInput :: DecodeJson (Input Expr) where
+instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
     x .: "type" >>= case _ of
@@ -171,6 +171,6 @@ active =
     }
   }
   where
-  description = if_ (equal_ (boolean_ true) (lookup_ "active"))
+  description = if_ (lookup_ "active")
     (string_ "User's account is active!")
     (string_ "User's account is not active")
