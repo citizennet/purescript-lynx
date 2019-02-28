@@ -2,12 +2,11 @@ module Lynx.Data.Expr where
 
 import Prelude
 
-import Control.Alt ((<|>))
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe, maybe)
+import Data.Maybe (Maybe, maybe')
 
 type Key = String
 
@@ -27,13 +26,6 @@ instance encodeJsonExprType :: EncodeJson ExprType where
     Int x -> encodeJson x
     String x -> encodeJson x
 
-instance decodeJsonExprType :: DecodeJson ExprType where
-  decodeJson json =
-    map Boolean (decodeJson json)
-      <|> map Int (decodeJson json)
-      <|> map String (decodeJson json)
-      <|> Left ("Expected a Boolean, Int or String. Got: " <> stringify json)
-
 reflectType :: ExprType -> String
 reflectType (Boolean _) = "Boolean"
 reflectType (Int _) = "Int"
@@ -50,7 +42,7 @@ data Expr
   | If Expr Expr Expr
   | Equal Expr Expr
   | Print Expr
-  | Lookup Key ExprType
+  | Lookup Key Expr
 
 derive instance genericExpr :: Generic Expr _
 
@@ -88,7 +80,7 @@ data ExprA
   | IfA ExprA ExprA ExprA String String
   | EqualA ExprA ExprA String String
   | PrintA ExprA String String
-  | LookupA Key ExprType String
+  | LookupA Key ExprA String
 
 instance encodeJsonExprA :: EncodeJson ExprA where
   encodeJson =
@@ -109,7 +101,7 @@ toExprA = case _ of
   If x y z -> IfA (toExprA x) (toExprA y) (toExprA z) (reflectIn x) (reflectOut y)
   Equal x y -> EqualA (toExprA x) (toExprA y) (reflectIn x) (reflectOut x)
   Print x -> PrintA (toExprA x) (reflectIn x) "String"
-  Lookup x y -> LookupA x y (reflectType y)
+  Lookup x y -> LookupA x (toExprA y) (reflectOut y)
   where
   reflectIn :: Expr -> String
   reflectIn = case _ of
@@ -124,7 +116,7 @@ toExprA = case _ of
     If _ x _ -> reflectOut x
     Equal _ _ -> "Boolean"
     Print x -> "String"
-    Lookup _ x -> reflectType x
+    Lookup _ x -> reflectOut x
 
 encodeHelper :: String -> String -> String -> Json
 encodeHelper op i o =
@@ -152,7 +144,7 @@ evalExpr get = case _ of
       String x, String y -> Right (Boolean $ x == y)
       _, _ -> Left (EqualMismatch { left, right })
   Print x' -> map (String <<< print) (evalExpr get x')
-  Lookup x y -> maybe (Right y) Right (get x)
+  Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
 boolean_ :: Boolean -> Expr
 boolean_ = Val <<< Boolean
@@ -169,5 +161,5 @@ if_ = If
 equal_ :: Expr -> Expr -> Expr
 equal_ = Equal
 
-lookup_ :: Key -> ExprType -> Expr
+lookup_ :: Key -> Expr -> Expr
 lookup_ = Lookup

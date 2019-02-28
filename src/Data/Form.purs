@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (Expr, ExprType(..), boolean_, if_, lookup_, string_)
+import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
 import Type.Row (type (+))
 
 type LayoutRows c r =
@@ -171,6 +171,6 @@ active =
     }
   }
   where
-  description = if_ (lookup_ "active" $ Boolean true)
+  description = if_ (lookup_ "active" $ boolean_ true)
     (string_ "User's account is active!")
     (string_ "User's account is not active")
