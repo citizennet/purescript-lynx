@@ -1,9 +1,8 @@
 {
   "name": "purescript-formal",
   "scripts": {
-    "build": "npm run compile && pulp build --to dist/main.js",
-    "compile": "pulp build -- --censor-lib --stash --strict",
-    "test": "pulp test"
+    "build": "make",
+    "test": "make test"
   },
   "license": "ISC",
   "devDependencies": {

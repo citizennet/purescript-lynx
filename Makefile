@@ -1,0 +1,76 @@
+# There are a couple of conventions we use so make works a little better.
+#
+# We sometimes want to build an entire directory of files based on one file.
+# We do this for dependencies. E.g.: package.json -> node_modules.
+# For these cases, we track an empty `.stamp` file in the directory.
+# This allows us to keep up with make's dependency model.
+#
+# We also want some place to store all the excess build artifacts.
+# This might be test outputs, or it could be some intermediate artifacts.
+# For this, we use the `$(BUILD)` directory.
+# Assuming the different tools allow us to put their artifacts in here,
+# we can clean up builds really easily: delete this directory.
+#
+# We use some make syntax that might be unfamiliar, a quick refresher:
+#
+# <target>: <prerequisites> | <order-only-prerequisites>
+# 	<command>
+#
+# `<order-only-prerequisites>` are similar to normal `<prerequisites>`
+# but they don't cause a target to be rebuilt if they're out of date.
+# This is mostly useful for creating directories and whatnot.
+#
+# See: https://www.gnu.org/software/make/manual/make.html#Prerequisite-Types
+#
+# And a quick refresher on some make variables:
+#
+# $@ - Expands to the target we're building.
+# $< - Expands to the first prerequisite of the recipe.
+#
+# See: https://www.gnu.org/software/make/manual/make.html#Automatic-Variables
+
+BOWER_COMPONENTS := bower_components/.stamp
+BUILD := .build
+NODE_MODULES := node_modules/.stamp
+OUTPUT := output
+PSA_ARGS := --censor-lib --stash=$(BUILD)/.psa_stash --strict
+SRCS := $(shell find src -name '*.purs' -type f)
+TESTS := $(shell find test -name '*.purs' -type f)
+
+.DEFAULT_GOAL := dist/main.js
+
+$(BOWER_COMPONENTS): bower.json $(NODE_MODULES)
+	npx bower install
+	touch $@
+
+$(BUILD):
+	mkdir -p $@
+
+$(BUILD)/test.out: $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+	npx pulp test | tee $@.tmp # Store output in a temp file in case of a failure.
+	mv $@.tmp $@ # Move the output where it belongs.
+
+$(NODE_MODULES): package.json
+	npm install
+	touch $@
+
+$(OUTPUT)/Main/index.js: $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+	npx pulp build -- $(PSA_ARGS)
+
+.PHONY: clean
+clean:
+	rm -fr \
+	  $(BUILD) \
+	  $(OUTPUT) \
+	  bower_components \
+	  dist/main.js \
+	  node_modules
+
+dist/main.js: $(OUTPUT)/Main/index.js
+	npx pulp build --to $@
+
+test: dist/main.js $(BUILD)/test.out
+
+.PHONY: watch
+watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
+	npx pulp --watch build --to dist/main.js
