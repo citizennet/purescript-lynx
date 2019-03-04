@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Argonaut (decodeJson, encodeJson, jsonParser)
 import Data.Either (Either, either)
+import Data.Maybe (Maybe(..), maybe)
 import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (InputSource, Page)
+import Lynx.Data.Form (InputSource(..), Page)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -58,36 +59,57 @@ testField n d i = """
   }
 """
 
-textInput :: String
-textInput = """
+textInput :: String -> String
+textInput v = """
   { "type": "Text"
   , "required": """ <> val true "Boolean" <> """
   , "placeholder": """ <> val "" "String" <> """
-  , "value": null
+  , "value": """ <> v <> """
   , "default": null
   , "maxLength": null
   , "minLength": null
   }
 """
 
-toggleInput :: String
-toggleInput = """
+toggleInput :: String -> String
+toggleInput v = """
   { "type": "Toggle"
-  , "value": null
+  , "value": """ <> v <> """
   , "default": """ <> val false "Boolean" <> """
   }
 """
 
 firstName :: String
-firstName = testField "First Name" "Enter your first name" textInput
+firstName =
+  testField
+    "First Name"
+    "Enter your first name"
+    (textInput $ value $ Just $ UserInput $ val "Pat" "String")
 
 lastName :: String
-lastName = testField "Last Name" "Enter your last name" textInput
+lastName =
+  testField
+    "Last Name"
+    "Enter your last name"
+    (textInput $ value Nothing)
 
 active :: String
-active = testField "Active" "Is user's account active" toggleInput
+active =
+  testField
+    "Active"
+    "Is user's account active"
+    (toggleInput $ value $ Just $ Invalid $ val 10 "Int")
 
 val :: ∀ a. Show a => a -> String -> String
 val x o  = """
   { "op": "Val", "param": """ <> show x <> """, "in": "Void", "out": """ <> show o <> """ }
 """
+
+value :: Maybe (InputSource String) -> String
+value = maybe "null" case _ of
+  UserInput x -> """
+      { "type": "UserInput", "value": """ <> x <> """ }
+    """
+  Invalid x -> """
+      { "type": "Invalid", "value": """ <> x <> """ }
+    """
