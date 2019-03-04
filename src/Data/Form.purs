@@ -10,6 +10,8 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (class Traversable, sequenceDefault)
 import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
+import Test.QuickCheck (class Arbitrary)
+import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
 
 type LayoutRows c r =
@@ -77,9 +79,11 @@ data InputSource a
   = UserInput a
   | Invalid a
 
-derive instance genericInputSource :: Generic (InputSource a) _
+derive instance eqInputSource :: (Eq a) => Eq (InputSource a)
 
 derive instance functorInputSource :: Functor InputSource
+
+derive instance genericInputSource :: Generic (InputSource a) _
 
 instance foldableInputSource :: Foldable InputSource where
   foldMap f = case _ of
@@ -109,6 +113,9 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
       "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
       "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
       x -> Left $ x <> " is not a valid InputSource"
+
+instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
+  arbitrary = genericArbitrary
 
 -- Test
 

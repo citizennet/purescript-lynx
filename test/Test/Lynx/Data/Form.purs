@@ -2,17 +2,25 @@ module Test.Lynx.Data.Form (suite) where
 
 import Prelude
 
-import Data.Argonaut (decodeJson, jsonParser)
+import Data.Argonaut (decodeJson, encodeJson, jsonParser)
 import Data.Either (Either, either)
 import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Page)
+import Lynx.Data.Form (InputSource, Page)
+import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
+import Test.Unit.QuickCheck (quickCheck)
 
 suite :: TestSuite
 suite =
   Test.Unit.suite "Test.Lynx.Data.Form" do
     test "JSON parses to an Expr" (assertRight testPageEither)
+    Test.Unit.suite "InputSource" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck inputSourceRoundTrip
+
+inputSourceRoundTrip :: InputSource Int -> Result
+inputSourceRoundTrip x = either Failed (_ === x) (decodeJson $ encodeJson x)
 
 assertRight :: forall a. Either String a -> Test
 assertRight = either failure (const success)
@@ -55,7 +63,7 @@ textInput = """
   { "type": "Text"
   , "required": """ <> val true "Boolean" <> """
   , "placeholder": """ <> val "" "String" <> """
-  , "value": { "value": null, "source": null }
+  , "value": null
   , "default": null
   , "maxLength": null
   , "minLength": null
@@ -65,7 +73,7 @@ textInput = """
 toggleInput :: String
 toggleInput = """
   { "type": "Toggle"
-  , "value": { "value": null, "source": null }
+  , "value": null
   , "default": """ <> val false "Boolean" <> """
   }
 """
