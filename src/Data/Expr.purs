@@ -2,11 +2,16 @@ module Lynx.Data.Expr where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
+import Control.Alt ((<|>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe, maybe')
+import Data.NonEmpty (NonEmpty(..))
+import Test.QuickCheck (class Arbitrary, arbitrary)
+import Test.QuickCheck.Arbitrary (genericArbitrary)
+import Test.QuickCheck.Gen (Gen, Size, oneOf, sized)
 
 type Key = String
 
@@ -14,6 +19,8 @@ data ExprType
   = Boolean Boolean
   | Int Int
   | String String
+
+derive instance eqExprType :: Eq ExprType
 
 derive instance genericExprType :: Generic ExprType _
 
@@ -25,6 +32,16 @@ instance encodeJsonExprType :: EncodeJson ExprType where
     Boolean x -> encodeJson x
     Int x -> encodeJson x
     String x -> encodeJson x
+
+instance decodeJsonExprType :: DecodeJson ExprType where
+  decodeJson x =
+    map Boolean (decodeJson x)
+      <|> map Int (decodeJson x)
+      <|> map String (decodeJson x)
+      <|> Left (stringify x <> " unsupported. Expected Boolean, Int, or String.")
+
+instance arbitraryExprType :: Arbitrary ExprType where
+  arbitrary = genericArbitrary
 
 reflectType :: ExprType -> String
 reflectType (Boolean _) = "Boolean"
@@ -44,6 +61,8 @@ data Expr
   | Print Expr
   | Lookup Key Expr
 
+derive instance eqExpr :: Eq Expr
+
 derive instance genericExpr :: Generic Expr _
 
 instance showExpr :: Show Expr where
@@ -57,9 +76,12 @@ instance decodeJsonExpr :: DecodeJson Expr where
     x' <- decodeJson json
     x' .: "op" >>= case _ of
       "Val" -> x' .: "out" >>= case _ of
-        "Boolean" -> x' .: "param" >>= pure <<< boolean_
-        "Int" -> x' .: "param" >>= pure <<< int_
-        "String" -> x' .: "param" >>= pure <<< string_
+        "Boolean" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
+        "Int" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
+        "String" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
         out -> Left $ out <> " not implemented"
       "If" -> x' .: "params" >>= case _ of
         [x, y, z] -> pure (if_ x y z)
@@ -67,6 +89,9 @@ instance decodeJsonExpr :: DecodeJson Expr where
       "Equal" -> x' .: "params" >>= case _ of
         [x, y] -> pure (equal_ x y)
         _ -> Left "Expected 2 params"
+      "Print" -> x' .: "params" >>= case _ of
+        [x] -> pure (print_ x)
+        _ -> Left "Expected 1 param"
       "Lookup" -> x' .: "params" >>= case _ of
         [x, y] -> do
           key <- decodeJson x
@@ -74,6 +99,22 @@ instance decodeJsonExpr :: DecodeJson Expr where
           pure (lookup_ key default)
         _ -> Left "Expected 2 params"
       op -> Left $ op <> " invalid op"
+
+instance arbitraryExpr :: Arbitrary Expr where
+  arbitrary = sized go
+    where
+    go :: Size -> Gen Expr
+    go size' =
+      if size' < 1 then
+        map Val arbitrary
+      else
+        let size = size' / 10
+        in oneOf $ NonEmpty
+            (If <$> go size <*> go size <*> go size)
+            [ Equal <$> go size <*> go size
+            , Print <$> go size
+            , Lookup <$> arbitrary <*> go size
+            ]
 
 data ExprA
   = ValA ExprType
@@ -160,6 +201,9 @@ if_ = If
 
 equal_ :: Expr -> Expr -> Expr
 equal_ = Equal
+
+print_ :: Expr -> Expr
+print_ = Print
 
 lookup_ :: Key -> Expr -> Expr
 lookup_ = Lookup

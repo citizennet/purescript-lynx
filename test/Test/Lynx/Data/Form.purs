@@ -2,11 +2,11 @@ module Test.Lynx.Data.Form (suite) where
 
 import Prelude
 
-import Data.Argonaut (decodeJson, encodeJson, jsonParser)
-import Data.Either (Either, either)
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
+import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), maybe)
 import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (InputSource(..), Page)
+import Lynx.Data.Form (Input, InputSource(..), Page)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -16,12 +16,26 @@ suite :: TestSuite
 suite =
   Test.Unit.suite "Test.Lynx.Data.Form" do
     test "JSON parses to an Expr" (assertRight testPageEither)
+    Test.Unit.suite "Input" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck inputRoundTrip
     Test.Unit.suite "InputSource" do
       test "decoding and encoding roundtrips properly" do
         quickCheck inputSourceRoundTrip
 
+inputRoundTrip :: Input Expr -> Result
+inputRoundTrip = roundTrip
+
 inputSourceRoundTrip :: InputSource Int -> Result
-inputSourceRoundTrip x = either Failed (_ === x) (decodeJson $ encodeJson x)
+inputSourceRoundTrip = roundTrip
+
+roundTrip :: ∀ a. DecodeJson a => EncodeJson a => Eq a => Show a => a -> Result
+roundTrip x' = case decodeJson json of
+  Left error -> Failed $ show { encodedValue: stringify json, error, value: x' }
+  Right x -> x === x'
+  where
+  json :: Json
+  json = encodeJson x'
 
 assertRight :: forall a. Either String a -> Test
 assertRight = either failure (const success)

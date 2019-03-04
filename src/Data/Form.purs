@@ -59,6 +59,8 @@ data Input f
   = Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
 
+derive instance eqInput :: (Eq f) => Eq (Input f)
+
 derive instance genericInput :: Generic (Input f) _
 instance showInput :: Show (Input Expr) where show = genericShow
 
@@ -74,6 +76,9 @@ instance decodeInput :: DecodeJson (Input Expr) where
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
+
+instance arbitraryInput :: Arbitrary (Input Expr) where
+  arbitrary = genericArbitrary
 
 data InputSource a
   = UserInput a
