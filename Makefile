@@ -34,7 +34,8 @@ BUILD := .build
 NODE_MODULES := node_modules/.stamp
 OUTPUT := output
 PSA_ARGS := --censor-lib --stash=$(BUILD)/.psa_stash --strict
-SRCS := $(shell find src -name '*.purs' -type f)
+SRC := src
+SRCS := $(shell find $(SRC) -name '*.purs' -type f)
 TESTS := $(shell find test -name '*.purs' -type f)
 
 .DEFAULT_GOAL := dist/main.js
@@ -73,4 +74,4 @@ test: dist/main.js $(BUILD)/test.out
 
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
-	npx pulp --watch build --to dist/main.js
+	npx watch-exec --command 'npx pulp build --to dist/main.js' --watch $(SRC)
