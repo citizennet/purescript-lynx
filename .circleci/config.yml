@@ -24,16 +24,8 @@ jobs:
             - v0.1-purs-cache
 
       - run:
-          name: Install Node and Bower dependencies
-          command: npm i && npx bower i
-
-      - run:
-          name: Verify the project builds successfully
-          command: npm run build
-
-      - run:
-          name: Verify the tests run successfully
-          command: npm run test
+          name: Verify the project builds and tests run successfully
+          command: make test
 
       - save_cache:
           key: v0.1-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
