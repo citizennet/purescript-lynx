@@ -104,7 +104,7 @@ component =
       minLength <- traverse (evalExpr get) input.minLength
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
-      value <- (traverse <<< traverse) (evalExpr get) input.value
+      value <- traverse (evalExpr get) input.value
       pure
         ( Text
           { default
@@ -117,7 +117,7 @@ component =
         )
     Toggle input -> do
       default <- traverse (evalExpr get) input.default
-      value <- (traverse <<< traverse) (evalExpr get) input.value
+      value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
 
   keysPage :: Page Expr -> Map Key ExprType
@@ -128,13 +128,13 @@ component =
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case field.input of
-    Text { value: Just (UserInput expr) }
+    Text { value: UserInput expr }
       | Right value <- evalExpr (const Nothing) expr ->
         Data.Map.singleton field.key value
     Text { default: Just expr }
       | Right value <- evalExpr (const Nothing) expr ->
         Data.Map.singleton field.key value
-    Toggle { value: Just (UserInput expr)  }
+    Toggle { value: UserInput expr  }
       | Right value <- evalExpr (const Nothing) expr ->
         Data.Map.singleton field.key value
     Toggle { default: Just expr }
@@ -217,7 +217,7 @@ component =
   setField key val field
     | key == field.key = case field.input of
       Text input ->
-        field { input = Text input { value = Just (UserInput $ Val val)}}
+        field { input = Text input { value = UserInput (Val val) } }
       Toggle input ->
-        field { input = Toggle input { value = Just (UserInput $ Val val)}}
+        field { input = Toggle input { value = UserInput (Val val) } }
     | otherwise = field

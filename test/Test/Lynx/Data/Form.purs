@@ -4,7 +4,6 @@ import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
-import Data.Maybe (Maybe(..), maybe)
 import Lynx.Data.Expr (Expr)
 import Lynx.Data.Form (Input, InputSource(..), Page)
 import Test.QuickCheck (Result(..), (===))
@@ -98,32 +97,35 @@ firstName =
   testField
     "First Name"
     "Enter your first name"
-    (textInput $ value $ Just $ UserInput $ val "Pat" "String")
+    (textInput $ value $ UserInput $ val "Pat" "String")
 
 lastName :: String
 lastName =
   testField
     "Last Name"
     "Enter your last name"
-    (textInput $ value Nothing)
+    (textInput $ value NotSet)
 
 active :: String
 active =
   testField
     "Active"
     "Is user's account active"
-    (toggleInput $ value $ Just $ Invalid $ val 10 "Int")
+    (toggleInput $ value $ Invalid $ val 10 "Int")
 
 val :: ∀ a. Show a => a -> String -> String
 val x o  = """
   { "op": "Val", "param": """ <> show x <> """, "in": "Void", "out": """ <> show o <> """ }
 """
 
-value :: Maybe (InputSource String) -> String
-value = maybe "null" case _ of
+value :: InputSource String -> String
+value = case _ of
   UserInput x -> """
       { "type": "UserInput", "value": """ <> x <> """ }
     """
   Invalid x -> """
       { "type": "Invalid", "value": """ <> x <> """ }
+    """
+  NotSet -> """
+      { "type": "NotSet" }
     """

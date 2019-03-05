@@ -39,7 +39,7 @@ type Field f = Record (FieldRows f ())
 
 type SharedRows f r =
   ( default :: Maybe f
-  , value :: Maybe (InputSource f)
+  , value :: InputSource f
   | r
   )
 
@@ -83,6 +83,7 @@ instance arbitraryInput :: Arbitrary (Input Expr) where
 data InputSource a
   = UserInput a
   | Invalid a
+  | NotSet
 
 derive instance eqInputSource :: (Eq a) => Eq (InputSource a)
 
@@ -94,6 +95,7 @@ instance foldableInputSource :: Foldable InputSource where
   foldMap f = case _ of
     UserInput x -> f x
     Invalid x -> f x
+    NotSet -> mempty
   foldl f = foldlDefault f
   foldr f = foldrDefault f
 
@@ -102,6 +104,7 @@ instance traversableInputSource :: Traversable InputSource where
   traverse f = case _ of
     UserInput x -> map UserInput (f x)
     Invalid x -> map Invalid (f x)
+    NotSet -> pure NotSet
 
 instance showInputSource :: (Show a) => Show (InputSource a) where
   show = genericShow
@@ -110,6 +113,7 @@ instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
   encodeJson = case _ of
     UserInput x -> "type" := "UserInput" ~> "value" := x ~> jsonEmptyObject
     Invalid x -> "type" := "Invalid" ~> "value" := x ~> jsonEmptyObject
+    NotSet -> "type" := "NotSet" ~> jsonEmptyObject
 
 instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
   decodeJson json = do
@@ -117,6 +121,7 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
     x' .: "type" >>= case _ of
       "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
       "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
+      "NotSet" -> pure NotSet
       x -> Left $ x <> " is not a valid InputSource"
 
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
@@ -154,7 +159,7 @@ firstName =
     , minLength: Nothing
     , placeholder: string_ ""
     , required: boolean_ true
-    , value: Nothing
+    , value: NotSet
     }
   }
 
@@ -170,7 +175,7 @@ lastName =
     , minLength: Nothing
     , placeholder: string_ ""
     , required: boolean_ true
-    , value: Nothing
+    , value: NotSet
     }
   }
 
@@ -182,7 +187,7 @@ active =
   , key: "active"
   , input: Toggle
     { default: Just (boolean_ true)
-    , value: Nothing
+    , value: NotSet
     }
   }
   where
