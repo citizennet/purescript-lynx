@@ -25,7 +25,7 @@
 # If any of the `<prerequisites>` are newer than the `<targets>`,
 # the recipe is run to bring the `<targets>` up to date.
 #
-# `<recipe>` are the commands to run to brin the `<targets>` up to date.
+# `<recipe>` are the commands to run to bring the `<targets>` up to date.
 # These are commands like we write on a terminal.
 #
 # See: https://www.gnu.org/software/make/manual/make.html#Rule-Syntax
