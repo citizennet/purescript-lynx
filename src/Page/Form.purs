@@ -14,7 +14,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, evalExpr, reflectType)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), InputState, Page, Section, testPage)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, testPage)
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -104,7 +104,7 @@ component =
       minLength <- traverse (evalExpr get) input.minLength
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
-      value <- evalInputState get input.value
+      value <- traverse (evalExpr get) input.value
       pure
         ( Text
           { default
@@ -117,13 +117,8 @@ component =
         )
     Toggle input -> do
       default <- traverse (evalExpr get) input.default
-      value <- evalInputState get input.value
+      value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
-
-  evalInputState :: (Key -> Maybe ExprType) -> Record (InputState Expr ()) -> Either EvalError (Record (InputState ExprType ()))
-  evalInputState get inputState = do
-    value <- traverse (evalExpr get) inputState.value
-    pure inputState { value = value }
 
   keysPage :: Page Expr -> Map Key ExprType
   keysPage page = foldMap keysSection page.contents
@@ -133,13 +128,13 @@ component =
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case field.input of
-    Text { value: { value: Just expr } }
+    Text { value: UserInput expr }
       | Right value <- evalExpr (const Nothing) expr ->
         Data.Map.singleton field.key value
     Text { default: Just expr }
       | Right value <- evalExpr (const Nothing) expr ->
         Data.Map.singleton field.key value
-    Toggle { value: { value: Just expr } }
+    Toggle { value: UserInput expr  }
       | Right value <- evalExpr (const Nothing) expr ->
         Data.Map.singleton field.key value
     Toggle { default: Just expr }
@@ -222,9 +217,7 @@ component =
   setField key val field
     | key == field.key = case field.input of
       Text input ->
-        let value = { source: Just UserInput,  value: Just (Val val) }
-        in field { input = Text input { value = value }}
+        field { input = Text input { value = UserInput (Val val) } }
       Toggle input ->
-        let value = { source: Just UserInput,  value: Just (Val val) }
-        in field { input = Toggle input { value = value }}
+        field { input = Toggle input { value = UserInput (Val val) } }
     | otherwise = field

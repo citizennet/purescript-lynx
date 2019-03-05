@@ -2,12 +2,16 @@ module Lynx.Data.Form where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, fromString, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
+import Data.Foldable (class Foldable, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
+import Data.Traversable (class Traversable, sequenceDefault)
 import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
+import Test.QuickCheck (class Arbitrary)
+import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
 
 type LayoutRows c r =
@@ -35,7 +39,7 @@ type Field f = Record (FieldRows f ())
 
 type SharedRows f r =
   ( default :: Maybe f
-  , value :: Record (InputState f ())
+  , value :: InputSource f
   | r
   )
 
@@ -51,15 +55,11 @@ type StringRows f r =
   | r
   )
 
-type InputState t r =
-  ( value :: Maybe t
-  , source :: Maybe InputSource
-  | r
-  )
-
 data Input f
   = Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
+
+derive instance eqInput :: (Eq f) => Eq (Input f)
 
 derive instance genericInput :: Generic (Input f) _
 instance showInput :: Show (Input Expr) where show = genericShow
@@ -77,26 +77,55 @@ instance decodeInput :: DecodeJson (Input Expr) where
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
 
-data InputSource
-  = UserInput
-  | DefaultValue
-  | Invalid
+instance arbitraryInput :: Arbitrary (Input Expr) where
+  arbitrary = genericArbitrary
 
-derive instance genericInputSource :: Generic InputSource _
-instance showInputSource :: Show InputSource where show = genericShow
+data InputSource a
+  = UserInput a
+  | Invalid a
+  | NotSet
 
-instance encodeInputSource :: EncodeJson InputSource where
-  encodeJson = fromString <<< case _ of
-    UserInput -> "UserInput"
-    DefaultValue -> "DefaultValue"
-    Invalid -> "Invalid"
+derive instance eqInputSource :: (Eq a) => Eq (InputSource a)
 
-instance decodeInputSource :: DecodeJson InputSource where
-  decodeJson = decodeJson >=> case _ of
-    "UserInput" -> pure UserInput
-    "DefaultValue" -> pure DefaultValue
-    "Invalid" -> pure Invalid
-    x -> Left $ x <> " is not a valid InputSource"
+derive instance functorInputSource :: Functor InputSource
+
+derive instance genericInputSource :: Generic (InputSource a) _
+
+instance foldableInputSource :: Foldable InputSource where
+  foldMap f = case _ of
+    UserInput x -> f x
+    Invalid x -> f x
+    NotSet -> mempty
+  foldl f = foldlDefault f
+  foldr f = foldrDefault f
+
+instance traversableInputSource :: Traversable InputSource where
+  sequence = sequenceDefault
+  traverse f = case _ of
+    UserInput x -> map UserInput (f x)
+    Invalid x -> map Invalid (f x)
+    NotSet -> pure NotSet
+
+instance showInputSource :: (Show a) => Show (InputSource a) where
+  show = genericShow
+
+instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
+  encodeJson = case _ of
+    UserInput x -> "type" := "UserInput" ~> "value" := x ~> jsonEmptyObject
+    Invalid x -> "type" := "Invalid" ~> "value" := x ~> jsonEmptyObject
+    NotSet -> "type" := "NotSet" ~> jsonEmptyObject
+
+instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
+  decodeJson json = do
+    x' <- decodeJson json
+    x' .: "type" >>= case _ of
+      "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
+      "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
+      "NotSet" -> pure NotSet
+      x -> Left $ x <> " is not a valid InputSource"
+
+instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
+  arbitrary = genericArbitrary
 
 -- Test
 
@@ -130,10 +159,7 @@ firstName =
     , minLength: Nothing
     , placeholder: string_ ""
     , required: boolean_ true
-    , value:
-      { source: Nothing
-      , value: Nothing
-      }
+    , value: NotSet
     }
   }
 
@@ -149,10 +175,7 @@ lastName =
     , minLength: Nothing
     , placeholder: string_ ""
     , required: boolean_ true
-    , value:
-      { source: Nothing
-      , value: Nothing
-      }
+    , value: NotSet
     }
   }
 
@@ -164,10 +187,7 @@ active =
   , key: "active"
   , input: Toggle
     { default: Just (boolean_ true)
-    , value:
-      { source: Nothing
-      , value: Nothing
-      }
+    , value: NotSet
     }
   }
   where
