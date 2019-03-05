@@ -4,12 +4,14 @@ import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
-import Data.Foldable (class Foldable, foldlDefault, foldrDefault)
+import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Map (Map)
+import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Data.Traversable (class Traversable, sequenceDefault)
-import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
+import Data.Traversable (class Traversable, sequenceDefault, traverse)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, evalExpr, if_, lookup_, string_)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -23,8 +25,6 @@ type LayoutRows c r =
 type Page f = Record (LayoutRows (Section f) ())
 
 type Section f = Record (LayoutRows (Field f) ())
-
-type Key = String
 
 type FieldRows f r =
   ( name :: f
@@ -126,6 +126,85 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
 
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
   arbitrary = genericArbitrary
+
+eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
+eval get page = do
+  contents <- traverse evalSection page.contents
+  pure page { contents = contents }
+  where
+  evalSection :: Section Expr -> Either EvalError (Section ExprType)
+  evalSection section = do
+    contents <- traverse evalField section.contents
+    pure section { contents = contents }
+
+  evalField :: Field Expr -> Either EvalError (Field ExprType)
+  evalField field = do
+    description <- evalExpr get field.description
+    input <- evalInput field.input
+    name <- evalExpr get field.name
+    visibility <- evalExpr get field.visibility
+    pure { description, key: field.key, input, name, visibility }
+
+  evalInput :: Input Expr -> Either EvalError (Input ExprType)
+  evalInput = case _ of
+    Text input -> do
+      default <- traverse (evalExpr get) input.default
+      maxLength <- traverse (evalExpr get) input.maxLength
+      minLength <- traverse (evalExpr get) input.minLength
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure
+        ( Text
+          { default
+          , maxLength
+          , minLength
+          , placeholder
+          , required
+          , value
+          }
+        )
+    Toggle input -> do
+      default <- traverse (evalExpr get) input.default
+      value <- traverse (evalExpr get) input.value
+      pure (Toggle { default, value })
+
+keys :: Page Expr -> Map Key ExprType
+keys page = foldMap keysSection page.contents
+  where
+  keysSection :: Section Expr -> Map Key ExprType
+  keysSection section = foldMap keysField section.contents
+
+  keysField :: Field Expr -> Map Key ExprType
+  keysField field = case field.input of
+    Text { value: UserInput expr }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    Text { default: Just expr }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    Toggle { value: UserInput expr  }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    Toggle { default: Just expr }
+      | Right value <- evalExpr (const Nothing) expr ->
+        Data.Map.singleton field.key value
+    _ -> mempty
+
+set :: Key -> ExprType -> Page Expr -> Page Expr
+set key val page = page { contents = map setSection page.contents}
+  where
+  setSection :: Section Expr -> Section Expr
+  setSection section = section { contents = map setField section.contents}
+
+  setField :: Field Expr -> Field Expr
+  setField field
+    | key == field.key = case field.input of
+      Text input ->
+        field { input = Text input { value = UserInput (Val val) } }
+      Toggle input ->
+        field { input = Toggle input { value = UserInput (Val val) } }
+    | otherwise = field
 
 -- Test
 

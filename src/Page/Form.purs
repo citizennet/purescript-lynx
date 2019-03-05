@@ -4,17 +4,16 @@ import Prelude
 
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
-import Data.Foldable (foldMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Data.Traversable (traverse)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, evalExpr, reflectType)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, testPage)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, reflectType)
+import Lynx.Data.Form (Field, Input(..), Page, Section, testPage)
+import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -60,7 +59,7 @@ component =
 
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval (Initialize a) = a <$ do
-    H.modify_ _ { values = keysPage testPage }
+    H.modify_ _ { values = Lynx.Data.Form.keys testPage }
     void $ bitraverse_
       (\e -> H.modify _ { form = Failure e })
       (\f -> eval $ EvalForm f a)
@@ -68,79 +67,15 @@ component =
 
   eval (EvalForm expr a) = a <$ do
     { values } <- H.get
-    let evaled = evalPage (\key -> Data.Map.lookup key values) expr
+    let evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
     H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
 
   eval (UpdateKey key val a) = do
     H.modify_ \state -> state { values = Data.Map.insert key val state.values }
     { form } <- H.get
     case form of
-      Success { expr } -> eval (EvalForm (setPage key val expr) a)
+      Success { expr } -> eval (EvalForm (Lynx.Data.Form.set key val expr) a)
       _ -> pure a
-
-  evalPage :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
-  evalPage get page = do
-    contents <- traverse (evalSection get) page.contents
-    pure page { contents = contents }
-
-  evalSection :: (Key -> Maybe ExprType) -> Section Expr -> Either EvalError (Section ExprType)
-  evalSection get section = do
-    contents <- traverse (evalField get) section.contents
-    pure section { contents = contents }
-
-  evalField :: (Key -> Maybe ExprType) -> Field Expr -> Either EvalError (Field ExprType)
-  evalField get field = do
-    description <- evalExpr get field.description
-    input <- evalInput get field.input
-    name <- evalExpr get field.name
-    visibility <- evalExpr get field.visibility
-    pure { description, key: field.key, input, name, visibility }
-
-  evalInput :: (Key -> Maybe ExprType) -> Input Expr -> Either EvalError (Input ExprType)
-  evalInput get = case _ of
-    Text input -> do
-      default <- traverse (evalExpr get) input.default
-      maxLength <- traverse (evalExpr get) input.maxLength
-      minLength <- traverse (evalExpr get) input.minLength
-      placeholder <- evalExpr get input.placeholder
-      required <- evalExpr get input.required
-      value <- traverse (evalExpr get) input.value
-      pure
-        ( Text
-          { default
-          , maxLength
-          , minLength
-          , placeholder
-          , required
-          , value
-          }
-        )
-    Toggle input -> do
-      default <- traverse (evalExpr get) input.default
-      value <- traverse (evalExpr get) input.value
-      pure (Toggle { default, value })
-
-  keysPage :: Page Expr -> Map Key ExprType
-  keysPage page = foldMap keysSection page.contents
-
-  keysSection :: Section Expr -> Map Key ExprType
-  keysSection section = foldMap keysField section.contents
-
-  keysField :: Field Expr -> Map Key ExprType
-  keysField field = case field.input of
-    Text { value: UserInput expr }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    Text { default: Just expr }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    Toggle { value: UserInput expr  }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    Toggle { default: Just expr }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    _ -> mempty
 
   render :: State -> H.ComponentHTML Query
   render { form } =
@@ -204,20 +139,3 @@ component =
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
-
-  setPage :: Key -> ExprType -> Page Expr -> Page Expr
-  setPage key val page =
-    page { contents = map (setSection key val) page.contents}
-
-  setSection :: Key -> ExprType -> Section Expr -> Section Expr
-  setSection key val section =
-    section { contents = map (setField key val) section.contents}
-
-  setField :: Key -> ExprType -> Field Expr -> Field Expr
-  setField key val field
-    | key == field.key = case field.input of
-      Text input ->
-        field { input = Text input { value = UserInput (Val val) } }
-      Toggle input ->
-        field { input = Toggle input { value = UserInput (Val val) } }
-    | otherwise = field
