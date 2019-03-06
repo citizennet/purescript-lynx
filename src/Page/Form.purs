@@ -7,14 +7,14 @@ import Data.Either (Either(..))
 import Data.Foldable (foldMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (traverse)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, evalExpr, reflectType)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, testPage)
+import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, evalExpr, print, reflectType, toBoolean, toString)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, SharedRows, testPage)
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -184,8 +184,8 @@ component =
   renderField :: Field ExprType -> H.ComponentHTML Query
   renderField (field) =
     FormField.field_
-      { label: HH.text $ show field.name
-      , helpText: Just $ show field.description
+      { label: HH.text $ print field.name
+      , helpText: Just $ print field.description
       , error: Nothing
       , inputId: field.key
       }
@@ -195,15 +195,23 @@ component =
   renderInput (field) = case field.input of
     Text input ->
       Input.input
-        [ HP.placeholder $ show input.placeholder
+        [ HP.value $ fromMaybe "" $ toString =<< getValue input
+        , HP.placeholder $ print input.placeholder
         , HP.id_ field.key
         ]
-    Toggle toggle ->
+    Toggle input ->
       Toggle.toggle
-        [ HP.checked true
+        [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
+
+  getValue
+    :: ∀ r
+     . Record (SharedRows ExprType r)
+    -> Maybe ExprType
+  getValue { value: UserInput x } = Just x
+  getValue { default } = default
 
   setPage :: Key -> ExprType -> Page Expr -> Page Expr
   setPage key val page =
