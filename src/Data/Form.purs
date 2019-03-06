@@ -55,8 +55,17 @@ type StringRows f r =
   | r
   )
 
+type DropdownRows f r =
+  ( index :: Int
+  , options :: Array { name :: String, value :: f }
+  , placeholder :: f
+  , valueRepresentation :: f
+  | r
+  )
+
 data Input f
-  = Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
+  = Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
+  | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
 
 derive instance eqInput :: (Eq f) => Eq (Input f)
@@ -66,6 +75,7 @@ instance showInput :: Show (Input Expr) where show = genericShow
 
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
+    Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
 
@@ -73,6 +83,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
     x .: "type" >>= case _ of
+      "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
@@ -127,6 +138,12 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
   arbitrary = genericArbitrary
 
+userInput :: forall a. InputSource a -> Maybe a
+userInput = case _ of
+  UserInput x -> Just x
+  Invalid _ -> Nothing
+  NotSet -> Nothing
+
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
   contents <- traverse evalSection page.contents
@@ -147,6 +164,24 @@ eval get page = do
 
   evalInput :: Input Expr -> Either EvalError (Input ExprType)
   evalInput = case _ of
+    Dropdown input -> do
+      default <- traverse (evalExpr get) input.default
+      options <- traverse (evalOption) input.options
+      valueRepresentation <- evalExpr get input.valueRepresentation
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure
+        ( Dropdown
+          { default
+          , index: input.index
+          , options
+          , valueRepresentation
+          , placeholder
+          , required
+          , value
+          }
+        )
     Text input -> do
       default <- traverse (evalExpr get) input.default
       maxLength <- traverse (evalExpr get) input.maxLength
@@ -168,6 +203,9 @@ eval get page = do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
+
+  evalOption :: forall r. { value :: Expr | r } -> Either EvalError { value :: ExprType | r }
+  evalOption x = map (x { value = _ }) (evalExpr get x.value)
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -200,6 +238,8 @@ set key val page = page { contents = map setSection page.contents}
   setField :: Field Expr -> Field Expr
   setField field
     | key == field.key = case field.input of
+      Dropdown input ->
+        field { input = Dropdown input { value = UserInput (Val val) } }
       Text input ->
         field { input = Text input { value = UserInput (Val val) } }
       Toggle input ->
@@ -223,6 +263,7 @@ testSection =
     [ firstName
     , lastName
     , active
+    , food
     ]
   }
 
@@ -273,3 +314,24 @@ active =
   description = if_ (lookup_ "active" $ boolean_ true)
     (string_ "User's account is active!")
     (string_ "User's account is not active")
+
+food :: Field Expr
+food =
+  { name: string_ "Favorite Food"
+  , visibility: boolean_ true
+  , description: string_ "What is your favorite food?"
+  , key: "food"
+  , input: Dropdown
+    { default: Just (string_ "Cherry")
+    , index: 0
+    , options:
+      [ { name: "Apple", value: string_ "Apple" }
+      , { name: "Banana", value: string_ "Banana" }
+      , { name: "Cherry", value: string_ "Cherry" }
+      ]
+    , placeholder: string_ ""
+    , required: boolean_ true
+    , value: NotSet
+    , valueRepresentation: string_ ""
+    }
+  }
