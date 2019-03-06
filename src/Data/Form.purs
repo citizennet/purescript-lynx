@@ -229,6 +229,13 @@ keys page = foldMap keysSection page.contents
         Data.Map.singleton field.key value
     _ -> mempty
 
+getValue
+  :: ∀ r
+   . Record (SharedRows ExprType r)
+  -> Maybe ExprType
+getValue { value: UserInput x } = Just x
+getValue { default } = default
+
 setValue :: Key -> ExprType -> Page Expr -> Page Expr
 setValue key val page = page { contents = map setSection page.contents}
   where
@@ -286,7 +293,7 @@ firstName =
   , description: string_ "Enter your first name"
   , key: "firstName"
   , input: Text
-    { default: Nothing
+    { default: Just (string_ "John")
     , maxLength: Nothing
     , minLength: Nothing
     , placeholder: string_ ""
@@ -302,7 +309,7 @@ lastName =
   , description: string_ "Enter your last name"
   , key: "lastName"
   , input: Text
-    { default: Nothing
+    { default: Just (string_ "Smith")
     , maxLength: Nothing
     , minLength: Nothing
     , placeholder: string_ ""

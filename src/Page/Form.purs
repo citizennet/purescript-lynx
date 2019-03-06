@@ -9,15 +9,15 @@ import Data.Either.Nested (Either1)
 import Data.Functor.Coproduct.Nested (Coproduct1)
 import Data.Map (Map)
 import Data.Map as Data.Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, boolean_, print, reflectType)
-import Lynx.Data.Form (Field, Input(..), Page, Section, testPage, userInput)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, boolean_, print, reflectType, toBoolean, toString)
+import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, testPage, userInput)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -150,8 +150,8 @@ component =
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField (field) =
     FormField.field_
-      { label: HH.text $ show field.name
-      , helpText: Just $ show field.description
+      { label: HH.text $ print field.name
+      , helpText: Just $ print field.description
       , error: Nothing
       , inputId: field.key
       }
@@ -177,12 +177,13 @@ component =
         (HE.input $ DropdownQuery field.key)
     Text input ->
       Input.input
-        [ HP.placeholder $ show input.placeholder
+        [ HP.value $ fromMaybe "" $ toString =<< getValue input
+        , HP.placeholder $ print input.placeholder
         , HP.id_ field.key
         ]
-    Toggle toggle ->
+    Toggle input ->
       Toggle.toggle
-        [ HP.checked true
+        [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]

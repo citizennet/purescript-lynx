@@ -7,7 +7,7 @@ import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, enco
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe, maybe')
+import Data.Maybe (Maybe(..), maybe')
 import Data.NonEmpty (NonEmpty(..))
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
@@ -53,6 +53,21 @@ print = case _ of
   Boolean x -> show x
   Int x -> show x
   String x -> x
+
+toBoolean :: ExprType -> Maybe Boolean
+toBoolean = case _ of
+  Boolean x -> Just x
+  otherwise -> Nothing
+
+toInt :: ExprType -> Maybe Int
+toInt = case _ of
+  Int x     -> Just x
+  otherwise -> Nothing
+
+toString :: ExprType -> Maybe String
+toString = case _ of
+  String x  -> Just x
+  otherwise -> Nothing
 
 data Expr
   = Val ExprType
