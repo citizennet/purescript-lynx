@@ -4,7 +4,6 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Bitraversable (bitraverse_)
-import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
 import Data.Functor.Coproduct.Nested (Coproduct1)
@@ -41,7 +40,7 @@ data Query a
   = Initialize a
   | EvalForm (Page Expr) a
   | UpdateKey Key ExprType a
-  | DropdownQuery DropdownSlot (Dropdown.Message (Const Void) ExprType) a
+  | DropdownQuery DropdownSlot (Dropdown.Message Query ExprType) a
 
 type ParentInput = String
 
@@ -49,7 +48,7 @@ type ChildQuery m = Coproduct1 (DropdownQuery m)
 
 type ChildSlot = Either1 DropdownSlot
 
-type DropdownQuery m = Dropdown.Query (Const Void) ExprType m
+type DropdownQuery m = Dropdown.Query Query ExprType m
 
 type DropdownSlot = Key
 
@@ -97,7 +96,7 @@ component =
       _ -> pure a
 
   eval (DropdownQuery key message a) = case message of
-    Dropdown.Emit _ -> pure a
+    Dropdown.Emit x -> a <$ eval x
     Dropdown.Selected val -> eval (UpdateKey key val a)
     Dropdown.VisibilityChanged _ -> pure a
 
