@@ -201,7 +201,7 @@ component =
         ]
     Toggle input ->
       Toggle.toggle
-      [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
+        [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
