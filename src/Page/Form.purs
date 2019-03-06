@@ -16,7 +16,7 @@ import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, boolean_, print, reflectType)
 import Lynx.Data.Form (Field, Input(..), Page, Section, testPage, userInput)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
@@ -30,6 +30,7 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.HTML.Properties (css)
+import Select as Select
 
 type State =
   { form :: RemoteData EvalError { expr :: Page Expr, evaled :: Page ExprType }
@@ -92,13 +93,20 @@ component =
     H.modify_ \state -> state { values = Data.Map.insert key val state.values }
     { form } <- H.get
     case form of
-      Success { expr } -> eval (EvalForm (Lynx.Data.Form.set key val expr) a)
+      Success { expr } ->
+        eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
       _ -> pure a
 
   eval (DropdownQuery key message a) = case message of
     Dropdown.Emit x -> a <$ eval x
     Dropdown.Selected val -> eval (UpdateKey key val a)
-    Dropdown.VisibilityChanged _ -> pure a
+    Dropdown.VisibilityChanged visibility' -> do
+      { form } <- H.get
+      case form of
+        Success { expr } -> do
+          let visibility = boolean_ (visibility' == Select.On)
+          eval (EvalForm (Lynx.Data.Form.setVisibility key visibility expr) a)
+        _ -> pure a
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render { form } =

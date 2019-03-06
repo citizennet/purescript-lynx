@@ -229,8 +229,8 @@ keys page = foldMap keysSection page.contents
         Data.Map.singleton field.key value
     _ -> mempty
 
-set :: Key -> ExprType -> Page Expr -> Page Expr
-set key val page = page { contents = map setSection page.contents}
+setValue :: Key -> ExprType -> Page Expr -> Page Expr
+setValue key val page = page { contents = map setSection page.contents}
   where
   setSection :: Section Expr -> Section Expr
   setSection section = section { contents = map setField section.contents}
@@ -244,6 +244,18 @@ set key val page = page { contents = map setSection page.contents}
         field { input = Text input { value = UserInput (Val val) } }
       Toggle input ->
         field { input = Toggle input { value = UserInput (Val val) } }
+    | otherwise = field
+
+setVisibility :: forall a. Key -> a -> Page a -> Page a
+setVisibility key visibility page =
+  page { contents = map setSection page.contents}
+  where
+  setSection :: Section a -> Section a
+  setSection section = section { contents = map setField section.contents}
+
+  setField :: Field a -> Field a
+  setField field
+    | key == field.key = field { visibility = visibility }
     | otherwise = field
 
 -- Test
