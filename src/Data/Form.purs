@@ -214,21 +214,16 @@ keys page = foldMap keysSection page.contents
   keysSection section = foldMap keysField section.contents
 
   keysField :: Field Expr -> Map Key ExprType
-  keysField field = case field.input of
-    Dropdown dropdown -> case getValue dropdown of
-      Just expr -> case evalExpr (const Nothing) expr of
-        Left _ -> mempty
-        Right value -> Data.Map.singleton field.key value
-      Nothing -> mempty
-    Text text -> case getValue text of
-      Just expr ->
-        foldMap (Data.Map.singleton field.key) (evalExpr (const Nothing) expr)
-      Nothing -> mempty
-    Toggle toggle -> case getValue toggle of
-      Just expr -> case evalExpr (const Nothing) expr of
-        Left _ -> mempty
-        Right value -> Data.Map.singleton field.key value
-      Nothing -> mempty
+  keysField field = case value of
+    Just expr -> case evalExpr (const Nothing) expr of
+      Left _ -> mempty
+      Right x -> Data.Map.singleton field.key x
+    Nothing -> mempty
+    where
+    value = case field.input of
+      Dropdown dropdown -> getValue dropdown
+      Text text -> getValue text
+      Toggle toggle -> getValue toggle
 
 getValue
   :: ∀ a r
