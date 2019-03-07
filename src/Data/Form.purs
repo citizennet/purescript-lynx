@@ -142,8 +142,7 @@ instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) wher
 userInput :: forall a. InputSource a -> Maybe a
 userInput = case _ of
   UserInput x -> Just x
-  Invalid _ -> Nothing
-  NotSet -> Nothing
+  _ -> Nothing
 
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
@@ -216,27 +215,26 @@ keys page = foldMap keysSection page.contents
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case field.input of
-    Dropdown dropdown -> case userInput dropdown.value <|> dropdown.default of
+    Dropdown dropdown -> case getValue dropdown of
       Just expr -> case evalExpr (const Nothing) expr of
         Left _ -> mempty
         Right value -> Data.Map.singleton field.key value
       Nothing -> mempty
-    Text text -> case userInput text.value <|> text.default of
+    Text text -> case getValue text of
       Just expr ->
         foldMap (Data.Map.singleton field.key) (evalExpr (const Nothing) expr)
       Nothing -> mempty
-    Toggle toggle -> case userInput toggle.value <|> toggle.default of
+    Toggle toggle -> case getValue toggle of
       Just expr -> case evalExpr (const Nothing) expr of
         Left _ -> mempty
         Right value -> Data.Map.singleton field.key value
       Nothing -> mempty
 
 getValue
-  :: ∀ r
-   . Record (SharedRows ExprType r)
-  -> Maybe ExprType
-getValue { value: UserInput x } = Just x
-getValue { default } = default
+  :: ∀ a r
+   . Record (SharedRows a r)
+  -> Maybe a
+getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> ExprType -> Page Expr -> Page Expr
 setValue key val page = page { contents = map setSection page.contents}

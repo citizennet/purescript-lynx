@@ -2,7 +2,6 @@ module Lynx.Page.Form where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
@@ -17,7 +16,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toBoolean, toString)
-import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, testPage, userInput)
+import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -157,7 +156,7 @@ component =
         cp1
         field.key
         Dropdown.component
-        { selectedItem: userInput dropdown.value <|> dropdown.default
+        { selectedItem: getValue dropdown
         , items: map _.value dropdown.options
         , render:
           Dropdown.Render.render $
