@@ -57,10 +57,8 @@ type StringRows f r =
   )
 
 type DropdownRows f r =
-  ( index :: Int
-  , options :: f
+  ( options :: f
   , placeholder :: f
-  , valueRepresentation :: f
   | r
   )
 
@@ -167,16 +165,13 @@ eval get page = do
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
-      valueRepresentation <- evalExpr get input.valueRepresentation
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
       pure
         ( Dropdown
           { default
-          , index: input.index
           , options
-          , valueRepresentation
           , placeholder
           , required
           , value
@@ -334,7 +329,6 @@ food =
   , key: "food"
   , input: Dropdown
     { default: Just (string_ "Cherry")
-    , index: 0
     , options:
       Val $
         Array
@@ -345,6 +339,5 @@ food =
     , placeholder: string_ ""
     , required: boolean_ true
     , value: NotSet
-    , valueRepresentation: string_ ""
     }
   }
