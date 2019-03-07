@@ -2,6 +2,7 @@ module Lynx.Data.Form where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
@@ -215,19 +216,20 @@ keys page = foldMap keysSection page.contents
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case field.input of
-    Text { value: UserInput expr }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    Text { default: Just expr }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    Toggle { value: UserInput expr  }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    Toggle { default: Just expr }
-      | Right value <- evalExpr (const Nothing) expr ->
-        Data.Map.singleton field.key value
-    _ -> mempty
+    Dropdown dropdown -> case userInput dropdown.value <|> dropdown.default of
+      Just expr -> case evalExpr (const Nothing) expr of
+        Left _ -> mempty
+        Right value -> Data.Map.singleton field.key value
+      Nothing -> mempty
+    Text text -> case userInput text.value <|> text.default of
+      Just expr ->
+        foldMap (Data.Map.singleton field.key) (evalExpr (const Nothing) expr)
+      Nothing -> mempty
+    Toggle toggle -> case userInput toggle.value <|> toggle.default of
+      Just expr -> case evalExpr (const Nothing) expr of
+        Left _ -> mempty
+        Right value -> Data.Map.singleton field.key value
+      Nothing -> mempty
 
 getValue
   :: ∀ r
