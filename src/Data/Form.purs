@@ -12,7 +12,7 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, evalExpr, if_, lookup_, string_)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -58,7 +58,7 @@ type StringRows f r =
 
 type DropdownRows f r =
   ( index :: Int
-  , options :: Array { name :: String, value :: f }
+  , options :: f
   , placeholder :: f
   , valueRepresentation :: f
   | r
@@ -166,7 +166,7 @@ eval get page = do
   evalInput = case _ of
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
-      options <- traverse (evalOption) input.options
+      options <- evalExpr get input.options
       valueRepresentation <- evalExpr get input.valueRepresentation
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
@@ -203,9 +203,6 @@ eval get page = do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
-
-  evalOption :: forall r. { value :: Expr | r } -> Either EvalError { value :: ExprType | r }
-  evalOption x = map (x { value = _ }) (evalExpr get x.value)
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -339,10 +336,12 @@ food =
     { default: Just (string_ "Cherry")
     , index: 0
     , options:
-      [ { name: "Apple", value: string_ "Apple" }
-      , { name: "Banana", value: string_ "Banana" }
-      , { name: "Cherry", value: string_ "Cherry" }
-      ]
+      Val $
+        Array
+        [ Pair { key: "Apple", value: String "Apple" }
+        , Pair { key: "Banana", value: String "Banana" }
+        , Pair { key: "Cherry", value: String "Cherry" }
+        ]
     , placeholder: string_ ""
     , required: boolean_ true
     , value: NotSet

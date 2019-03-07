@@ -5,6 +5,7 @@ import Prelude
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
+import Data.Foldable (fold)
 import Data.Functor.Coproduct.Nested (Coproduct1)
 import Data.Map (Map)
 import Data.Map as Data.Map
@@ -15,7 +16,7 @@ import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toBoolean, toString)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toString)
 import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
@@ -157,7 +158,7 @@ component =
         field.key
         Dropdown.component
         { selectedItem: getValue dropdown
-        , items: map _.value dropdown.options
+        , items: fold (toArray dropdown.options)
         , render:
           Dropdown.Render.render $
             Dropdown.Render.defDropdown

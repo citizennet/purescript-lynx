@@ -5,19 +5,21 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.Either (Either(..))
+import Data.Foldable (intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe')
 import Data.NonEmpty (NonEmpty(..))
 import Test.QuickCheck (class Arbitrary, arbitrary)
-import Test.QuickCheck.Arbitrary (genericArbitrary)
-import Test.QuickCheck.Gen (Gen, Size, oneOf, sized)
+import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
 type Key = String
 
 data ExprType
-  = Boolean Boolean
+  = Array (Array ExprType)
+  | Boolean Boolean
   | Int Int
+  | Pair { key :: Key, value :: ExprType }
   | String String
 
 derive instance eqExprType :: Eq ExprType
@@ -25,12 +27,14 @@ derive instance eqExprType :: Eq ExprType
 derive instance genericExprType :: Generic ExprType _
 
 instance showExprType :: Show ExprType where
-  show = genericShow
+  show x = genericShow x
 
 instance encodeJsonExprType :: EncodeJson ExprType where
   encodeJson = case _ of
+    Array x -> encodeJson x
     Boolean x -> encodeJson x
     Int x -> encodeJson x
+    Pair x -> encodeJson x
     String x -> encodeJson x
 
 instance decodeJsonExprType :: DecodeJson ExprType where
@@ -41,18 +45,42 @@ instance decodeJsonExprType :: DecodeJson ExprType where
       <|> Left (stringify x <> " unsupported. Expected Boolean, Int, or String.")
 
 instance arbitraryExprType :: Arbitrary ExprType where
-  arbitrary = genericArbitrary
+  arbitrary = sized go
+    where
+      go :: Size -> Gen ExprType
+      go size' =
+        if size' < 1 then
+          oneOf $ NonEmpty
+            (Boolean <$> arbitrary)
+            [ Int <$> arbitrary
+            , String <$> arbitrary
+            ]
+        else
+          let size = size' / 10
+          in oneOf $ NonEmpty
+             (Array <$> arrayOf (go size))
+             [ Pair <$> ({ key: _, value: _ } <$> arbitrary <*> go size)
+             ]
 
 reflectType :: ExprType -> String
+reflectType (Array _) = "Array"
 reflectType (Boolean _) = "Boolean"
 reflectType (Int _) = "Int"
+reflectType (Pair _) = "Pair"
 reflectType (String _) = "String"
 
 print :: ExprType -> String
 print = case _ of
+  Array x -> "[" <> intercalate ", " (map print x) <> "]"
   Boolean x -> show x
   Int x -> show x
+  Pair x -> x.key
   String x -> x
+
+toArray :: ExprType -> Maybe (Array ExprType)
+toArray = case _ of
+  Array x -> Just x
+  otherwise -> Nothing
 
 toBoolean :: ExprType -> Maybe Boolean
 toBoolean = case _ of
