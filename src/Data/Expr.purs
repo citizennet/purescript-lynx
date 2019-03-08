@@ -59,7 +59,7 @@ instance arbitraryExprType :: Arbitrary ExprType where
           let size = size' / 10
           in oneOf $ NonEmpty
              (Array <$> arrayOf (go size))
-             [ Pair <$> ({ name: _, value: _ } <$> arbitrary <*> go size)
+             [ Pair <$> ({ name: _, value: _ } <$> go size <*> go size)
              ]
 
 reflectType :: ExprType -> String
