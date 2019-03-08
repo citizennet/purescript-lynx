@@ -19,7 +19,7 @@ data ExprType
   = Array (Array ExprType)
   | Boolean Boolean
   | Int Int
-  | Pair { key :: Key, value :: ExprType }
+  | Pair { name :: ExprType, value :: ExprType }
   | String String
 
 derive instance eqExprType :: Eq ExprType
@@ -59,7 +59,7 @@ instance arbitraryExprType :: Arbitrary ExprType where
           let size = size' / 10
           in oneOf $ NonEmpty
              (Array <$> arrayOf (go size))
-             [ Pair <$> ({ key: _, value: _ } <$> arbitrary <*> go size)
+             [ Pair <$> ({ name: _, value: _ } <$> arbitrary <*> go size)
              ]
 
 reflectType :: ExprType -> String
@@ -74,7 +74,7 @@ print = case _ of
   Array x -> "[" <> intercalate ", " (map print x) <> "]"
   Boolean x -> show x
   Int x -> show x
-  Pair x -> x.key
+  Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
   String x -> x
 
 toArray :: ExprType -> Maybe (Array ExprType)
@@ -90,6 +90,11 @@ toBoolean = case _ of
 toInt :: ExprType -> Maybe Int
 toInt = case _ of
   Int x     -> Just x
+  otherwise -> Nothing
+
+toPair :: ExprType -> Maybe { name :: ExprType, value :: ExprType }
+toPair = case _ of
+  Pair x -> Just x
   otherwise -> Nothing
 
 toString :: ExprType -> Maybe String

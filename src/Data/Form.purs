@@ -328,13 +328,13 @@ food =
   , description: string_ "What is your favorite food?"
   , key: "food"
   , input: Dropdown
-    { default: Just (string_ "Cherry")
+    { default: Nothing
     , options:
       Val $
         Array
-        [ Pair { key: "Apple", value: String "Apple" }
-        , Pair { key: "Banana", value: String "Banana" }
-        , Pair { key: "Cherry", value: String "Cherry" }
+        [ Pair { name: String "Apple", value: String "Apple" }
+        , Pair { name: String "Banana", value: String "Banana" }
+        , Pair { name: String "Cherry", value: String "Cherry" }
         ]
     , placeholder: string_ ""
     , required: boolean_ true
