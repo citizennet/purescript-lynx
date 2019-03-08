@@ -39,10 +39,15 @@ instance encodeJsonExprType :: EncodeJson ExprType where
 
 instance decodeJsonExprType :: DecodeJson ExprType where
   decodeJson x =
-    map Boolean (decodeJson x)
+    map Array (decodeJson x)
+      <|> map Boolean (decodeJson x)
       <|> map Int (decodeJson x)
+      <|> map Pair (decodeJson x)
       <|> map String (decodeJson x)
-      <|> Left (stringify x <> " unsupported. Expected Boolean, Int, or String.")
+      <|> Left
+        ( stringify x
+          <> " unsupported. Expected Array, Boolean, Int, Pair, or String."
+        )
 
 instance arbitraryExprType :: Arbitrary ExprType where
   arbitrary = sized go
@@ -124,9 +129,13 @@ instance decodeJsonExpr :: DecodeJson Expr where
     x' <- decodeJson json
     x' .: "op" >>= case _ of
       "Val" -> x' .: "out" >>= case _ of
+        "Array" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
         "Boolean" -> x' .: "param" >>= \x ->
           map Val (decodeJson x)
         "Int" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
+        "Pair" -> x' .: "param" >>= \x ->
           map Val (decodeJson x)
         "String" -> x' .: "param" >>= \x ->
           map Val (decodeJson x)
