@@ -318,12 +318,19 @@ food =
   , input: Dropdown
     { default: Nothing
     , options:
-      Val $
-        Array
-        [ Pair { name: String "Apple", value: String "Apple" }
-        , Pair { name: String "Banana", value: String "Banana" }
-        , Pair { name: String "Cherry", value: String "Cherry" }
-        ]
+      If
+        do Lookup "active" (Val $ Boolean false)
+        do Val $
+          Array
+            [ Pair { name: String "Strawberry", value: String "Strawberry" }
+            , Pair { name: String "Blueberry", value: String "Blueberry" }
+            ]
+        do Val $
+          Array
+            [ Pair { name: String "Apple", value: String "Apple" }
+            , Pair { name: String "Banana", value: String "Banana" }
+            , Pair { name: String "Cherry", value: String "Cherry" }
+            ]
     , placeholder: string_ ""
     , required: boolean_ true
     , value: NotSet
