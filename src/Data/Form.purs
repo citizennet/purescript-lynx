@@ -240,18 +240,6 @@ setValue key val page = page { contents = map setSection page.contents}
         field { input = Toggle input { value = UserInput (Val val) } }
     | otherwise = field
 
-setVisibility :: forall a. Key -> a -> Page a -> Page a
-setVisibility key visibility page =
-  page { contents = map setSection page.contents}
-  where
-  setSection :: Section a -> Section a
-  setSection section = section { contents = map setField section.contents}
-
-  setField :: Field a -> Field a
-  setField field
-    | key == field.key = field { visibility = visibility }
-    | otherwise = field
-
 -- Test
 
 testPage :: Page Expr
