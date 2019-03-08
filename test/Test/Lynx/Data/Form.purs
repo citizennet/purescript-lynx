@@ -5,7 +5,7 @@ import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
 import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Input, InputSource(..), Page)
+import Lynx.Data.Form (Input, InputSource(..), Page, Section, Field)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -15,6 +15,15 @@ suite :: TestSuite
 suite =
   Test.Unit.suite "Test.Lynx.Data.Form" do
     test "JSON parses to an Expr" (assertRight testPageEither)
+    Test.Unit.suite "Page" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck pageRoundTrip
+    Test.Unit.suite "Section" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck sectionRoundTrip
+    Test.Unit.suite "Field" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck fieldRoundTrip
     Test.Unit.suite "Input" do
       test "decoding and encoding roundtrips properly" do
         quickCheck inputRoundTrip
@@ -22,10 +31,19 @@ suite =
       test "decoding and encoding roundtrips properly" do
         quickCheck inputSourceRoundTrip
 
+pageRoundTrip :: Page Expr -> Result
+pageRoundTrip = roundTrip
+
+sectionRoundTrip :: Section Expr -> Result
+sectionRoundTrip = roundTrip
+
+fieldRoundTrip :: Field Expr -> Result
+fieldRoundTrip = roundTrip
+
 inputRoundTrip :: Input Expr -> Result
 inputRoundTrip = roundTrip
 
-inputSourceRoundTrip :: InputSource Int -> Result
+inputSourceRoundTrip :: InputSource Expr -> Result
 inputSourceRoundTrip = roundTrip
 
 roundTrip :: ∀ a. DecodeJson a => EncodeJson a => Eq a => Show a => a -> Result
