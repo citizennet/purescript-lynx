@@ -40,17 +40,15 @@ data Query a
   = Initialize a
   | EvalForm (Page Expr) a
   | UpdateKey Key ExprType a
-  | DropdownQuery DropdownSlot (Dropdown.Message Query ExprType) a
+  | DropdownQuery Key (Dropdown.Message Query ExprType) a
 
 type ParentInput = String
 
 type ChildQuery m = Coproduct1 (DropdownQuery m)
 
-type ChildSlot = Either1 DropdownSlot
+type ChildSlot = Either1 Key
 
 type DropdownQuery m = Dropdown.Query Query ExprType m
-
-type DropdownSlot = Key
 
 type Message = Void
 
