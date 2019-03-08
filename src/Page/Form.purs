@@ -2,6 +2,7 @@ module Lynx.Page.Form where
 
 import Prelude
 
+import Control.Monad.State (class MonadState)
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
@@ -72,32 +73,6 @@ component =
     { form: Loading
     , values: mempty
     }
-
-  eval :: Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
-  eval (Initialize a) = a <$ do
-    H.modify_ _ { values = Lynx.Data.Form.keys testPage }
-    void $ bitraverse_
-      (\e -> H.modify _ { form = Failure e })
-      (\f -> eval $ EvalForm f a)
-      (Right testPage)
-
-  eval (EvalForm expr a) = a <$ do
-    { values } <- H.get
-    let evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
-    H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
-
-  eval (UpdateKey key val a) = do
-    H.modify_ \state -> state { values = Data.Map.insert key val state.values }
-    { form } <- H.get
-    case form of
-      Success { expr } ->
-        eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
-      _ -> pure a
-
-  eval (DropdownQuery key message a) = case message of
-    Dropdown.Emit x -> a <$ eval x
-    Dropdown.Selected val -> eval (UpdateKey key val a)
-    Dropdown.VisibilityChanged _ -> pure a
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render { form } =
@@ -178,3 +153,30 @@ component =
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
+
+eval :: forall m. MonadState State m => Query ~> m
+eval = case _ of
+  Initialize a -> a <$ do
+    H.modify_ _ { values = Lynx.Data.Form.keys testPage }
+    void $ bitraverse_
+      (\e -> H.modify _ { form = Failure e })
+      (\f -> eval $ EvalForm f a)
+      (Right testPage)
+
+  EvalForm expr a -> a <$ do
+    { values } <- H.get
+    let evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+    H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
+
+  UpdateKey key val a -> do
+    H.modify_ \state -> state { values = Data.Map.insert key val state.values }
+    { form } <- H.get
+    case form of
+      Success { expr } ->
+        eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
+      _ -> pure a
+
+  DropdownQuery key message a -> case message of
+    Dropdown.Emit x -> a <$ eval x
+    Dropdown.Selected val -> eval (UpdateKey key val a)
+    Dropdown.VisibilityChanged _ -> pure a

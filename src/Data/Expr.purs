@@ -224,6 +224,8 @@ data EvalError
   = IfCondition ExprType
   | EqualMismatch { left :: ExprType, right :: ExprType }
 
+derive instance eqEvalError :: Eq EvalError
+
 evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
 evalExpr get = case _ of
   Val x -> pure x
