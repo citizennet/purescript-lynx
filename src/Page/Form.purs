@@ -2,15 +2,15 @@ module Lynx.Page.Form where
 
 import Prelude
 
-import Control.Monad.State (class MonadState)
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
-import Data.Foldable (fold, foldMap)
+import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (Coproduct1)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1)
@@ -154,7 +154,7 @@ component =
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
 
-eval :: forall m. MonadState State m => Query ~> m
+eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
   Initialize a -> a <$ do
     H.modify_ _ { values = Lynx.Data.Form.keys testPage }
@@ -165,7 +165,17 @@ eval = case _ of
 
   EvalForm expr a -> a <$ do
     { values } <- H.get
-    let evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+    let evaled' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+    evaled <- for evaled' \page -> do
+      for_ page.contents \section -> do
+        for_ section.contents \field -> do
+          case field.input of
+            Dropdown dropdown ->
+              for_ (toArray dropdown.options) \options ->
+                H.query' cp1 field.key (Dropdown.SetItems options unit)
+            Text _ -> pure unit
+            Toggle _ -> pure unit
+      pure page
     H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
 
   UpdateKey key val a -> do
