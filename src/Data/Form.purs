@@ -2,14 +2,17 @@ module Lynx.Data.Form where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
-import Data.Foldable (class Foldable, foldlDefault, foldrDefault)
+import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Map (Map)
+import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Data.Traversable (class Traversable, sequenceDefault)
-import Lynx.Data.Expr (Expr, boolean_, if_, lookup_, string_)
+import Data.Traversable (class Traversable, sequenceDefault, traverse)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, evalExpr, if_, lookup_, string_)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -23,8 +26,6 @@ type LayoutRows c r =
 type Page f = Record (LayoutRows (Section f) ())
 
 type Section f = Record (LayoutRows (Field f) ())
-
-type Key = String
 
 type FieldRows f r =
   ( name :: f
@@ -55,8 +56,15 @@ type StringRows f r =
   | r
   )
 
+type DropdownRows f r =
+  ( options :: f
+  , placeholder :: f
+  | r
+  )
+
 data Input f
-  = Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
+  = Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
+  | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
 
 derive instance eqInput :: (Eq f) => Eq (Input f)
@@ -66,6 +74,7 @@ instance showInput :: Show (Input Expr) where show = genericShow
 
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
+    Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
 
@@ -73,6 +82,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
     x .: "type" >>= case _ of
+      "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
@@ -127,6 +137,109 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
   arbitrary = genericArbitrary
 
+userInput :: forall a. InputSource a -> Maybe a
+userInput = case _ of
+  UserInput x -> Just x
+  _ -> Nothing
+
+eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
+eval get page = do
+  contents <- traverse evalSection page.contents
+  pure page { contents = contents }
+  where
+  evalSection :: Section Expr -> Either EvalError (Section ExprType)
+  evalSection section = do
+    contents <- traverse evalField section.contents
+    pure section { contents = contents }
+
+  evalField :: Field Expr -> Either EvalError (Field ExprType)
+  evalField field = do
+    description <- evalExpr get field.description
+    input <- evalInput field.input
+    name <- evalExpr get field.name
+    visibility <- evalExpr get field.visibility
+    pure { description, key: field.key, input, name, visibility }
+
+  evalInput :: Input Expr -> Either EvalError (Input ExprType)
+  evalInput = case _ of
+    Dropdown input -> do
+      default <- traverse (evalExpr get) input.default
+      options <- evalExpr get input.options
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure
+        ( Dropdown
+          { default
+          , options
+          , placeholder
+          , required
+          , value
+          }
+        )
+    Text input -> do
+      default <- traverse (evalExpr get) input.default
+      maxLength <- traverse (evalExpr get) input.maxLength
+      minLength <- traverse (evalExpr get) input.minLength
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure
+        ( Text
+          { default
+          , maxLength
+          , minLength
+          , placeholder
+          , required
+          , value
+          }
+        )
+    Toggle input -> do
+      default <- traverse (evalExpr get) input.default
+      value <- traverse (evalExpr get) input.value
+      pure (Toggle { default, value })
+
+keys :: Page Expr -> Map Key ExprType
+keys page = foldMap keysSection page.contents
+  where
+  keysSection :: Section Expr -> Map Key ExprType
+  keysSection section = foldMap keysField section.contents
+
+  keysField :: Field Expr -> Map Key ExprType
+  keysField field = case value of
+    Just expr -> case evalExpr (const Nothing) expr of
+      Left _ -> mempty
+      Right x -> Data.Map.singleton field.key x
+    Nothing -> mempty
+    where
+    value = case field.input of
+      Dropdown dropdown -> getValue dropdown
+      Text text -> getValue text
+      Toggle toggle -> getValue toggle
+
+getValue
+  :: ∀ a r
+   . Record (SharedRows a r)
+  -> Maybe a
+getValue x = userInput x.value <|> x.default
+
+setValue :: Key -> ExprType -> Page Expr -> Page Expr
+setValue key val page = page { contents = map setSection page.contents}
+  where
+  setSection :: Section Expr -> Section Expr
+  setSection section = section { contents = map setField section.contents}
+
+  setField :: Field Expr -> Field Expr
+  setField field
+    | key == field.key = case field.input of
+      Dropdown input ->
+        field { input = Dropdown input { value = UserInput (Val val) } }
+      Text input ->
+        field { input = Text input { value = UserInput (Val val) } }
+      Toggle input ->
+        field { input = Toggle input { value = UserInput (Val val) } }
+    | otherwise = field
+
 -- Test
 
 testPage :: Page Expr
@@ -144,6 +257,7 @@ testSection =
     [ firstName
     , lastName
     , active
+    , food
     ]
   }
 
@@ -194,3 +308,31 @@ active =
   description = if_ (lookup_ "active" $ boolean_ true)
     (string_ "User's account is active!")
     (string_ "User's account is not active")
+
+food :: Field Expr
+food =
+  { name: string_ "Favorite Food"
+  , visibility: boolean_ true
+  , description: string_ "What is your favorite food?"
+  , key: "food"
+  , input: Dropdown
+    { default: Nothing
+    , options:
+      If
+        do Lookup "active" (Val $ Boolean false)
+        do Val $
+          Array
+            [ Pair { name: String "Strawberry", value: String "Strawberry" }
+            , Pair { name: String "Blueberry", value: String "Blueberry" }
+            ]
+        do Val $
+          Array
+            [ Pair { name: String "Apple", value: String "Apple" }
+            , Pair { name: String "Banana", value: String "Banana" }
+            , Pair { name: String "Cherry", value: String "Cherry" }
+            ]
+    , placeholder: string_ ""
+    , required: boolean_ true
+    , value: NotSet
+    }
+  }

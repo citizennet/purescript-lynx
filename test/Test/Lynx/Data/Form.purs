@@ -4,17 +4,35 @@ import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
-import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Input, InputSource(..), Page)
+import Data.Foldable (findMap)
+import Data.Map (Map)
+import Data.Map as Data.Map
+import Data.Maybe (Maybe(..))
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, if_, lookup_, string_)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
+import Lynx.Data.Form as Lynx.Data.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
+import Test.Unit.Assert (equal)
 import Test.Unit.QuickCheck (quickCheck)
 
 suite :: TestSuite
 suite =
   Test.Unit.suite "Test.Lynx.Data.Form" do
-    test "JSON parses to an Expr" (assertRight testPageEither)
+    Test.Unit.suite "Page" do
+      test "JSON parses to an Expr" do
+        assertRight testPageEither
+      test "decoding and encoding roundtrips properly" do
+        quickCheck pageRoundTrip
+      Test.Unit.suite "dropdown options can be dynamic" do
+        dropdownOptions
+    Test.Unit.suite "Section" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck sectionRoundTrip
+    Test.Unit.suite "Field" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck fieldRoundTrip
     Test.Unit.suite "Input" do
       test "decoding and encoding roundtrips properly" do
         quickCheck inputRoundTrip
@@ -22,10 +40,104 @@ suite =
       test "decoding and encoding roundtrips properly" do
         quickCheck inputSourceRoundTrip
 
+dropdownOptions :: TestSuite
+dropdownOptions = do
+  let evaluated' :: Either EvalError (Page ExprType)
+      evaluated' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key keys') page'
+      keys' :: Map Key ExprType
+      keys' = Lynx.Data.Form.keys page'
+
+  test "initial lookup" do
+    let actual :: Maybe ExprType
+        actual = findOptions evaluated'
+        expected :: ExprType
+        expected = Array []
+    equal (Just expected) actual
+
+  let evaluated :: Either EvalError (Page ExprType)
+      evaluated = Lynx.Data.Form.eval (\key -> Data.Map.lookup key keys) page
+      keys :: Map Key ExprType
+      keys = Lynx.Data.Form.keys page
+      page :: Page Expr
+      page = Lynx.Data.Form.setValue fooKey (Boolean true) page'
+
+  test "after altering the toggle" do
+    let actual :: Maybe ExprType
+        actual = findOptions evaluated
+        expected :: ExprType
+        expected = Array [Pair { name: String "foo", value: Int 3}]
+    equal (Just expected) actual
+
+  where
+  dropdown :: Input Expr
+  dropdown =
+    Dropdown
+      { default: Nothing
+      , options:
+        if_ (lookup_ fooKey $ boolean_ false)
+        (Val $ Array [Pair { name: String "foo", value: Int 3}])
+        (Val $ Array [])
+      , placeholder: string_ ""
+      , required: boolean_ false
+      , value: NotSet
+      }
+  dropdownKey :: Key
+  dropdownKey = "dropdown"
+  findOptions :: forall a b. Either a (Page b) -> Maybe b
+  findOptions = findMap \evaluatedPage ->
+    flip findMap evaluatedPage.contents \section ->
+      flip findMap section.contents \field ->
+        if field.key == dropdownKey then
+          case field.input of
+            Dropdown x -> Just x.options
+            _ -> Nothing
+        else
+          Nothing
+  foo :: Input Expr
+  foo =
+    Toggle
+      { default: Nothing
+      , value: NotSet
+      }
+  fooKey :: Key
+  fooKey = "foo"
+  page' :: Page Expr
+  page' =
+    { name: ""
+    , contents:
+      [ { name: ""
+        , contents:
+          [ { name: string_ ""
+            , visibility: boolean_ false
+            , description: string_ ""
+            , key: fooKey
+            , input: foo
+            }
+          , { name: string_ ""
+            , visibility: boolean_ false
+            , description: string_ ""
+            , key: dropdownKey
+            , input: dropdown
+            }
+          ]
+        }
+      ]
+    }
+
+
+pageRoundTrip :: Page Expr -> Result
+pageRoundTrip = roundTrip
+
+sectionRoundTrip :: Section Expr -> Result
+sectionRoundTrip = roundTrip
+
+fieldRoundTrip :: Field Expr -> Result
+fieldRoundTrip = roundTrip
+
 inputRoundTrip :: Input Expr -> Result
 inputRoundTrip = roundTrip
 
-inputSourceRoundTrip :: InputSource Int -> Result
+inputSourceRoundTrip :: InputSource Expr -> Result
 inputSourceRoundTrip = roundTrip
 
 roundTrip :: ∀ a. DecodeJson a => EncodeJson a => Eq a => Show a => a -> Result

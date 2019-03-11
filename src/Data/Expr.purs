@@ -5,19 +5,21 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.Either (Either(..))
+import Data.Foldable (intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe')
 import Data.NonEmpty (NonEmpty(..))
 import Test.QuickCheck (class Arbitrary, arbitrary)
-import Test.QuickCheck.Arbitrary (genericArbitrary)
-import Test.QuickCheck.Gen (Gen, Size, oneOf, sized)
+import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
 type Key = String
 
 data ExprType
-  = Boolean Boolean
+  = Array (Array ExprType)
+  | Boolean Boolean
   | Int Int
+  | Pair { name :: ExprType, value :: ExprType }
   | String String
 
 derive instance eqExprType :: Eq ExprType
@@ -25,34 +27,65 @@ derive instance eqExprType :: Eq ExprType
 derive instance genericExprType :: Generic ExprType _
 
 instance showExprType :: Show ExprType where
-  show = genericShow
+  show x = genericShow x
 
 instance encodeJsonExprType :: EncodeJson ExprType where
   encodeJson = case _ of
+    Array x -> encodeJson x
     Boolean x -> encodeJson x
     Int x -> encodeJson x
+    Pair x -> encodeJson x
     String x -> encodeJson x
 
 instance decodeJsonExprType :: DecodeJson ExprType where
   decodeJson x =
-    map Boolean (decodeJson x)
+    map Array (decodeJson x)
+      <|> map Boolean (decodeJson x)
       <|> map Int (decodeJson x)
+      <|> map Pair (decodeJson x)
       <|> map String (decodeJson x)
-      <|> Left (stringify x <> " unsupported. Expected Boolean, Int, or String.")
+      <|> Left
+        ( stringify x
+          <> " unsupported. Expected Array, Boolean, Int, Pair, or String."
+        )
 
 instance arbitraryExprType :: Arbitrary ExprType where
-  arbitrary = genericArbitrary
+  arbitrary = sized go
+    where
+      go :: Size -> Gen ExprType
+      go size' =
+        if size' < 1 then
+          oneOf $ NonEmpty
+            (Boolean <$> arbitrary)
+            [ Int <$> arbitrary
+            , String <$> arbitrary
+            ]
+        else
+          let size = size' / 10
+          in oneOf $ NonEmpty
+             (Array <$> arrayOf (go size))
+             [ Pair <$> ({ name: _, value: _ } <$> go size <*> go size)
+             ]
 
 reflectType :: ExprType -> String
+reflectType (Array _) = "Array"
 reflectType (Boolean _) = "Boolean"
 reflectType (Int _) = "Int"
+reflectType (Pair _) = "Pair"
 reflectType (String _) = "String"
 
 print :: ExprType -> String
 print = case _ of
+  Array x -> "[" <> intercalate ", " (map print x) <> "]"
   Boolean x -> show x
   Int x -> show x
+  Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
   String x -> x
+
+toArray :: ExprType -> Maybe (Array ExprType)
+toArray = case _ of
+  Array x -> Just x
+  otherwise -> Nothing
 
 toBoolean :: ExprType -> Maybe Boolean
 toBoolean = case _ of
@@ -62,6 +95,11 @@ toBoolean = case _ of
 toInt :: ExprType -> Maybe Int
 toInt = case _ of
   Int x     -> Just x
+  otherwise -> Nothing
+
+toPair :: ExprType -> Maybe { name :: ExprType, value :: ExprType }
+toPair = case _ of
+  Pair x -> Just x
   otherwise -> Nothing
 
 toString :: ExprType -> Maybe String
@@ -91,9 +129,13 @@ instance decodeJsonExpr :: DecodeJson Expr where
     x' <- decodeJson json
     x' .: "op" >>= case _ of
       "Val" -> x' .: "out" >>= case _ of
+        "Array" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
         "Boolean" -> x' .: "param" >>= \x ->
           map Val (decodeJson x)
         "Int" -> x' .: "param" >>= \x ->
+          map Val (decodeJson x)
+        "Pair" -> x' .: "param" >>= \x ->
           map Val (decodeJson x)
         "String" -> x' .: "param" >>= \x ->
           map Val (decodeJson x)
@@ -181,6 +223,8 @@ encodeHelper op i o =
 data EvalError
   = IfCondition ExprType
   | EqualMismatch { left :: ExprType, right :: ExprType }
+
+derive instance eqEvalError :: Eq EvalError
 
 evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
 evalExpr get = case _ of
