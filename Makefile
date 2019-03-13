@@ -96,7 +96,7 @@ clean:
 	  node_modules
 
 dist/main.js: $(OUTPUT)/Main/index.js
-	npx pulp build --to $@
+	npx pulp browserify --to $@
 
 test: dist/main.js $(BUILD)/test.out
 
