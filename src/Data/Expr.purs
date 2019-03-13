@@ -2,7 +2,6 @@ module Lynx.Data.Expr where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Foldable (intercalate)
@@ -30,24 +29,37 @@ instance showExprType :: Show ExprType where
   show x = genericShow x
 
 instance encodeJsonExprType :: EncodeJson ExprType where
-  encodeJson = case _ of
-    Array x -> encodeJson x
-    Boolean x -> encodeJson x
-    Int x -> encodeJson x
-    Pair x -> encodeJson x
-    String x -> encodeJson x
+  encodeJson x' = case x' of
+    Array x -> "param" := encodeJson x ~> base x'
+    Boolean x -> "param" := encodeJson x ~> base x'
+    Int x -> "param" := encodeJson x ~> base x'
+    Pair x -> "param" := encodeJson x ~> base x'
+    String x -> "param" := encodeJson x ~> base x'
+    where
+    base :: ExprType -> Json
+    base x =
+      "in" := encodeJson "Void"
+        ~> "out" := encodeJson (reflectType x)
+        ~> "op" := encodeJson "Val"
+        ~> jsonEmptyObject
 
 instance decodeJsonExprType :: DecodeJson ExprType where
-  decodeJson x =
-    map Array (decodeJson x)
-      <|> map Boolean (decodeJson x)
-      <|> map Int (decodeJson x)
-      <|> map Pair (decodeJson x)
-      <|> map String (decodeJson x)
-      <|> Left
-        ( stringify x
-          <> " unsupported. Expected Array, Boolean, Int, Pair, or String."
-        )
+  decodeJson json' = do
+    json <- decodeJson json'
+    out <- json .: "out"
+    param <- json .: "param"
+    case out, param of
+      "Array", x -> map Array (decodeJson x)
+      "Boolean", x -> map Boolean (decodeJson x)
+      "Int", x -> map Int (decodeJson x)
+      "Pair", x -> map Pair (decodeJson x)
+      "String", x -> map String (decodeJson x)
+      _, _ ->
+        Left
+          ( stringify json'
+            <> " unsupported."
+            <> " Expected Array, Boolean, Int, Pair, or String."
+          )
 
 instance arbitraryExprType :: Arbitrary ExprType where
   arbitrary = sized go
@@ -128,18 +140,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
     x' .: "op" >>= case _ of
-      "Val" -> x' .: "out" >>= case _ of
-        "Array" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "Boolean" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "Int" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "Pair" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "String" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        out -> Left $ out <> " not implemented"
+      "Val" -> map Val (decodeJson json)
       "If" -> x' .: "params" >>= case _ of
         [x, y, z] -> pure (if_ x y z)
         _ -> Left "Expected 3 params"
@@ -183,7 +184,7 @@ data ExprA
 instance encodeJsonExprA :: EncodeJson ExprA where
   encodeJson =
     case _ of
-      ValA x -> "param" := x ~> encodeHelper "Val" "Void" (reflectType x)
+      ValA x -> encodeJson x
       IfA x y z i o ->
         "params" := [ x, y, z ] ~> encodeHelper "If" i o
       EqualA x y i o ->
