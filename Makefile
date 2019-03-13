@@ -102,4 +102,4 @@ test: dist/main.js $(BUILD)/test.out
 
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
-	npx watch-exec --command 'npx pulp build --to dist/main.js' --watch $(SRC)
+	npx watch-exec --command 'make dist/main.js' --watch $(SRC)
