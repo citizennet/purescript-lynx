@@ -2,11 +2,12 @@ module Lynx.Page.Form where
 
 import Prelude
 
-import Data.Bitraversable (bitraverse_)
-import Data.Either (Either(..))
+import Data.Bifoldable (bifor_)
 import Data.Either.Nested (Either1)
 import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (Coproduct1)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -31,9 +32,29 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.HTML.Properties (css)
+import Routing.Duplex (RouteDuplex', path)
+import Routing.Duplex.Generic (noArgs, sum)
+
+data Route
+  = Profile1
+
+derive instance eqRoute :: Eq Route
+
+derive instance genericRoute :: Generic Route _
+
+derive instance ordRoute :: Ord Route
+
+instance showRoute :: Show Route where
+  show = genericShow
+
+routeCodec :: RouteDuplex' Route
+routeCodec = sum
+  { "Profile1": path "profile-1" noArgs
+  }
 
 type State =
   { form :: RemoteData EvalError { expr :: Page Expr, evaled :: Page ExprType }
+  , route :: Route
   , values :: Map Key ExprType
   }
 
@@ -43,7 +64,7 @@ data Query a
   | UpdateKey Key ExprType a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
 
-type ParentInput = String
+type ParentInput = Route
 
 type ChildQuery m = Coproduct1 (DropdownQuery m)
 
@@ -59,7 +80,7 @@ component
    => H.Component HH.HTML Query ParentInput Message m
 component =
   H.lifecycleParentComponent
-    { initialState: const initialState
+    { initialState
     , eval
     , render
     , receiver: const Nothing
@@ -68,11 +89,13 @@ component =
     }
   where
 
-  initialState :: State
-  initialState =
-    { form: Loading
-    , values: mempty
-    }
+  initialState :: ParentInput -> State
+  initialState = case _ of
+    route ->
+      { form: Loading
+      , route
+      , values: mempty
+      }
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render { form } =
@@ -166,11 +189,12 @@ component =
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
   Initialize a -> a <$ do
-    H.modify_ _ { values = Lynx.Data.Form.keys testPage }
-    void $ bitraverse_
-      (\e -> H.modify _ { form = Failure e })
-      (\f -> eval $ EvalForm f a)
-      (Right testPage)
+    { route } <- H.get
+    page' <- case route of
+      Profile1 -> pure (Success testPage)
+    bifor_ page' (\e -> H.modify _ { form = Failure e }) \page -> do
+      H.modify_ _ { values = Lynx.Data.Form.keys page }
+      eval (EvalForm page a)
 
   EvalForm expr a -> a <$ do
     { values } <- H.get

@@ -5,6 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(..))
 import Halogen as H
 import Halogen.HTML as HH
+import Lynx.Page.Form as Lynx.Page.Form
 import Lynx.Route (Route(..))
 import Lynx.Util.HTML (safeHref)
 import Ocelot.Block.Card as Card
@@ -19,11 +20,11 @@ type Input = Unit
 
 type Message = Void
 
-type Form = { name :: String, id :: String }
+type Form = { name :: String, id :: Lynx.Page.Form.Route }
 
 forms :: Array Form
 forms =
-  [ { name: "Profile", id: "profile-1" }
+  [ { name: "Profile", id: Lynx.Page.Form.Profile1 }
   ]
 
 component
