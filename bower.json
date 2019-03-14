@@ -21,7 +21,8 @@
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
-    "purescript-test-unit": "^14.0.0"
+    "purescript-test-unit": "^14.0.0",
+    "purescript-debug": "^4.0.0"
   },
   "resolutions": {
     "purescript-profunctor-lenses": "^5.0.0"

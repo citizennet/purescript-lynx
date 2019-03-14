@@ -11,6 +11,8 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
+import Data.Set (Set, toUnfoldable)
+import Data.Set as Data.Set
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, evalExpr, if_, lookup_, string_)
 import Test.QuickCheck (class Arbitrary)
@@ -41,6 +43,7 @@ type Field f = Record (FieldRows f ())
 type SharedRows f r =
   ( default :: Maybe f
   , value :: InputSource f
+  , errors :: Errors ValidationError
   | r
   )
 
@@ -142,6 +145,71 @@ userInput = case _ of
   UserInput x -> Just x
   _ -> Nothing
 
+newtype Errors e = Errors (Set e)
+
+derive instance eqErrors :: Eq e => Eq (Errors e)
+
+derive instance genericErrors :: Generic (Errors e) _
+
+instance showErrors :: Show e => Show (Errors e) where
+  show = genericShow
+
+instance semigroupErrors :: Ord e => Semigroup (Errors e) where
+  append (Errors a) (Errors b) = Errors (a <> b)
+
+instance monoidErrors :: Ord e => Monoid (Errors e) where
+  mempty = Errors mempty
+
+instance arbitraryErrors :: (Arbitrary e, Ord e) => Arbitrary (Errors e) where
+  arbitrary = pure mempty
+
+instance encodeErrors :: (EncodeJson e, Ord e) => EncodeJson (Errors e) where
+  encodeJson (Errors e) = encodeJson e
+
+instance decodeErrors :: (DecodeJson e, Ord e) => DecodeJson (Errors e) where
+  decodeJson = map Errors <<< decodeJson
+
+singletonError :: ∀ e. Ord e => e -> Errors e
+singletonError = Errors <<< Data.Set.singleton
+
+noErrors :: ∀ e. Ord e => Errors e -> Boolean
+noErrors (Errors e) = Data.Set.isEmpty e
+
+errorsToArray :: ∀ e. Ord e => Errors e -> Array e
+errorsToArray (Errors e) = toUnfoldable e
+
+data ValidationError
+  = Required
+  | MinLength Int
+  | MaxLength Int
+
+derive instance eqValidationError :: Eq ValidationError
+
+derive instance ordValidationError :: Ord ValidationError
+
+derive instance genericValidationError :: Generic ValidationError _
+
+instance showValidationError :: Show ValidationError where
+  show = genericShow
+
+instance encodeValidationError :: EncodeJson ValidationError where
+  encodeJson = case _ of
+    Required -> "type" := "Required" ~> jsonEmptyObject
+    MinLength x -> "type" := "MinLength" ~> "param" := x ~> jsonEmptyObject
+    MaxLength x -> "type" := "MaxLength" ~> "param" := x ~> jsonEmptyObject
+
+instance decodeValidationError :: DecodeJson ValidationError where
+  decodeJson json = do
+    x' <- decodeJson json
+    x' .: "type" >>= case _ of
+      "Required" -> pure Required
+      "MinLength" -> x' .: "param" >>= (pure <<< MinLength)
+      "MaxLength" -> x' .: "param" >>= (pure <<< MaxLength)
+      x -> Left $ x <> " is not a supported ValidationError"
+
+instance arbitraryValidationError :: Arbitrary ValidationError where
+  arbitrary = genericArbitrary
+
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
   contents <- traverse evalSection page.contents
@@ -168,15 +236,14 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure
-        ( Dropdown
-          { default
-          , options
-          , placeholder
-          , required
-          , value
-          }
-        )
+      pure $ validate $ Dropdown
+        { default
+        , options
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Text input -> do
       default <- traverse (evalExpr get) input.default
       maxLength <- traverse (evalExpr get) input.maxLength
@@ -184,20 +251,40 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure
-        ( Text
-          { default
-          , maxLength
-          , minLength
-          , placeholder
-          , required
-          , value
-          }
-        )
+      pure $ validate $ Text
+        { default
+        , maxLength
+        , minLength
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Toggle input -> do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
-      pure (Toggle { default, value })
+      pure $ validate $ Toggle { default, value, errors: mempty }
+
+  validate :: Input ExprType -> Input ExprType
+  validate = case _ of
+    Dropdown input ->
+      if displayError input
+        then Dropdown $ input { errors = input.errors <> validateRequired input }
+        else Dropdown input
+    Text input ->
+      if displayError input
+        then Text $ input { errors = input.errors <> validateRequired input }
+        else Text input
+    Toggle input -> Toggle input
+
+  validateRequired
+    :: ∀ r
+     . Record (SharedRows ExprType + ( required :: ExprType | r ))
+    -> Errors ValidationError
+  validateRequired input = do
+    if input.required == Boolean true && isEmpty (getValue input)
+      then singletonError Required
+      else mempty
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -216,6 +303,23 @@ keys page = foldMap keysSection page.contents
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
+
+displayError
+  :: ∀ r
+   . Record (SharedRows ExprType r)
+  -> Boolean
+displayError x = x.value /= NotSet
+
+isEmpty :: Maybe ExprType -> Boolean
+isEmpty Nothing = true
+isEmpty (Just x) = case x of
+  Array []  -> true
+  String "" -> true
+  Array _   -> false
+  Boolean _ -> false
+  Int _     -> false
+  Pair _    -> false
+  String _  -> false
 
 getValue
   :: ∀ a r
@@ -274,6 +378,7 @@ firstName =
     , placeholder: string_ ""
     , required: boolean_ true
     , value: NotSet
+    , errors: mempty
     }
   }
 
@@ -290,6 +395,7 @@ lastName =
     , placeholder: string_ ""
     , required: boolean_ true
     , value: NotSet
+    , errors: mempty
     }
   }
 
@@ -302,6 +408,7 @@ active =
   , input: Toggle
     { default: Just (boolean_ true)
     , value: NotSet
+    , errors: mempty
     }
   }
   where
@@ -334,5 +441,6 @@ food =
     , placeholder: string_ ""
     , required: boolean_ true
     , value: NotSet
+    , errors: mempty
     }
   }

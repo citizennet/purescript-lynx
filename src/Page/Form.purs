@@ -2,6 +2,7 @@ module Lynx.Page.Form where
 
 import Prelude
 
+import Data.Array (head)
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
@@ -18,7 +19,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, testPage)
+import Lynx.Data.Form (Field, Input(..), Page, Section, ValidationError(..), errorsToArray, getValue, noErrors, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -118,7 +119,7 @@ component =
     FormField.field_
       { label: HH.text $ print field.name
       , helpText: Just $ print field.description
-      , error: Nothing
+      , error: renderValidation field.input
       , inputId: field.key
       }
       [ renderInput field ]
@@ -146,6 +147,7 @@ component =
         [ HP.value $ fromMaybe "" $ toString =<< getValue input
         , HP.placeholder $ print input.placeholder
         , HP.id_ field.key
+        , HE.onValueInput (HE.input $ UpdateKey field.key <<< String)
         ]
     Toggle input ->
       Toggle.toggle
@@ -153,6 +155,20 @@ component =
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
         ]
+
+  renderValidation :: Input ExprType -> Maybe String
+  renderValidation = case _ of
+    Dropdown dropdown -> renderValidation' dropdown.errors
+    Text text -> renderValidation' text.errors
+    Toggle toggle -> renderValidation' toggle.errors
+    where
+    renderValidation' =
+      map renderValidationError <<< head <<< errorsToArray
+
+    renderValidationError = case _ of
+      Required -> "This field is required"
+      MinLength x -> "Must contain at least " <> show x <> " characters"
+      MaxLength x -> "Cannot contain more than " <> show x <> " characters"
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
