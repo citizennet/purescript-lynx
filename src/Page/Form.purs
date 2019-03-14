@@ -19,7 +19,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, testPage)
+import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -36,7 +36,8 @@ import Routing.Duplex (RouteDuplex', path)
 import Routing.Duplex.Generic (noArgs, sum)
 
 data Route
-  = Profile1
+  = MVP
+  | Profile1
 
 derive instance eqRoute :: Eq Route
 
@@ -49,7 +50,8 @@ instance showRoute :: Show Route where
 
 routeCodec :: RouteDuplex' Route
 routeCodec = sum
-  { "Profile1": path "profile-1" noArgs
+  { "MVP": path "mvp" noArgs
+  , "Profile1": path "profile-1" noArgs
   }
 
 type State =
@@ -170,7 +172,7 @@ component =
               Button.button
               []
               (foldMap (print <<< _.name) <<< toPair)
-              (print field.description)
+              (print dropdown.placeholder)
         }
         (HE.input $ DropdownQuery field.key)
     Text input ->
@@ -191,6 +193,7 @@ eval = case _ of
   Initialize a -> a <$ do
     { route } <- H.get
     page' <- case route of
+      MVP -> pure (Success mvpPage)
       Profile1 -> pure (Success testPage)
     bifor_ page' (\e -> H.modify _ { form = Failure e }) \page -> do
       H.modify_ _ { values = Lynx.Data.Form.keys page }
