@@ -2,14 +2,16 @@ module Lynx.Data.Expr where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
+import Data.BigInt as Data.BigInt
 import Data.Either (Either(..))
 import Data.Foldable (intercalate)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe')
+import Data.Newtype (wrap)
 import Data.NonEmpty (NonEmpty(..))
+import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
@@ -18,6 +20,7 @@ type Key = String
 data ExprType
   = Array (Array ExprType)
   | Boolean Boolean
+  | Cents Cents
   | Int Int
   | Pair { name :: ExprType, value :: ExprType }
   | String String
@@ -30,34 +33,59 @@ instance showExprType :: Show ExprType where
   show x = genericShow x
 
 instance encodeJsonExprType :: EncodeJson ExprType where
-  encodeJson = case _ of
-    Array x -> encodeJson x
-    Boolean x -> encodeJson x
-    Int x -> encodeJson x
-    Pair x -> encodeJson x
-    String x -> encodeJson x
+  encodeJson x' = case x' of
+    Array x -> "param" := encodeJson x ~> base x'
+    Boolean x -> "param" := encodeJson x ~> base x'
+    Cents x -> "param" := encodeJson x ~> base x'
+    Int x -> "param" := encodeJson x ~> base x'
+    Pair x -> "param" := encodeJson x ~> base x'
+    String x -> "param" := encodeJson x ~> base x'
+    where
+    base :: ExprType -> Json
+    base x =
+      "in" := encodeJson "Void"
+        ~> "out" := encodeJson (reflectType x)
+        ~> "op" := encodeJson "Val"
+        ~> jsonEmptyObject
 
 instance decodeJsonExprType :: DecodeJson ExprType where
-  decodeJson x =
-    map Array (decodeJson x)
-      <|> map Boolean (decodeJson x)
-      <|> map Int (decodeJson x)
-      <|> map Pair (decodeJson x)
-      <|> map String (decodeJson x)
-      <|> Left
-        ( stringify x
-          <> " unsupported. Expected Array, Boolean, Int, Pair, or String."
-        )
+  decodeJson json' = do
+    json <- decodeJson json'
+    out <- json .: "out"
+    param <- json .: "param"
+    case out, param of
+      "Array", x -> map Array (decodeJson x)
+      "Boolean", x -> map Boolean (decodeJson x)
+      "Cents", x -> map Cents (cents x)
+      "Int", x -> map Int (decodeJson x)
+      "Pair", x -> map Pair (decodeJson x)
+      "String", x -> map String (decodeJson x)
+      _, _ ->
+        Left
+          ( stringify json'
+            <> " unsupported."
+            <> " Expected Array, Boolean, Cents, Int, Pair, or String."
+          )
+    where
+    cents :: Json -> Either String Cents
+    cents json = do
+      x <- decodeJson json
+      pure (wrap $ Data.BigInt.fromInt x)
 
 instance arbitraryExprType :: Arbitrary ExprType where
   arbitrary = sized go
     where
+      cents :: Gen Cents
+      cents = do
+        x <- arbitrary
+        pure (wrap $ Data.BigInt.fromInt x)
       go :: Size -> Gen ExprType
       go size' =
         if size' < 1 then
           oneOf $ NonEmpty
             (Boolean <$> arbitrary)
-            [ Int <$> arbitrary
+            [ Cents <$> cents
+            , Int <$> arbitrary
             , String <$> arbitrary
             ]
         else
@@ -70,6 +98,7 @@ instance arbitraryExprType :: Arbitrary ExprType where
 reflectType :: ExprType -> String
 reflectType (Array _) = "Array"
 reflectType (Boolean _) = "Boolean"
+reflectType (Cents _) = "Cents"
 reflectType (Int _) = "Int"
 reflectType (Pair _) = "Pair"
 reflectType (String _) = "String"
@@ -78,6 +107,7 @@ print :: ExprType -> String
 print = case _ of
   Array x -> "[" <> intercalate ", " (map print x) <> "]"
   Boolean x -> show x
+  Cents x -> formatCentsToStrDollars x
   Int x -> show x
   Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
   String x -> x
@@ -90,6 +120,11 @@ toArray = case _ of
 toBoolean :: ExprType -> Maybe Boolean
 toBoolean = case _ of
   Boolean x -> Just x
+  otherwise -> Nothing
+
+toCents :: ExprType -> Maybe Cents
+toCents = case _ of
+  Cents x -> Just x
   otherwise -> Nothing
 
 toInt :: ExprType -> Maybe Int
@@ -128,18 +163,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
     x' .: "op" >>= case _ of
-      "Val" -> x' .: "out" >>= case _ of
-        "Array" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "Boolean" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "Int" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "Pair" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        "String" -> x' .: "param" >>= \x ->
-          map Val (decodeJson x)
-        out -> Left $ out <> " not implemented"
+      "Val" -> map Val (decodeJson json)
       "If" -> x' .: "params" >>= case _ of
         [x, y, z] -> pure (if_ x y z)
         _ -> Left "Expected 3 params"
@@ -183,7 +207,7 @@ data ExprA
 instance encodeJsonExprA :: EncodeJson ExprA where
   encodeJson =
     case _ of
-      ValA x -> "param" := x ~> encodeHelper "Val" "Void" (reflectType x)
+      ValA x -> encodeJson x
       IfA x y z i o ->
         "params" := [ x, y, z ] ~> encodeHelper "If" i o
       EqualA x y i o ->
@@ -248,6 +272,9 @@ evalExpr get = case _ of
 
 boolean_ :: Boolean -> Expr
 boolean_ = Val <<< Boolean
+
+cents_ :: Cents -> Expr
+cents_ = Val <<< Cents
 
 int_ :: Int -> Expr
 int_ = Val <<< Int

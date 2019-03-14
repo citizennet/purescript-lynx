@@ -13,8 +13,9 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
+import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -59,6 +60,11 @@ type StringRows f r =
   | r
   )
 
+type CurrencyRows f r =
+  ( placeholder :: f
+  | r
+  )
+
 type DropdownRows f r =
   ( options :: f
   , placeholder :: f
@@ -66,7 +72,8 @@ type DropdownRows f r =
   )
 
 data Input f
-  = Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
+  = Currency (Record (SharedRows f + RequiredRows f + CurrencyRows f + ()))
+  | Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
   | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
 
@@ -77,6 +84,7 @@ instance showInput :: Show (Input Expr) where show = genericShow
 
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
+    Currency r -> "type" := "Currency" ~> encodeJson r
     Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
@@ -85,6 +93,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
     x .: "type" >>= case _ of
+      "Currency" -> pure <<< Currency <=< decodeJson $ json
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
@@ -230,6 +239,20 @@ eval get page = do
 
   evalInput :: Input Expr -> Either EvalError (Input ExprType)
   evalInput = case _ of
+    Currency input -> do
+      default <- traverse (evalExpr get) input.default
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure
+        ( Currency
+          { default
+          , placeholder
+          , required
+          , value
+          , errors: mempty
+          }
+        )
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
@@ -267,6 +290,10 @@ eval get page = do
 
   validate :: Input ExprType -> Input ExprType
   validate = case _ of
+    Currency input ->
+      if displayError input
+        then Currency $ input { errors = input.errors <> validateRequired input }
+        else Currency input
     Dropdown input ->
       if displayError input
         then Dropdown $ input { errors = input.errors <> validateRequired input }
@@ -300,6 +327,7 @@ keys page = foldMap keysSection page.contents
     Nothing -> mempty
     where
     value = case field.input of
+      Currency currency -> getValue currency
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
@@ -317,6 +345,7 @@ isEmpty (Just x) = case x of
   String "" -> true
   Array _   -> false
   Boolean _ -> false
+  Cents _   -> false
   Int _     -> false
   Pair _    -> false
   String _  -> false
@@ -336,6 +365,8 @@ setValue key val page = page { contents = map setSection page.contents}
   setField :: Field Expr -> Field Expr
   setField field
     | key == field.key = case field.input of
+      Currency input ->
+        field { input = Currency input { value = UserInput (Val val) } }
       Dropdown input ->
         field { input = Dropdown input { value = UserInput (Val val) } }
       Text input ->
@@ -362,6 +393,7 @@ testSection =
     , lastName
     , active
     , food
+    , money
     ]
   }
 
@@ -439,6 +471,21 @@ food =
             , Pair { name: String "Cherry", value: String "Cherry" }
             ]
     , placeholder: string_ ""
+    , required: boolean_ true
+    , value: NotSet
+    , errors: mempty
+    }
+  }
+
+money :: Field Expr
+money =
+  { name: string_ "money"
+  , visibility: boolean_ true
+  , description: string_ ""
+  , key: "money"
+  , input: Currency
+    { default: Nothing
+    , placeholder: cents_ (wrap zero)
     , required: boolean_ true
     , value: NotSet
     , errors: mempty

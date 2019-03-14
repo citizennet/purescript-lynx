@@ -18,8 +18,8 @@ import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), Page, Section, ValidationError(..), errorsToArray, getValue, noErrors, testPage)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
+import Lynx.Data.Form (Field, Input(..), Page, Section, ValidationError(..), errorsToArray, getValue, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -126,6 +126,15 @@ component =
 
   renderInput :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderInput (field) = case field.input of
+    Currency currency ->
+      Input.currency_
+        [ HP.id_ field.key
+        , HP.placeholder (print currency.placeholder)
+        , HP.value $ fold do
+          value <- getValue currency
+          _ <- toCents value
+          pure (print value)
+        ]
     Dropdown dropdown ->
       HH.slot'
         cp1
@@ -158,6 +167,7 @@ component =
 
   renderValidation :: Input ExprType -> Maybe String
   renderValidation = case _ of
+    Currency currency -> renderValidation' currency.errors
     Dropdown dropdown -> renderValidation' dropdown.errors
     Text text -> renderValidation' text.errors
     Toggle toggle -> renderValidation' toggle.errors
@@ -186,6 +196,7 @@ eval = case _ of
       for_ page.contents \section -> do
         for_ section.contents \field -> do
           case field.input of
+            Currency _ -> pure unit
             Dropdown dropdown ->
               for_ (toArray dropdown.options) \options ->
                 H.query' cp1 field.key (Dropdown.SetItems options unit)
