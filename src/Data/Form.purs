@@ -105,6 +105,7 @@ instance arbitraryInput :: Arbitrary (Input Expr) where
 data InputSource a
   = UserInput a
   | Invalid a
+  | UserCleared
   | NotSet
 
 derive instance eqInputSource :: (Eq a) => Eq (InputSource a)
@@ -117,6 +118,7 @@ instance foldableInputSource :: Foldable InputSource where
   foldMap f = case _ of
     UserInput x -> f x
     Invalid x -> f x
+    UserCleared -> mempty
     NotSet -> mempty
   foldl f = foldlDefault f
   foldr f = foldrDefault f
@@ -126,6 +128,7 @@ instance traversableInputSource :: Traversable InputSource where
   traverse f = case _ of
     UserInput x -> map UserInput (f x)
     Invalid x -> map Invalid (f x)
+    UserCleared -> pure UserCleared
     NotSet -> pure NotSet
 
 instance showInputSource :: (Show a) => Show (InputSource a) where
@@ -135,6 +138,7 @@ instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
   encodeJson = case _ of
     UserInput x -> "type" := "UserInput" ~> "value" := x ~> jsonEmptyObject
     Invalid x -> "type" := "Invalid" ~> "value" := x ~> jsonEmptyObject
+    UserCleared -> "type" := "UserCleared" ~> jsonEmptyObject
     NotSet -> "type" := "NotSet" ~> jsonEmptyObject
 
 instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
@@ -143,6 +147,7 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
     x' .: "type" >>= case _ of
       "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
       "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
+      "UserCleared" -> pure UserCleared
       "NotSet" -> pure NotSet
       x -> Left $ x <> " is not a valid InputSource"
 
@@ -244,15 +249,13 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure
-        ( Currency
-          { default
-          , placeholder
-          , required
-          , value
-          , errors: mempty
-          }
-        )
+      pure $ validate $ Currency
+        { default
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
@@ -356,7 +359,7 @@ getValue
   -> Maybe a
 getValue x = userInput x.value <|> x.default
 
-setValue :: Key -> ExprType -> Page Expr -> Page Expr
+setValue :: Key -> InputSource Expr -> Page Expr -> Page Expr
 setValue key val page = page { contents = map setSection page.contents}
   where
   setSection :: Section Expr -> Section Expr
@@ -366,13 +369,13 @@ setValue key val page = page { contents = map setSection page.contents}
   setField field
     | key == field.key = case field.input of
       Currency input ->
-        field { input = Currency input { value = UserInput (Val val) } }
+        field { input = Currency input { value = val } }
       Dropdown input ->
-        field { input = Dropdown input { value = UserInput (Val val) } }
+        field { input = Dropdown input { value = val } }
       Text input ->
-        field { input = Text input { value = UserInput (Val val) } }
+        field { input = Text input { value = val } }
       Toggle input ->
-        field { input = Toggle input { value = UserInput (Val val) } }
+        field { input = Toggle input { value = val } }
     | otherwise = field
 
 -- Test
@@ -479,7 +482,7 @@ food =
 
 money :: Field Expr
 money =
-  { name: string_ "money"
+  { name: string_ "Money"
   , visibility: boolean_ true
   , description: string_ ""
   , key: "money"

@@ -16,7 +16,7 @@
     "purescript-routing-duplex": "^0.2.0",
     "purescript-routing": "^8.0.0",
     "purescript-halogen": "^4.0.0",
-    "purescript-ocelot": "git@github.com:citizennet/purescript-ocelot.git#^0.15.0",
+    "purescript-ocelot": "^0.16.0",
     "purescript-heterogeneous": "^0.3.0"
   },
   "devDependencies": {

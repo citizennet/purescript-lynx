@@ -11,6 +11,8 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe')
 import Data.Newtype (wrap)
 import Data.NonEmpty (NonEmpty(..))
+import Data.String.Common (replace)
+import Data.String.Pattern (Pattern(..), Replacement(..))
 import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
@@ -107,7 +109,7 @@ print :: ExprType -> String
 print = case _ of
   Array x -> "[" <> intercalate ", " (map print x) <> "]"
   Boolean x -> show x
-  Cents x -> formatCentsToStrDollars x
+  Cents x -> replace (Pattern ".00") (Replacement "") (formatCentsToStrDollars x)
   Int x -> show x
   Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
   String x -> x
