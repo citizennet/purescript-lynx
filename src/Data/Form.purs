@@ -360,10 +360,10 @@ getValue
 getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> InputSource Expr -> Page Expr -> Page Expr
-setValue key val page = page { contents = map setSection page.contents}
+setValue key val page = page { contents = map setSection page.contents }
   where
   setSection :: Section Expr -> Section Expr
-  setSection section = section { contents = map setField section.contents}
+  setSection section = section { contents = map setField section.contents }
 
   setField :: Field Expr -> Field Expr
   setField field

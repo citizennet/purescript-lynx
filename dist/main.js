@@ -52374,6 +52374,7 @@ var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
 var Control_Monad_State_Class = require("../Control.Monad.State.Class/index.js");
 var Control_Semigroupoid = require("../Control.Semigroupoid/index.js");
+var Data_Array = require("../Data.Array/index.js");
 var Data_Bifoldable = require("../Data.Bifoldable/index.js");
 var Data_Bitraversable = require("../Data.Bitraversable/index.js");
 var Data_Either = require("../Data.Either/index.js");
@@ -52383,6 +52384,7 @@ var Data_Foldable = require("../Data.Foldable/index.js");
 var Data_Function = require("../Data.Function/index.js");
 var Data_Functor = require("../Data.Functor/index.js");
 var Data_Functor_Coproduct_Nested = require("../Data.Functor.Coproduct.Nested/index.js");
+var Data_HeytingAlgebra = require("../Data.HeytingAlgebra/index.js");
 var Data_Map = require("../Data.Map/index.js");
 var Data_Map_Internal = require("../Data.Map.Internal/index.js");
 var Data_Maybe = require("../Data.Maybe/index.js");
@@ -52439,20 +52441,20 @@ var EvalForm = (function () {
     };
     return EvalForm;
 })();
-var UpdateKey = (function () {
-    function UpdateKey(value0, value1, value2) {
+var UpdateValue = (function () {
+    function UpdateValue(value0, value1, value2) {
         this.value0 = value0;
         this.value1 = value1;
         this.value2 = value2;
     };
-    UpdateKey.create = function (value0) {
+    UpdateValue.create = function (value0) {
         return function (value1) {
             return function (value2) {
-                return new UpdateKey(value0, value1, value2);
+                return new UpdateValue(value0, value1, value2);
             };
         };
     };
-    return UpdateKey;
+    return UpdateValue;
 })();
 var DropdownQuery = (function () {
     function DropdownQuery(value0, value1, value2) {
@@ -52469,129 +52471,102 @@ var DropdownQuery = (function () {
     };
     return DropdownQuery;
 })();
-var $$eval = function (v) {
-    if (v instanceof Initialize) {
-        return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value0)(Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-            var $23 = {};
-            for (var $24 in v1) {
-                if ({}.hasOwnProperty.call(v1, $24)) {
-                    $23[$24] = v1[$24];
-                };
-            };
-            $23.values = Lynx_Data_Form.keys(Lynx_Data_Form.testPage);
-            return $23;
-        }))(function () {
-            return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Data_Bifoldable.bitraverse_(Data_Either.bifoldableEither)(Halogen_Query_HalogenM.applicativeHalogenM)(function (e) {
+var $$eval = function (dictMonadAff) {
+    return function (v) {
+        if (v instanceof Initialize) {
+            return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value0)(Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Data_Bifoldable.bitraverse_(Data_Either.bifoldableEither)(Halogen_Query_HalogenM.applicativeHalogenM)(function (e) {
                 return Control_Monad_State_Class.modify(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                    var $26 = {};
-                    for (var $27 in v1) {
-                        if ({}.hasOwnProperty.call(v1, $27)) {
-                            $26[$27] = v1[$27];
+                    var $20 = {};
+                    for (var $21 in v1) {
+                        if ({}.hasOwnProperty.call(v1, $21)) {
+                            $20[$21] = v1[$21];
                         };
                     };
-                    $26.form = new Network_RemoteData.Failure(e);
-                    return $26;
+                    $20.form = new Network_RemoteData.Failure(e);
+                    return $20;
                 });
             })(function (f) {
-                return $$eval(new EvalForm(f, v.value0));
-            })(new Data_Either.Right(Lynx_Data_Form.testPage)));
-        }));
-    };
-    if (v instanceof EvalForm) {
-        return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)(Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
-            var evaled$prime = Lynx_Data_Form["eval"](function (key) {
-                return Data_Map_Internal.lookup(Data_Ord.ordString)(key)(v1.values);
-            })(v.value0);
-            return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Data_Traversable["for"](Halogen_Query_HalogenM.applicativeHalogenM)(Data_Either.traversableEither)(evaled$prime)(function (page) {
-                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(page.contents)(function (section) {
-                    return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(section.contents)(function (field) {
-                        if (field.input instanceof Lynx_Data_Form.Currency) {
-                            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
-                        };
-                        if (field.input instanceof Lynx_Data_Form.Dropdown) {
-                            return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Lynx_Data_Expr.toArray(field.input.value0.options))(function (options) {
-                                return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))(Halogen_Component_ChildPath.cp1)(field.key)(new Ocelot_Component_Dropdown.SetItems(options, Data_Unit.unit));
-                            });
-                        };
-                        if (field.input instanceof Lynx_Data_Form.Text) {
-                            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
-                        };
-                        if (field.input instanceof Lynx_Data_Form.Toggle) {
-                            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
-                        };
-                        throw new Error("Failed pattern match at Lynx.Page.Form (line 203, column 11 - line 209, column 34): " + [ field.input.constructor.name ]);
+                return $$eval(dictMonadAff)(new EvalForm(f, v.value0));
+            })(new Data_Either.Right(Lynx_Data_Form.testPage))));
+        };
+        if (v instanceof EvalForm) {
+            return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)((function () {
+                var values = Lynx_Data_Form.keys(v.value0);
+                var evaled$prime = Lynx_Data_Form["eval"](function (key) {
+                    return Data_Map_Internal.lookup(Data_Ord.ordString)(key)(values);
+                })(v.value0);
+                return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Data_Traversable["for"](Halogen_Query_HalogenM.applicativeHalogenM)(Data_Either.traversableEither)(evaled$prime)(function (page) {
+                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(page.contents)(function (section) {
+                        return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(section.contents)(function (field) {
+                            if (field.input instanceof Lynx_Data_Form.Currency) {
+                                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
+                            };
+                            if (field.input instanceof Lynx_Data_Form.Dropdown) {
+                                return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Lynx_Data_Expr.toArray(field.input.value0.options))(function (options) {
+                                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))(Halogen_Component_ChildPath.cp1)(field.key)(new Ocelot_Component_Dropdown.SetItems(options, Data_Unit.unit))))(function () {
+                                        return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Data_Map_Internal.lookup(Data_Ord.ordString)(field.key)(values))(function (val) {
+                                            var $26 = !Data_Foldable.elem(Data_Foldable.foldableArray)(Lynx_Data_Expr.eqExprType)(val)(options);
+                                            if ($26) {
+                                                return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Halogen_Query_HalogenM.fork(dictMonadAff)($$eval(dictMonadAff)(new UpdateValue(field.key, Lynx_Data_Form.Invalid.create(new Lynx_Data_Expr.Val(val)), Data_Unit.unit))));
+                                            };
+                                            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
+                                        });
+                                    });
+                                });
+                            };
+                            if (field.input instanceof Lynx_Data_Form.Text) {
+                                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
+                            };
+                            if (field.input instanceof Lynx_Data_Form.Toggle) {
+                                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
+                            };
+                            throw new Error("Failed pattern match at Lynx.Page.Form (line 208, column 11 - line 219, column 34): " + [ field.input.constructor.name ]);
+                        });
+                    }))(function () {
+                        return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(page);
                     });
-                }))(function () {
-                    return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(page);
-                });
-            }))(function (v2) {
-                return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v3) {
-                    var $37 = {};
-                    for (var $38 in v3) {
-                        if ({}.hasOwnProperty.call(v3, $38)) {
-                            $37[$38] = v3[$38];
+                }))(function (v1) {
+                    return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
+                        var $31 = {};
+                        for (var $32 in v2) {
+                            if ({}.hasOwnProperty.call(v2, $32)) {
+                                $31[$32] = v2[$32];
+                            };
                         };
-                    };
-                    $37.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v4) {
-                        return {
-                            expr: v.value0,
-                            evaled: v4
-                        };
-                    })(Network_RemoteData.fromEither(v2));
-                    return $37;
+                        $31.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v3) {
+                            return {
+                                expr: v.value0,
+                                evaled: v3
+                            };
+                        })(Network_RemoteData.fromEither(v1));
+                        $31.values = values;
+                        return $31;
+                    });
                 });
+            })());
+        };
+        if (v instanceof UpdateValue) {
+            return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
+                if (v1.form instanceof Network_RemoteData.Success) {
+                    return $$eval(dictMonadAff)(new EvalForm(Lynx_Data_Form.setValue(v.value0)(v.value1)(v1.form.value0.expr), v.value2));
+                };
+                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
             });
-        }));
-    };
-    if (v instanceof UpdateKey) {
-        return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
-            if (v1.form instanceof Network_RemoteData.Success) {
-                if (v.value1 instanceof Data_Maybe.Nothing) {
-                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
-                        var $46 = {};
-                        for (var $47 in v2) {
-                            if ({}.hasOwnProperty.call(v2, $47)) {
-                                $46[$47] = v2[$47];
-                            };
-                        };
-                        $46.values = Data_Map_Internal["delete"](Data_Ord.ordString)(v.value0)(v1.values);
-                        return $46;
-                    }))(function () {
-                        return $$eval(new EvalForm(Lynx_Data_Form.setValue(v.value0)(Lynx_Data_Form.UserCleared.value)(v1.form.value0.expr), v.value2));
-                    });
-                };
-                if (v.value1 instanceof Data_Maybe.Just) {
-                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v3) {
-                        var $49 = {};
-                        for (var $50 in v3) {
-                            if ({}.hasOwnProperty.call(v3, $50)) {
-                                $49[$50] = v3[$50];
-                            };
-                        };
-                        $49.values = Data_Map_Internal.insert(Data_Ord.ordString)(v.value0)(v.value1.value0)(v1.values);
-                        return $49;
-                    }))(function () {
-                        return $$eval(new EvalForm(Lynx_Data_Form.setValue(v.value0)(Lynx_Data_Form.UserInput.create(new Lynx_Data_Expr.Val(v.value1.value0)))(v1.form.value0.expr), v.value2));
-                    });
-                };
-                throw new Error("Failed pattern match at Lynx.Page.Form (line 217, column 9 - line 223, column 85): " + [ v.value1.constructor.name ]);
+        };
+        if (v instanceof DropdownQuery) {
+            if (v.value1 instanceof Ocelot_Component_Dropdown.Emit) {
+                return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)($$eval(dictMonadAff)(v.value1.value0));
             };
-            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
-        });
+            if (v.value1 instanceof Ocelot_Component_Dropdown.Selected) {
+                return $$eval(dictMonadAff)(new UpdateValue(v.value0, Lynx_Data_Form.UserInput.create(new Lynx_Data_Expr.Val(v.value1.value0)), v.value2));
+            };
+            if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
+                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
+            };
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 233, column 34 - line 236, column 42): " + [ v.value1.constructor.name ]);
+        };
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 195, column 8 - line 236, column 42): " + [ v.constructor.name ]);
     };
-    if (v instanceof DropdownQuery) {
-        if (v.value1 instanceof Ocelot_Component_Dropdown.Emit) {
-            return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)($$eval(v.value1.value0));
-        };
-        if (v.value1 instanceof Ocelot_Component_Dropdown.Selected) {
-            return $$eval(new UpdateKey(v.value0, new Data_Maybe.Just(v.value1.value0), v.value2));
-        };
-        if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
-            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
-        };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 226, column 34 - line 229, column 42): " + [ v.value1.constructor.name ]);
-    };
-    throw new Error("Failed pattern match at Lynx.Page.Form (line 189, column 8 - line 229, column 42): " + [ v.constructor.name ]);
 };
 var component = function (dictMonadAff) {
     var renderValidation = (function () {
@@ -52605,9 +52580,9 @@ var component = function (dictMonadAff) {
             if (v instanceof Lynx_Data_Form.MaxLength) {
                 return "Cannot contain more than " + (Data_Show.show(Data_Show.showInt)(v.value0) + " characters");
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 183, column 29 - line 188, column 1): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 185, column 29 - line 190, column 1): " + [ v.constructor.name ]);
         };
-        var renderValidation$prime = function ($94) {
+        var renderValidation$prime = function ($80) {
             return (function (v) {
                 if (v.length === 0) {
                     return [  ];
@@ -52615,10 +52590,10 @@ var component = function (dictMonadAff) {
                 if (v.length === 1) {
                     return [ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text(renderValidationError(v[0])) ]) ];
                 };
-                return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($95) {
-                    return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($95))));
+                return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($81) {
+                    return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($81))));
                 })(v)) ];
-            })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($94));
+            })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($80));
         };
         return function (v) {
             if (v instanceof Lynx_Data_Form.Currency) {
@@ -52633,7 +52608,7 @@ var component = function (dictMonadAff) {
             if (v instanceof Lynx_Data_Form.Toggle) {
                 return renderValidation$prime(v.value0.errors);
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 172, column 22 - line 176, column 53): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 174, column 22 - line 178, column 53): " + [ v.constructor.name ]);
         };
     })();
     var renderInput = function (v) {
@@ -52642,34 +52617,36 @@ var component = function (dictMonadAff) {
                 return Control_Bind.bind(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toCents(v1))(function (v2) {
                     return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(Lynx_Data_Expr.print(v1));
                 });
-            }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($96) {
-                return UpdateKey.create(v.key)(Data_Functor.map(Data_Maybe.functorMaybe)(Lynx_Data_Expr.Cents.create)(Ocelot_Data_Currency.parseCentsFromDollarStr($96)));
+            }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($82) {
+                return UpdateValue.create(v.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($83) {
+                    return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr.Cents.create($83)));
+                })(Ocelot_Data_Currency.parseCentsFromDollarStr($82)));
             })) ]);
         };
         if (v.input instanceof Lynx_Data_Form.Dropdown) {
             return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(v.key)(Ocelot_Component_Dropdown.component(dictMonadAff))({
                 selectedItem: Lynx_Data_Form.getValue(v.input.value0),
                 items: Data_Foldable.fold(Data_Foldable.foldableMaybe)(Data_Monoid.monoidArray)(Lynx_Data_Expr.toArray(v.input.value0.options)),
-                render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($97) {
-                    return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($98) {
+                render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($84) {
+                    return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($85) {
                         return Lynx_Data_Expr.print((function (v1) {
                             return v1.name;
-                        })($98));
-                    })(Lynx_Data_Expr.toPair($97));
+                        })($85));
+                    })(Lynx_Data_Expr.toPair($84));
                 })(Lynx_Data_Expr.print(v.description)))
             })(Halogen_HTML_Events.input(DropdownQuery.create(v.key)));
         };
         if (v.input instanceof Lynx_Data_Form.Text) {
-            return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(v.input.value0.placeholder)), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($99) {
-                return UpdateKey.create(v.key)(Data_Maybe.Just.create(Lynx_Data_Expr["String"].create($99)));
+            return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(v.input.value0.placeholder)), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($86) {
+                return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["String"].create($86))));
             })) ]);
         };
         if (v.input instanceof Lynx_Data_Form.Toggle) {
-            return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($100) {
-                return UpdateKey.create(v.key)(Data_Maybe.Just.create(Lynx_Data_Expr["Boolean"].create($100)));
+            return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($87) {
+                return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["Boolean"].create($87))));
             })) ]);
         };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 128, column 25 - line 167, column 10): " + [ v.input.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 133, column 25 - line 169, column 10): " + [ v.input.constructor.name ]);
     };
     var renderField = function (v) {
         return Ocelot_Block_FormField.field_({
@@ -52689,10 +52666,10 @@ var component = function (dictMonadAff) {
         if (v instanceof Lynx_Data_Expr.EqualMismatch) {
             return Halogen_HTML_Core.text("Expected both sides of equal to have the same type," + (" but they are different." + (" left: " + (Lynx_Data_Expr.reflectType(v.value0.left) + (" right: " + Lynx_Data_Expr.reflectType(v.value0.right))))));
         };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 96, column 21 - line 108, column 33): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 101, column 21 - line 113, column 33): " + [ v.constructor.name ]);
     };
     var render = function (v) {
-        return Ocelot_Block_Layout.section_((function () {
+        return Halogen_HTML_Elements.div_([ Ocelot_Block_Layout.section_((function () {
             if (v.form instanceof Network_RemoteData.NotAsked) {
                 return [  ];
             };
@@ -52705,8 +52682,8 @@ var component = function (dictMonadAff) {
             if (v.form instanceof Network_RemoteData.Success) {
                 return Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Ocelot_Block_Format.heading_([ Halogen_HTML_Core.text(v.form.value0.evaled.name) ]) ])(Data_Functor.map(Data_Functor.functorArray)(renderSection)(v.form.value0.evaled.contents));
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 81, column 7 - line 93, column 51): " + [ v.form.constructor.name ]);
-        })());
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 84, column 9 - line 96, column 53): " + [ v.form.constructor.name ]);
+        })()), Halogen_HTML_Elements.pre_([ Halogen_HTML_Core.text(Data_Show.show(Data_Map_Internal.showMap(Data_Show.showString)(Lynx_Data_Expr.showExprType))(v.values)) ]) ]);
     };
     var initialState = {
         form: Network_RemoteData.Loading.value,
@@ -52714,7 +52691,7 @@ var component = function (dictMonadAff) {
     };
     return Halogen_Component.lifecycleParentComponent(Data_Either.ordEither(Data_Ord.ordString)(Data_Ord.ordVoid))({
         initialState: Data_Function["const"](initialState),
-        "eval": $$eval,
+        "eval": $$eval(dictMonadAff),
         render: render,
         receiver: Data_Function["const"](Data_Maybe.Nothing.value),
         initializer: Data_Maybe.Just.create(Halogen_Query.action(Initialize.create)),
@@ -52724,13 +52701,13 @@ var component = function (dictMonadAff) {
 module.exports = {
     Initialize: Initialize,
     EvalForm: EvalForm,
-    UpdateKey: UpdateKey,
+    UpdateValue: UpdateValue,
     DropdownQuery: DropdownQuery,
     component: component,
     "eval": $$eval
 };
 
-},{"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Monad.State.Class/index.js":48,"../Control.Semigroupoid/index.js":61,"../Data.Bifoldable/index.js":100,"../Data.Bitraversable/index.js":109,"../Data.Either.Nested/index.js":130,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor.Coproduct.Nested/index.js":149,"../Data.Functor/index.js":153,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Ord/index.js":229,"../Data.Semigroup/index.js":248,"../Data.Show/index.js":254,"../Data.Traversable/index.js":281,"../Data.Unit/index.js":289,"../Effect.Aff.Class/index.js":295,"../Halogen.Component.ChildPath/index.js":330,"../Halogen.Component/index.js":331,"../Halogen.HTML.Core/index.js":334,"../Halogen.HTML.Elements/index.js":335,"../Halogen.HTML.Events/index.js":336,"../Halogen.HTML.Properties/index.js":338,"../Halogen.HTML/index.js":339,"../Halogen.Query.HalogenM/index.js":342,"../Halogen.Query/index.js":344,"../Halogen/index.js":353,"../Lynx.Data.Expr/index.js":356,"../Lynx.Data.Form/index.js":357,"../Network.RemoteData/index.js":365,"../Ocelot.Block.Button/index.js":367,"../Ocelot.Block.Card/index.js":368,"../Ocelot.Block.FormField/index.js":369,"../Ocelot.Block.Format/index.js":370,"../Ocelot.Block.Input/index.js":372,"../Ocelot.Block.Layout/index.js":374,"../Ocelot.Block.Toggle/index.js":376,"../Ocelot.Component.Dropdown.Render/index.js":377,"../Ocelot.Component.Dropdown/index.js":378,"../Ocelot.Data.Currency/index.js":379,"../Ocelot.HTML.Properties/index.js":380,"../Prelude/index.js":385}],359:[function(require,module,exports){
+},{"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Monad.State.Class/index.js":48,"../Control.Semigroupoid/index.js":61,"../Data.Array/index.js":99,"../Data.Bifoldable/index.js":100,"../Data.Bitraversable/index.js":109,"../Data.Either.Nested/index.js":130,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor.Coproduct.Nested/index.js":149,"../Data.Functor/index.js":153,"../Data.HeytingAlgebra/index.js":162,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Ord/index.js":229,"../Data.Semigroup/index.js":248,"../Data.Show/index.js":254,"../Data.Traversable/index.js":281,"../Data.Unit/index.js":289,"../Effect.Aff.Class/index.js":295,"../Halogen.Component.ChildPath/index.js":330,"../Halogen.Component/index.js":331,"../Halogen.HTML.Core/index.js":334,"../Halogen.HTML.Elements/index.js":335,"../Halogen.HTML.Events/index.js":336,"../Halogen.HTML.Properties/index.js":338,"../Halogen.HTML/index.js":339,"../Halogen.Query.HalogenM/index.js":342,"../Halogen.Query/index.js":344,"../Halogen/index.js":353,"../Lynx.Data.Expr/index.js":356,"../Lynx.Data.Form/index.js":357,"../Network.RemoteData/index.js":365,"../Ocelot.Block.Button/index.js":367,"../Ocelot.Block.Card/index.js":368,"../Ocelot.Block.FormField/index.js":369,"../Ocelot.Block.Format/index.js":370,"../Ocelot.Block.Input/index.js":372,"../Ocelot.Block.Layout/index.js":374,"../Ocelot.Block.Toggle/index.js":376,"../Ocelot.Component.Dropdown.Render/index.js":377,"../Ocelot.Component.Dropdown/index.js":378,"../Ocelot.Data.Currency/index.js":379,"../Ocelot.HTML.Properties/index.js":380,"../Prelude/index.js":385}],359:[function(require,module,exports){
 // Generated by purs version 0.12.3
 "use strict";
 var Control_Applicative = require("../Control.Applicative/index.js");

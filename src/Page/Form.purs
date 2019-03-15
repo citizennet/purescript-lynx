@@ -2,6 +2,7 @@ module Lynx.Page.Form where
 
 import Prelude
 
+import Data.Array as Data.Array
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
@@ -9,7 +10,8 @@ import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (Coproduct1)
 import Data.Map (Map)
 import Data.Map as Data.Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
+import Data.Maybe as Data.Maybe
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
@@ -41,7 +43,7 @@ type State =
 data Query a
   = Initialize a
   | EvalForm (Page Expr) a
-  | UpdateKey Key (Maybe ExprType) a
+  | UpdateValue Key (InputSource Expr) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
 
 type ParentInput = String
@@ -76,21 +78,24 @@ component =
     }
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  render { form } =
-    Layout.section_
-      case form of
-        NotAsked ->
-          []
-        Loading ->
-          [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text "Loading..." ] ] ]
-        Failure e ->
-          [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
-        Success page ->
-          append
-          [ Format.heading_
-            [ HH.text page.evaled.name ]
-          ]
-          $ renderSection <$> page.evaled.contents
+  render { form, values } =
+    HH.div_
+      [ Layout.section_
+        case form of
+          NotAsked ->
+            []
+          Loading ->
+            [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text "Loading..." ] ] ]
+          Failure e ->
+            [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
+          Success page ->
+            append
+            [ Format.heading_
+              [ HH.text page.evaled.name ]
+            ]
+            $ renderSection <$> page.evaled.contents
+      , HH.pre_ [ HH.text $ show values ]
+      ]
 
   renderEvalError :: forall a b c d. EvalError -> H.ParentHTML a b c d
   renderEvalError = case _ of
@@ -134,13 +139,10 @@ component =
           value <- getValue currency
           _ <- toCents value
           pure (print value)
-        , HE.onValueChange (HE.input $ UpdateKey field.key <<< map Cents <<< parseCentsFromDollarStr)
+        , HE.onValueChange (HE.input $ UpdateValue field.key <<< Data.Maybe.maybe UserCleared (UserInput <<< Val <<< Cents) <<< parseCentsFromDollarStr)
         ]
     Dropdown dropdown ->
-      HH.slot'
-        cp1
-        field.key
-        Dropdown.component
+      HH.slot' cp1 field.key Dropdown.component
         { selectedItem: getValue dropdown
         , items: fold (toArray dropdown.options)
         , render:
@@ -154,16 +156,16 @@ component =
         (HE.input $ DropdownQuery field.key)
     Text input ->
       Input.input
-        [ HP.value $ fromMaybe "" $ toString =<< getValue input
+        [ HP.value $ Data.Maybe.fromMaybe "" $ toString =<< getValue input
         , HP.placeholder $ print input.placeholder
         , HP.id_ field.key
-        , HE.onValueChange (HE.input $ UpdateKey field.key <<< Just <<< String)
+        , HE.onValueChange (HE.input $ UpdateValue field.key <<< UserInput <<< Val <<< String)
         ]
     Toggle input ->
       Toggle.toggle
-        [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
+        [ HP.checked $ Data.Maybe.fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateKey field.key <<< Just <<< Boolean)
+        , HE.onChecked (HE.input $ UpdateValue field.key <<< UserInput <<< Val <<< Boolean)
         ]
 
   renderValidation
@@ -185,17 +187,20 @@ component =
       MinLength x -> "Must contain at least " <> show x <> " characters"
       MaxLength x -> "Cannot contain more than " <> show x <> " characters"
 
-eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
+eval
+  :: ∀ m
+   . MonadAff m
+  => Query
+  ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
   Initialize a -> a <$ do
-    H.modify_ _ { values = Lynx.Data.Form.keys testPage }
     void $ bitraverse_
       (\e -> H.modify _ { form = Failure e })
       (\f -> eval $ EvalForm f a)
       (Right testPage)
 
   EvalForm expr a -> a <$ do
-    { values } <- H.get
+    let values = Lynx.Data.Form.keys expr
     let evaled' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
     evaled <- for evaled' \page -> do
       for_ page.contents \section -> do
@@ -203,27 +208,30 @@ eval = case _ of
           case field.input of
             Currency _ -> pure unit
             Dropdown dropdown ->
-              for_ (toArray dropdown.options) \options ->
-                H.query' cp1 field.key (Dropdown.SetItems options unit)
+              for_ (toArray dropdown.options) \options -> do
+                void $ H.query' cp1 field.key (Dropdown.SetItems options unit)
+                -- Not the move
+                -- for_ (Data.Map.lookup field.key values) \val -> do
+                  -- if (not $ Data.Array.elem val options)
+                    -- then do
+                      -- void $ H.fork $ eval $ UpdateValue field.key (Invalid $ Val val) unit
+                    -- else pure unit
             Text _ -> pure unit
             Toggle _ -> pure unit
       pure page
-    H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
+    H.modify_ _
+      { form = map { expr, evaled: _ } (fromEither evaled)
+      , values = values
+      }
 
-  UpdateKey key val a -> do
+  UpdateValue key val a -> do
     { values, form } <- H.get
     case form of
       Success { expr } -> do
-        case val of
-          Nothing -> do
-            H.modify_ _ { values = Data.Map.delete key values }
-            eval (EvalForm (Lynx.Data.Form.setValue key UserCleared expr) a)
-          Just v -> do
-            H.modify_ _ { values = Data.Map.insert key v values }
-            eval (EvalForm (Lynx.Data.Form.setValue key (UserInput $ Val v) expr) a)
-      _ -> pure a -- should this be possible?
+        eval $ EvalForm (Lynx.Data.Form.setValue key val expr) a
+      _ -> pure a
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
-    Dropdown.Selected val -> eval (UpdateKey key (Just val) a)
+    Dropdown.Selected val -> eval (UpdateValue key (UserInput $ Val val) a)
     Dropdown.VisibilityChanged _ -> pure a
