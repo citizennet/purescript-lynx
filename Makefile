@@ -66,6 +66,10 @@ SRC := src
 SRCS := $(shell find $(SRC) -name '*.purs' -type f)
 TESTS := $(shell find test -name '*.purs' -type f)
 
+# Allow RTS args to be passed in to override the default behavior.
+# We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
+RTS_ARGS ?=
+
 .DEFAULT_GOAL := dist/main.js
 
 $(BOWER_COMPONENTS): bower.json $(NODE_MODULES)
@@ -76,7 +80,7 @@ $(BUILD):
 	mkdir -p $@
 
 $(BUILD)/test.out: $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
-	npx pulp test | tee $@.tmp # Store output in a temp file in case of a failure.
+	npx pulp test -- $(RTS_ARGS) | tee $@.tmp # Store output in a temp file in case of a failure.
 	mv $@.tmp $@ # Move the output where it belongs.
 
 $(NODE_MODULES): package.json
@@ -84,7 +88,7 @@ $(NODE_MODULES): package.json
 	touch $@
 
 $(OUTPUT)/Main/index.js: $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
-	npx pulp build -- $(PSA_ARGS)
+	npx pulp build -- $(PSA_ARGS) $(RTS_ARGS)
 
 .PHONY: clean
 clean:
@@ -96,7 +100,7 @@ clean:
 	  node_modules
 
 dist/main.js: $(OUTPUT)/Main/index.js
-	npx pulp browserify --to $@
+	npx pulp browserify --to $@ -- $(RTS_ARGS)
 
 test: dist/main.js $(BUILD)/test.out
 
