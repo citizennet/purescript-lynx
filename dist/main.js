@@ -52384,7 +52384,6 @@ var Data_Foldable = require("../Data.Foldable/index.js");
 var Data_Function = require("../Data.Function/index.js");
 var Data_Functor = require("../Data.Functor/index.js");
 var Data_Functor_Coproduct_Nested = require("../Data.Functor.Coproduct.Nested/index.js");
-var Data_HeytingAlgebra = require("../Data.HeytingAlgebra/index.js");
 var Data_Map = require("../Data.Map/index.js");
 var Data_Map_Internal = require("../Data.Map.Internal/index.js");
 var Data_Maybe = require("../Data.Maybe/index.js");
@@ -52503,15 +52502,7 @@ var $$eval = function (dictMonadAff) {
                             };
                             if (field.input instanceof Lynx_Data_Form.Dropdown) {
                                 return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Lynx_Data_Expr.toArray(field.input.value0.options))(function (options) {
-                                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))(Halogen_Component_ChildPath.cp1)(field.key)(new Ocelot_Component_Dropdown.SetItems(options, Data_Unit.unit))))(function () {
-                                        return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Data_Map_Internal.lookup(Data_Ord.ordString)(field.key)(values))(function (val) {
-                                            var $26 = !Data_Foldable.elem(Data_Foldable.foldableArray)(Lynx_Data_Expr.eqExprType)(val)(options);
-                                            if ($26) {
-                                                return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Halogen_Query_HalogenM.fork(dictMonadAff)($$eval(dictMonadAff)(new UpdateValue(field.key, Lynx_Data_Form.Invalid.create(new Lynx_Data_Expr.Val(val)), Data_Unit.unit))));
-                                            };
-                                            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
-                                        });
-                                    });
+                                    return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))(Halogen_Component_ChildPath.cp1)(field.key)(new Ocelot_Component_Dropdown.SetItems(options, Data_Unit.unit)));
                                 });
                             };
                             if (field.input instanceof Lynx_Data_Form.Text) {
@@ -52520,27 +52511,27 @@ var $$eval = function (dictMonadAff) {
                             if (field.input instanceof Lynx_Data_Form.Toggle) {
                                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
                             };
-                            throw new Error("Failed pattern match at Lynx.Page.Form (line 208, column 11 - line 219, column 34): " + [ field.input.constructor.name ]);
+                            throw new Error("Failed pattern match at Lynx.Page.Form (line 208, column 11 - line 220, column 34): " + [ field.input.constructor.name ]);
                         });
                     }))(function () {
                         return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(page);
                     });
                 }))(function (v1) {
                     return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
-                        var $31 = {};
-                        for (var $32 in v2) {
-                            if ({}.hasOwnProperty.call(v2, $32)) {
-                                $31[$32] = v2[$32];
+                        var $30 = {};
+                        for (var $31 in v2) {
+                            if ({}.hasOwnProperty.call(v2, $31)) {
+                                $30[$31] = v2[$31];
                             };
                         };
-                        $31.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v3) {
+                        $30.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v3) {
                             return {
                                 expr: v.value0,
                                 evaled: v3
                             };
                         })(Network_RemoteData.fromEither(v1));
-                        $31.values = values;
-                        return $31;
+                        $30.values = values;
+                        return $30;
                     });
                 });
             })());
@@ -52563,9 +52554,9 @@ var $$eval = function (dictMonadAff) {
             if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 233, column 34 - line 236, column 42): " + [ v.value1.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 234, column 34 - line 237, column 42): " + [ v.value1.constructor.name ]);
         };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 195, column 8 - line 236, column 42): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 195, column 8 - line 237, column 42): " + [ v.constructor.name ]);
     };
 };
 var component = function (dictMonadAff) {
@@ -52582,7 +52573,7 @@ var component = function (dictMonadAff) {
             };
             throw new Error("Failed pattern match at Lynx.Page.Form (line 185, column 29 - line 190, column 1): " + [ v.constructor.name ]);
         };
-        var renderValidation$prime = function ($80) {
+        var renderValidation$prime = function ($79) {
             return (function (v) {
                 if (v.length === 0) {
                     return [  ];
@@ -52590,10 +52581,10 @@ var component = function (dictMonadAff) {
                 if (v.length === 1) {
                     return [ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text(renderValidationError(v[0])) ]) ];
                 };
-                return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($81) {
-                    return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($81))));
+                return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($80) {
+                    return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($80))));
                 })(v)) ];
-            })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($80));
+            })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($79));
         };
         return function (v) {
             if (v instanceof Lynx_Data_Form.Currency) {
@@ -52617,33 +52608,33 @@ var component = function (dictMonadAff) {
                 return Control_Bind.bind(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toCents(v1))(function (v2) {
                     return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(Lynx_Data_Expr.print(v1));
                 });
-            }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($82) {
-                return UpdateValue.create(v.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($83) {
-                    return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr.Cents.create($83)));
-                })(Ocelot_Data_Currency.parseCentsFromDollarStr($82)));
+            }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($81) {
+                return UpdateValue.create(v.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($82) {
+                    return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr.Cents.create($82)));
+                })(Ocelot_Data_Currency.parseCentsFromDollarStr($81)));
             })) ]);
         };
         if (v.input instanceof Lynx_Data_Form.Dropdown) {
             return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(v.key)(Ocelot_Component_Dropdown.component(dictMonadAff))({
                 selectedItem: Lynx_Data_Form.getValue(v.input.value0),
                 items: Data_Foldable.fold(Data_Foldable.foldableMaybe)(Data_Monoid.monoidArray)(Lynx_Data_Expr.toArray(v.input.value0.options)),
-                render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($84) {
-                    return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($85) {
+                render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($83) {
+                    return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($84) {
                         return Lynx_Data_Expr.print((function (v1) {
                             return v1.name;
-                        })($85));
-                    })(Lynx_Data_Expr.toPair($84));
+                        })($84));
+                    })(Lynx_Data_Expr.toPair($83));
                 })(Lynx_Data_Expr.print(v.description)))
             })(Halogen_HTML_Events.input(DropdownQuery.create(v.key)));
         };
         if (v.input instanceof Lynx_Data_Form.Text) {
-            return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(v.input.value0.placeholder)), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($86) {
-                return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["String"].create($86))));
+            return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(v.input.value0.placeholder)), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($85) {
+                return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["String"].create($85))));
             })) ]);
         };
         if (v.input instanceof Lynx_Data_Form.Toggle) {
-            return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($87) {
-                return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["Boolean"].create($87))));
+            return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($86) {
+                return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["Boolean"].create($86))));
             })) ]);
         };
         throw new Error("Failed pattern match at Lynx.Page.Form (line 133, column 25 - line 169, column 10): " + [ v.input.constructor.name ]);
@@ -52707,7 +52698,7 @@ module.exports = {
     "eval": $$eval
 };
 
-},{"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Monad.State.Class/index.js":48,"../Control.Semigroupoid/index.js":61,"../Data.Array/index.js":99,"../Data.Bifoldable/index.js":100,"../Data.Bitraversable/index.js":109,"../Data.Either.Nested/index.js":130,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor.Coproduct.Nested/index.js":149,"../Data.Functor/index.js":153,"../Data.HeytingAlgebra/index.js":162,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Ord/index.js":229,"../Data.Semigroup/index.js":248,"../Data.Show/index.js":254,"../Data.Traversable/index.js":281,"../Data.Unit/index.js":289,"../Effect.Aff.Class/index.js":295,"../Halogen.Component.ChildPath/index.js":330,"../Halogen.Component/index.js":331,"../Halogen.HTML.Core/index.js":334,"../Halogen.HTML.Elements/index.js":335,"../Halogen.HTML.Events/index.js":336,"../Halogen.HTML.Properties/index.js":338,"../Halogen.HTML/index.js":339,"../Halogen.Query.HalogenM/index.js":342,"../Halogen.Query/index.js":344,"../Halogen/index.js":353,"../Lynx.Data.Expr/index.js":356,"../Lynx.Data.Form/index.js":357,"../Network.RemoteData/index.js":365,"../Ocelot.Block.Button/index.js":367,"../Ocelot.Block.Card/index.js":368,"../Ocelot.Block.FormField/index.js":369,"../Ocelot.Block.Format/index.js":370,"../Ocelot.Block.Input/index.js":372,"../Ocelot.Block.Layout/index.js":374,"../Ocelot.Block.Toggle/index.js":376,"../Ocelot.Component.Dropdown.Render/index.js":377,"../Ocelot.Component.Dropdown/index.js":378,"../Ocelot.Data.Currency/index.js":379,"../Ocelot.HTML.Properties/index.js":380,"../Prelude/index.js":385}],359:[function(require,module,exports){
+},{"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Monad.State.Class/index.js":48,"../Control.Semigroupoid/index.js":61,"../Data.Array/index.js":99,"../Data.Bifoldable/index.js":100,"../Data.Bitraversable/index.js":109,"../Data.Either.Nested/index.js":130,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor.Coproduct.Nested/index.js":149,"../Data.Functor/index.js":153,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Ord/index.js":229,"../Data.Semigroup/index.js":248,"../Data.Show/index.js":254,"../Data.Traversable/index.js":281,"../Data.Unit/index.js":289,"../Effect.Aff.Class/index.js":295,"../Halogen.Component.ChildPath/index.js":330,"../Halogen.Component/index.js":331,"../Halogen.HTML.Core/index.js":334,"../Halogen.HTML.Elements/index.js":335,"../Halogen.HTML.Events/index.js":336,"../Halogen.HTML.Properties/index.js":338,"../Halogen.HTML/index.js":339,"../Halogen.Query.HalogenM/index.js":342,"../Halogen.Query/index.js":344,"../Halogen/index.js":353,"../Lynx.Data.Expr/index.js":356,"../Lynx.Data.Form/index.js":357,"../Network.RemoteData/index.js":365,"../Ocelot.Block.Button/index.js":367,"../Ocelot.Block.Card/index.js":368,"../Ocelot.Block.FormField/index.js":369,"../Ocelot.Block.Format/index.js":370,"../Ocelot.Block.Input/index.js":372,"../Ocelot.Block.Layout/index.js":374,"../Ocelot.Block.Toggle/index.js":376,"../Ocelot.Component.Dropdown.Render/index.js":377,"../Ocelot.Component.Dropdown/index.js":378,"../Ocelot.Data.Currency/index.js":379,"../Ocelot.HTML.Properties/index.js":380,"../Prelude/index.js":385}],359:[function(require,module,exports){
 // Generated by purs version 0.12.3
 "use strict";
 var Control_Applicative = require("../Control.Applicative/index.js");
