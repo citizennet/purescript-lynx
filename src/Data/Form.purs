@@ -265,6 +265,88 @@ setValue key val page = page { contents = map setSection page.contents}
         field { input = Toggle input { value = UserInput (Val val) } }
     | otherwise = field
 
+-- MVP
+
+mvpPage :: Page Expr
+mvpPage =
+  { name: "New Campaign Request"
+  , contents:
+    [ { name: "Campaign"
+      , contents:
+        [ mvpName
+        , mvpObjective
+        , mvpMediaBudget
+        ]
+      }
+    ]
+  }
+
+mvpMediaBudget :: Field Expr
+mvpMediaBudget =
+  { description: string_ ""
+  , input:
+    Currency
+      { default: Nothing
+      , placeholder: cents_ (wrap zero)
+      , required: boolean_ true
+      , value: NotSet
+      }
+  , key: "media-budget"
+  , name: string_ "Media Budget"
+  , visibility: boolean_ true
+  }
+
+mvpName :: Field Expr
+mvpName =
+  { description: string_ ""
+  , input:
+    Text
+      { default: Nothing
+      , maxLength: Nothing
+      , minLength: Nothing
+      , placeholder: string_ ""
+      , required: boolean_ true
+      , value: NotSet
+      }
+  , key: "name"
+  , name: string_ "Name"
+  , visibility: boolean_ true
+  }
+
+mvpObjective :: Field Expr
+mvpObjective =
+  { description: string_ ""
+  , input:
+    Dropdown
+      { default: Nothing
+      , options
+      , placeholder: string_ "Choose an objective"
+      , required: boolean_ true
+      , value: NotSet
+      }
+  , key: "objective"
+  , name: string_ "Objective"
+  , visibility: boolean_ true
+  }
+  where
+  options :: Expr
+  options =
+    Val
+    ( Array
+      [ Pair { name: String "App Installs", value: String "App Installs" }
+      , Pair { name: String "Brand Awareness", value: String "Brand Awareness" }
+      , Pair { name: String "Conversions", value: String "Conversions" }
+      , Pair { name: String "Event Responses", value: String "Event Responses" }
+      , Pair { name: String "Lead Generation", value: String "Lead Generation" }
+      , Pair { name: String "Link Clicks", value: String "Link Clicks" }
+      , Pair { name: String "Offer Claims", value: String "Offer Claims" }
+      , Pair { name: String "Page Likes", value: String "Page Likes" }
+      , Pair { name: String "Post Engagement", value: String "Post Engagement" }
+      , Pair { name: String "Reach", value: String "Reach" }
+      , Pair { name: String "VideoViews", value: String "VideoViews" }
+      ]
+    )
+
 -- Test
 
 testPage :: Page Expr
