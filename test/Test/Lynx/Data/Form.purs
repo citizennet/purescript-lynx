@@ -8,7 +8,7 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, ExprTypeF(..), Key, array_, boolean_, if_, lookup_, pair_, string_)
+import Lynx.Data.Expr (EvalError, Expr, ExprType, ExprTypeF(..), Key, array_, boolean_, if_, lookup_, pair_, string_, val_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
 import Lynx.Data.Form as Lynx.Data.Form
 import Matryoshka (embed)
@@ -76,8 +76,8 @@ dropdownOptions = do
       { default: Nothing
       , options:
         if_ (lookup_ fooKey $ boolean_ false)
-        (Val $ array_ [pair_ { name: embed (String "foo"), value: embed (Int 3)}])
-        (Val $ array_ [])
+        (val_ $ array_ [pair_ { name: embed (String "foo"), value: embed (Int 3)}])
+        (val_ $ array_ [])
       , placeholder: string_ ""
       , required: boolean_ false
       , value: NotSet
@@ -228,7 +228,7 @@ active =
 
 val :: ∀ a. Show a => a -> String -> String
 val x o  = """
-  { "op": "Val", "param": """ <> show x <> """, "in": "Void", "out": """ <> show o <> """ }
+  { "op": "Val", "params": [""" <> show x <> """], "in": "Void", "out": """ <> show o <> """ }
 """
 
 value :: InputSource String -> String

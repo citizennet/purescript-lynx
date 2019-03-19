@@ -2,7 +2,7 @@ module Lynx.Data.Expr where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, stringify)
 import Data.BigInt as Data.BigInt
 import Data.Either (Either(..))
 import Data.Eq (class Eq1)
@@ -10,11 +10,11 @@ import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
 import Data.Functor.Mu (Mu)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..), maybe')
-import Data.Newtype (wrap)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype (class Newtype, un, wrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.Traversable (class Traversable, traverse)
-import Matryoshka (anaM, cata, embed, project)
+import Matryoshka (class Corecursive, class Recursive, anaM, cata, cataM, embed, project)
 import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
@@ -108,30 +108,30 @@ instance traversableExprTypeF :: Traversable ExprTypeF where
 type ExprType
   = Mu ExprTypeF
 
--- | The JSON representation of `ExprType`.
--- | We create this type so we know what we're decoding/encoding into.
--- | It's also useful for the morphisms we write.
-type ExprTypeJSON
-  = { in :: String
-    , op :: String
-    , out :: String
-    , param :: Json
-    }
-
 decodeExprType :: Json -> Either String ExprType
 decodeExprType x = anaM decodeExprTypeF =<< decodeJson x
 
-decodeExprTypeF :: ExprTypeJSON -> Either String (ExprTypeF ExprTypeJSON)
-decodeExprTypeF json@{ out, param } = case out of
-  "Array" -> map Array (decodeJson param)
-  "Boolean" -> map Boolean (decodeJson param)
-  "Cents" -> map (Cents <<< wrap <<< Data.BigInt.fromInt) (decodeJson param)
-  "Int" -> map Int (decodeJson param)
-  "Pair" -> map Pair (decodeJson param)
-  "String" -> map String (decodeJson param)
+decodeExprTypeF :: ExprJSON -> Either String (ExprTypeF ExprJSON)
+decodeExprTypeF json@{ out, params } = case out of
+  "Array" -> map Array (traverse decodeJson params)
+  "Boolean" -> traverse decodeJson params >>= case _ of
+    [x] -> pure (Boolean x)
+    _ -> Left "Expected 1 param"
+  "Cents" -> traverse decodeJson params >>= case _ of
+    [x] -> pure (Cents $ wrap $ Data.BigInt.fromInt x)
+    _ -> Left "Expected 1 param"
+  "Int" -> traverse decodeJson params >>= case _ of
+    [x] -> pure (Int x)
+    _ -> Left "Expected 1 param"
+  "Pair" -> traverse decodeJson params >>= case _ of
+    [x] -> pure (Pair x)
+    _ -> Left "Expected 1 param"
+  "String" -> traverse decodeJson params >>= case _ of
+    [x] -> pure (String x)
+    _ -> Left "Expected 1 param"
   _ ->
     Left
-      ( show json { param = stringify param }
+      ( show json { params = map stringify params }
         <> " unsupported."
         <> " Expected Array, Boolean, Cents, Int, Pair, or String."
       )
@@ -139,16 +139,17 @@ decodeExprTypeF json@{ out, param } = case out of
 encodeExprType :: ExprType -> Json
 encodeExprType x = encodeJson (cata encodeExprTypeF x)
 
-encodeExprTypeF :: ExprTypeF ExprTypeJSON -> ExprTypeJSON
+encodeExprTypeF :: ExprTypeF ExprJSON -> ExprJSON
 encodeExprTypeF = case _ of
-  Array x -> base "Array" (encodeJson x)
-  Boolean x -> base "Boolean" (encodeJson x)
-  Cents x -> base "Cents" (encodeJson x)
-  Int x -> base "Int" (encodeJson x)
-  Pair x -> base "Pair" (encodeJson x)
-  String x -> base "String" (encodeJson x)
+  Array x -> base "Array" x
+  Boolean x -> base "Boolean" [x]
+  Cents x -> base "Cents" [x]
+  Int x -> base "Int" [x]
+  Pair x -> base "Pair" [x]
+  String x -> base "String" [x]
   where
-  base out param = { in: "Void", op: "Val", out, param }
+  base :: forall a. EncodeJson a => String -> Array a -> ExprJSON
+  base out params = { in: "Void", op: "Val", out, params: map encodeJson params }
 
 reflectType :: ExprType -> String
 reflectType x = (cata encodeExprTypeF x).out
@@ -201,44 +202,65 @@ toString = cata case _ of
   String x  -> Just x
   otherwise -> Nothing
 
-data Expr
+-- | Our non-recursive type of expressions.
+-- | This is where the structure of an expression takes place.
+-- | We may go through many transformations with this value.
+data ExprF a
   = Val ExprType
-  | If Expr Expr Expr
-  | Equal Expr Expr
-  | Print Expr
-  | Lookup Key Expr
+  | If a a a
+  | Equal a a
+  | Print a
+  | Lookup Key a
 
-derive instance eqExpr :: Eq Expr
+derive instance eqExprF :: (Eq a) => Eq (ExprF a)
+
+derive instance eq1ExprF :: Eq1 ExprF
+
+derive instance functorExprF :: Functor ExprF
+
+derive instance genericExprF :: Generic (ExprF a) _
+
+instance showExprF :: (Show a) => Show (ExprF a) where
+  show x = genericShow x
+
+instance foldableExprF :: Foldable ExprF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Val _ -> mempty
+    If x y z -> f x <> f y <> f z
+    Equal x y -> f x <> f y
+    Print x -> f x
+    Lookup _ x -> f x
+
+instance traversableExprF :: Traversable ExprF where
+  sequence = traverse identity
+  traverse f = case _ of
+    Val x -> pure (Val x)
+    If x' y' z' -> ado
+      x <- f x'
+      y <- f y'
+      z <- f z'
+      in If x y z
+    Equal x' y' -> ado
+      x <- f x'
+      y <- f y'
+      in Equal x y
+    Print x -> map Print (f x)
+    Lookup x y -> map (Lookup x) (f y)
+
+-- | The inductive version of `ExprF _`.
+-- | This is what most of our consumers should be dealing with.
+newtype Expr
+  = Expr (Mu ExprF)
 
 derive instance genericExpr :: Generic Expr _
 
-instance showExpr :: Show Expr where
-  show x = genericShow x
+derive instance newtypeExpr :: Newtype Expr _
 
-instance encodeJsonExpr :: EncodeJson Expr where
-  encodeJson = encodeJson <<< toExprA
+derive newtype instance eqExpr :: Eq Expr
 
-instance decodeJsonExpr :: DecodeJson Expr where
-  decodeJson json = do
-    x' <- decodeJson json
-    x' .: "op" >>= case _ of
-      "Val" -> map Val (decodeExprType json)
-      "If" -> x' .: "params" >>= case _ of
-        [x, y, z] -> pure (if_ x y z)
-        _ -> Left "Expected 3 params"
-      "Equal" -> x' .: "params" >>= case _ of
-        [x, y] -> pure (equal_ x y)
-        _ -> Left "Expected 2 params"
-      "Print" -> x' .: "params" >>= case _ of
-        [x] -> pure (print_ x)
-        _ -> Left "Expected 1 param"
-      "Lookup" -> x' .: "params" >>= case _ of
-        [x, y] -> do
-          key <- decodeJson x
-          default <- decodeJson y
-          pure (lookup_ key default)
-        _ -> Left "Expected 2 params"
-      op -> Left $ op <> " invalid op"
+derive newtype instance showExpr :: Show Expr
 
 instance arbitraryExpr :: Arbitrary Expr where
   arbitrary = sized go
@@ -246,62 +268,75 @@ instance arbitraryExpr :: Arbitrary Expr where
     go :: Size -> Gen Expr
     go size' =
       if size' < 1 then
-        map (Val <<< embed) arbitrary
+        map (val_ <<< embed) arbitrary
       else
         let size = size' / 10
         in oneOf $ NonEmpty
-            (If <$> go size <*> go size <*> go size)
-            [ Equal <$> go size <*> go size
-            , Print <$> go size
-            , Lookup <$> arbitrary <*> go size
+            (if_ <$> go size <*> go size <*> go size)
+            [ equal_ <$> go size <*> go size
+            , print_ <$> go size
+            , lookup_ <$> arbitrary <*> go size
             ]
 
-data ExprA
-  = ValA ExprType
-  | IfA ExprA ExprA ExprA String String
-  | EqualA ExprA ExprA String String
-  | PrintA ExprA String String
-  | LookupA Key ExprA String
+instance corecursiveExprExprF :: Corecursive Expr ExprF where
+  embed x = Expr (embed $ map (un Expr) x)
 
-instance encodeJsonExprA :: EncodeJson ExprA where
-  encodeJson =
-    case _ of
-      ValA x -> encodeExprType x
-      IfA x y z i o ->
-        "params" := [ x, y, z ] ~> encodeHelper "If" i o
-      EqualA x y i o ->
-        "params" := [ x, y ] ~> encodeHelper "Equal" i o
-      PrintA x i o ->
-        "params" := [ x ] ~> encodeHelper "Print" i o
-      LookupA x y o ->
-        "params" := [ encodeJson x, encodeJson y ] ~> encodeHelper "Lookup" "Void" o
+instance decodeJsonExpr :: DecodeJson Expr where
+  decodeJson = decodeExpr
 
-toExprA :: Expr -> ExprA
-toExprA = case _ of
-  Val x -> ValA x
-  If x y z -> IfA (toExprA x) (toExprA y) (toExprA z) (reflectIn x) (reflectOut y)
-  Equal x y -> EqualA (toExprA x) (toExprA y) (reflectIn x) (reflectOut x)
-  Print x -> PrintA (toExprA x) (reflectIn x) "String"
-  Lookup x y -> LookupA x (toExprA y) (reflectOut y)
-  where
-  reflectIn :: Expr -> String
-  reflectIn = case _ of
-    Val _ -> "Void"
-    If x _ _ -> reflectIn x
-    Equal x _ -> reflectIn x
-    Print x -> reflectIn x
-    Lookup _ _ -> "Void"
-  reflectOut :: Expr -> String
-  reflectOut = case _ of
-    Val x -> reflectType x
-    If _ x _ -> reflectOut x
-    Equal _ _ -> "Boolean"
-    Print x -> "String"
-    Lookup _ x -> reflectOut x
+instance encodeJsonExpr :: EncodeJson Expr where
+  encodeJson = encodeExpr
 
-encodeHelper :: String -> String -> String -> Json
-encodeHelper op i o =
-  "op" := op ~> "in" := i ~> "out" := o ~> jsonEmptyObject
+instance recursiveExprExprF :: Recursive Expr ExprF where
+  project (Expr x) = map Expr (project x)
+
+-- | The JSON representation of `Expr`.
+-- | We create this type so we know what we're decoding/encoding into.
+-- | It's also useful for the morphisms we write.
+type ExprJSON
+  = { in :: String
+    , op :: String
+    , out :: String
+    , params :: Array Json
+    }
+
+decodeExpr :: Json -> Either String Expr
+decodeExpr x = anaM decodeExprF =<< decodeJson x
+
+decodeExprF :: ExprJSON -> Either String (ExprF ExprJSON)
+decodeExprF json@{ op, params } = case op of
+  "Val" -> map Val (anaM decodeExprTypeF json)
+  "If" -> traverse decodeJson params >>= case _ of
+    [x, y, z] -> pure (If x y z)
+    _ -> Left "Expected 3 params"
+  "Equal" -> traverse decodeJson params >>= case _ of
+    [x, y] -> pure (Equal x y)
+    _ -> Left "Expected 2 params"
+  "Print" -> traverse decodeJson params >>= case _ of
+    [x] -> pure (Print x)
+    _ -> Left "Expected 1 params"
+  "Lookup" -> case params of
+    [x', y'] -> do
+      x <- decodeJson x'
+      y <- decodeJson y'
+      pure (Lookup x y)
+    _ -> Left "Expected 2 params"
+  _ -> Left (op <> " invalid op")
+
+encodeExpr :: Expr -> Json
+encodeExpr x = encodeJson (cata encodeExprF x)
+
+encodeExprF :: ExprF ExprJSON -> ExprJSON
+encodeExprF = case _ of
+  Val x -> cata encodeExprTypeF x
+  If x@{ in } y@{ out } z ->
+    { in, op: "If", out, params: map encodeJson [x, y, z] }
+  Equal x@{ in } y ->
+    { in, op: "Equal", out: "Boolean", params: map encodeJson [x, y] }
+  Print x@{ in } ->
+    { in, op: "Print", out: "String", params: map encodeJson [x] }
+  Lookup x y@{ out } ->
+    { in: "Void", op: "Lookup", out, params: [encodeJson x, encodeJson y] }
 
 data EvalError
   = IfCondition ExprType
@@ -310,51 +345,54 @@ data EvalError
 derive instance eqEvalError :: Eq EvalError
 
 evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
-evalExpr get = case _ of
+evalExpr get = cataM (evalExprF get)
+
+evalExprF :: (Key -> Maybe ExprType) -> ExprF ExprType -> Either EvalError ExprType
+evalExprF get = case _ of
   Val x -> pure x
-  If x' y z -> do
-    x <- evalExpr get x'
+  If x y z -> do
     case project x of
-      Boolean false -> evalExpr get z
-      Boolean true -> evalExpr get y
+      Boolean false -> pure z
+      Boolean true -> pure y
       _ -> Left (IfCondition x)
-  Equal x' y' -> do
-    left <- evalExpr get x'
-    right <- evalExpr get y'
+  Equal left right -> do
     case project left, project right of
       Boolean x, Boolean y -> Right (embed $ Boolean $ x == y)
       Int x, Int y -> Right (embed $ Boolean $ x == y)
       String x, String y -> Right (embed $ Boolean $ x == y)
       _, _ -> Left (EqualMismatch { left, right })
-  Print x' -> map (embed <<< String <<< print) (evalExpr get x')
-  Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
+  Print x -> pure (embed $ String $ print x)
+  Lookup x y -> maybe (pure y) pure (get x)
 
 array_ :: Array ExprType -> ExprType
 array_ = embed <<< Array
 
 boolean_ :: Boolean -> Expr
-boolean_ = Val <<< embed <<< Boolean
+boolean_ = val_ <<< embed <<< Boolean
 
 cents_ :: Cents -> Expr
-cents_ = Val <<< embed <<< Cents
+cents_ = val_ <<< embed <<< Cents
 
 int_ :: Int -> Expr
-int_ = Val <<< embed <<< Int
+int_ = val_ <<< embed <<< Int
 
 pair_ :: { name :: ExprType, value :: ExprType } -> ExprType
 pair_ = embed <<< Pair
 
 string_ :: String -> Expr
-string_ = Val <<< embed <<< String
+string_ = val_ <<< embed <<< String
 
 if_ :: Expr -> Expr -> Expr -> Expr
-if_ = If
+if_ x y = embed <<< If x y
 
 equal_ :: Expr -> Expr -> Expr
-equal_ = Equal
+equal_ x = embed <<< Equal x
 
 print_ :: Expr -> Expr
-print_ = Print
+print_ = embed <<< Print
 
 lookup_ :: Key -> Expr -> Expr
-lookup_ = Lookup
+lookup_ x = embed <<< Lookup x
+
+val_ :: ExprType -> Expr
+val_ = embed <<< Val

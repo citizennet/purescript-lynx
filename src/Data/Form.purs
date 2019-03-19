@@ -13,7 +13,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, ExprTypeF(..), Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, string_)
+import Lynx.Data.Expr (EvalError, Expr, ExprType, ExprTypeF(..), Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, string_, val_)
 import Matryoshka (embed)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
@@ -257,13 +257,13 @@ setValue key val page = page { contents = map setSection page.contents}
   setField field
     | key == field.key = case field.input of
       Currency input ->
-        field { input = Currency input { value = UserInput (Val val) } }
+        field { input = Currency input { value = UserInput (val_ val) } }
       Dropdown input ->
-        field { input = Dropdown input { value = UserInput (Val val) } }
+        field { input = Dropdown input { value = UserInput (val_ val) } }
       Text input ->
-        field { input = Text input { value = UserInput (Val val) } }
+        field { input = Text input { value = UserInput (val_ val) } }
       Toggle input ->
-        field { input = Toggle input { value = UserInput (Val val) } }
+        field { input = Toggle input { value = UserInput (val_ val) } }
     | otherwise = field
 
 -- MVP
@@ -332,7 +332,7 @@ mvpObjective =
   where
   options :: Expr
   options =
-    Val
+    val_
     ( array_
       [ pair_ { name: embed (String "App Installs"), value: embed (String "App Installs") }
       , pair_ { name: embed (String "Brand Awareness"), value: embed (String "Brand Awareness") }
@@ -427,14 +427,14 @@ food =
   , input: Dropdown
     { default: Nothing
     , options:
-      If
-        do Lookup "active" (boolean_ false)
-        do Val $
+      if_
+        do lookup_ "active" (boolean_ false)
+        do val_ $
           array_
             [ pair_ { name: embed (String "Strawberry"), value: embed (String "Strawberry") }
             , pair_ { name: embed (String "Blueberry"), value: embed (String "Blueberry") }
             ]
-        do Val $
+        do val_ $
           array_
             [ pair_ { name: embed (String "Apple"), value: embed (String "Apple") }
             , pair_ { name: embed (String "Banana"), value: embed (String "Banana") }

@@ -43,22 +43,22 @@ assertRight = either failure (const success)
 
 test1Json :: String
 test1Json = """
-  { "op": "Val", "param": 1, "in": "Void", "out": "Int" }
+  { "op": "Val", "params": [1], "in": "Void", "out": "Int" }
 """
 
 test2Json :: String
 test2Json = """
-  { "op": "Val", "param": 2, "in": "Void", "out": "Int" }
+  { "op": "Val", "params": [2], "in": "Void", "out": "Int" }
 """
 
 testTrueJson :: String
 testTrueJson = """
-  { "op": "Val", "param": true, "in": "Void", "out": "Boolean" }
+  { "op": "Val", "params": [true], "in": "Void", "out": "Boolean" }
 """
 
 testFalseJson :: String
 testFalseJson = """
-  { "op": "Val", "param": false, "in": "Void", "out": "Boolean" }
+  { "op": "Val", "params": [false], "in": "Void", "out": "Boolean" }
 """
 
 test1Either :: Either String Expr
