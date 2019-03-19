@@ -13230,7 +13230,7 @@ var PS = {};
       if (v instanceof $$String) {
           return v.value0;
       };
-      throw new Error("Failed pattern match at Lynx.Data.Expr (line 148, column 10 - line 154, column 16): " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Data.Expr (line 160, column 10 - line 166, column 16): " + [ v.constructor.name ]);
   };
   var lookup_ = Lookup.create;
   var if_ = If.create;
@@ -13259,7 +13259,7 @@ var PS = {};
           if (m instanceof $$String) {
               return new $$String(m.value0);
           };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 36, column 8 - line 36, column 54): " + [ m.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 40, column 8 - line 40, column 54): " + [ m.constructor.name ]);
       };
   });
   var pair_ = function ($356) {
@@ -13341,7 +13341,7 @@ var PS = {};
                   return evalExpr(get)(v.value1);
               })(Data_Either.Right.create)(get(v.value0));
           };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 301, column 16 - line 318, column 60): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 313, column 16 - line 330, column 60): " + [ v.constructor.name ]);
       };
   };                        
   var eqExprTypeF = function (dictEq) {
@@ -13430,7 +13430,7 @@ var PS = {};
           if (v instanceof $$String) {
               return base("String")(Data_Argonaut_Encode_Class.encodeJson(Data_Argonaut_Encode_Class.encodeJsonJString)(v.value0));
           };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 131, column 19 - line 137, column 43): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 143, column 19 - line 149, column 43): " + [ v.constructor.name ]);
       };
   })();
   var reflectType = function (x) {

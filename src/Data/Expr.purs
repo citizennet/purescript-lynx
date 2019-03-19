@@ -21,6 +21,10 @@ import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
 type Key = String
 
+-- | Our non-recursive type of base expressions.
+-- | These are the underlying values that get rendered in the form.
+-- | Though other things may build upon it,
+-- | ultimately we can only render these values.
 data ExprTypeF a
   = Array (Array a)
   | Boolean Boolean
@@ -96,9 +100,17 @@ instance traversableExprTypeF :: Traversable ExprTypeF where
       in Pair { name, value }
     String x -> pure (String x)
 
+-- | The inductive version of `ExprTypeF _`.
+-- | This is what most of our consumers should be dealing with.
+-- | It is currently a type synonym purely out of laziness for not wanting
+-- | to write `Corecursive` and `Recursive` instances.
+-- | Don't be afraid to newtype this and give it instances if we need to.
 type ExprType
   = Mu ExprTypeF
 
+-- | The JSON representation of `ExprType`.
+-- | We create this type so we know what we're decoding/encoding into.
+-- | It's also useful for the morphisms we write.
 type ExprTypeJSON
   = { in :: String
     , op :: String
