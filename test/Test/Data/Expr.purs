@@ -5,8 +5,8 @@ import Prelude
 import Data.Argonaut (Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
 import Data.String (trim)
-import Lynx.Data.Expr (Expr, ExprType, decodeExprTypeF, encodeExprTypeF)
-import Matryoshka (anaM, cata, embed)
+import Lynx.Data.Expr (Expr, ExprType, decodeExprType, encodeExprType)
+import Matryoshka (embed)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -24,7 +24,7 @@ suite = Test.Unit.suite "Test.Data.Expr" do
       quickCheck exprRoundTrip
 
 exprTypeRoundTrip :: ExprType -> Result
-exprTypeRoundTrip = roundTrip (anaM decodeExprTypeF) (cata encodeExprTypeF)
+exprTypeRoundTrip = roundTrip decodeExprType encodeExprType
 
 exprRoundTrip :: Expr -> Result
 exprRoundTrip = roundTrip decodeJson encodeJson

@@ -40,11 +40,11 @@ derive instance genericExprTypeF :: Generic (ExprTypeF a) _
 instance showExprTypeF :: (Show a) => Show (ExprTypeF a) where
   show x = genericShow x
 
-instance encodeJsonExprTypeFJson :: EncodeJson (ExprTypeF Json) where
-  encodeJson = encodeExprTypeF
+instance encodeJsonExprTypeF :: EncodeJson (ExprTypeF (Mu ExprTypeF)) where
+  encodeJson = encodeExprType <<< embed
 
-instance decodeJsonExprTypeFJson :: DecodeJson (ExprTypeF Json) where
-  decodeJson = decodeExprTypeF
+instance decodeJsonExprTypeF :: DecodeJson (ExprTypeF (Mu ExprTypeF)) where
+  decodeJson = map project <<< decodeExprType
 
 instance arbitraryExprTypeF :: Arbitrary (ExprTypeF (Mu ExprTypeF)) where
   arbitrary = sized go
@@ -99,50 +99,47 @@ instance traversableExprTypeF :: Traversable ExprTypeF where
 type ExprType
   = Mu ExprTypeF
 
-decodeExprTypeF :: Json -> Either String (ExprTypeF Json)
-decodeExprTypeF json' = do
-  json <- decodeJson json'
-  out <- json .: "out"
-  case out of
-    "Array" -> map Array (json .: "param")
-    "Boolean" -> map Boolean (json .: "param")
-    "Cents" -> map (Cents <<< wrap <<< Data.BigInt.fromInt) (json .: "param")
-    "Int" -> map Int (json .: "param")
-    "Pair" -> map Pair (json .: "param")
-    "String" -> map String (json .: "param")
-    _ ->
-      Left
-        ( stringify json'
-          <> " unsupported."
-          <> " Expected Array, Boolean, Cents, Int, Pair, or String."
-        )
+type ExprTypeJSON
+  = { in :: String
+    , op :: String
+    , out :: String
+    , param :: Json
+    }
 
-encodeExprTypeF :: ExprTypeF Json -> Json
-encodeExprTypeF x' = case x' of
-  Array x -> "param" := x ~> base x'
-  Boolean x -> "param" := x ~> base x'
-  Cents x -> "param" := x ~> base x'
-  Int x -> "param" := x ~> base x'
-  Pair x -> "param" := x ~> base x'
-  String x -> "param" := x ~> base x'
+decodeExprType :: Json -> Either String ExprType
+decodeExprType x = anaM decodeExprTypeF =<< decodeJson x
+
+decodeExprTypeF :: ExprTypeJSON -> Either String (ExprTypeF ExprTypeJSON)
+decodeExprTypeF json@{ out, param } = case out of
+  "Array" -> map Array (decodeJson param)
+  "Boolean" -> map Boolean (decodeJson param)
+  "Cents" -> map (Cents <<< wrap <<< Data.BigInt.fromInt) (decodeJson param)
+  "Int" -> map Int (decodeJson param)
+  "Pair" -> map Pair (decodeJson param)
+  "String" -> map String (decodeJson param)
+  _ ->
+    Left
+      ( show json { param = stringify param }
+        <> " unsupported."
+        <> " Expected Array, Boolean, Cents, Int, Pair, or String."
+      )
+
+encodeExprType :: ExprType -> Json
+encodeExprType x = encodeJson (cata encodeExprTypeF x)
+
+encodeExprTypeF :: ExprTypeF ExprTypeJSON -> ExprTypeJSON
+encodeExprTypeF = case _ of
+  Array x -> base "Array" (encodeJson x)
+  Boolean x -> base "Boolean" (encodeJson x)
+  Cents x -> base "Cents" (encodeJson x)
+  Int x -> base "Int" (encodeJson x)
+  Pair x -> base "Pair" (encodeJson x)
+  String x -> base "String" (encodeJson x)
   where
-  base :: ExprTypeF Json -> Json
-  base x =
-    "in" := encodeJson "Void"
-    ~> "out" := encodeJson (reflectTypeF x)
-    ~> "op" := encodeJson "Val"
-    ~> jsonEmptyObject
+  base out param = { in: "Void", op: "Val", out, param }
 
 reflectType :: ExprType -> String
-reflectType = cata reflectTypeF
-
-reflectTypeF :: forall a. ExprTypeF a -> String
-reflectTypeF (Array _) = "Array"
-reflectTypeF (Boolean _) = "Boolean"
-reflectTypeF (Cents _) = "Cents"
-reflectTypeF (Int _) = "Int"
-reflectTypeF (Pair _) = "Pair"
-reflectTypeF (String _) = "String"
+reflectType x = (cata encodeExprTypeF x).out
 
 print :: ExprType -> String
 print = cata printF
@@ -213,7 +210,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
     x' .: "op" >>= case _ of
-      "Val" -> map Val (anaM decodeJson json)
+      "Val" -> map Val (decodeExprType json)
       "If" -> x' .: "params" >>= case _ of
         [x, y, z] -> pure (if_ x y z)
         _ -> Left "Expected 3 params"
@@ -257,7 +254,7 @@ data ExprA
 instance encodeJsonExprA :: EncodeJson ExprA where
   encodeJson =
     case _ of
-      ValA x -> cata encodeJson x
+      ValA x -> encodeExprType x
       IfA x y z i o ->
         "params" := [ x, y, z ] ~> encodeHelper "If" i o
       EqualA x y i o ->
