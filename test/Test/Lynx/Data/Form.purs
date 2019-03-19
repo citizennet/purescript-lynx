@@ -8,9 +8,10 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType, ExprTypeF(..), Key, array_, boolean_, if_, lookup_, pair_, string_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
 import Lynx.Data.Form as Lynx.Data.Form
+import Matryoshka (embed)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -51,7 +52,7 @@ dropdownOptions = do
     let actual :: Maybe ExprType
         actual = findOptions evaluated'
         expected :: ExprType
-        expected = Array []
+        expected = array_ []
     equal (Just expected) actual
 
   let evaluated :: Either EvalError (Page ExprType)
@@ -59,13 +60,13 @@ dropdownOptions = do
       keys :: Map Key ExprType
       keys = Lynx.Data.Form.keys page
       page :: Page Expr
-      page = Lynx.Data.Form.setValue fooKey (Boolean true) page'
+      page = Lynx.Data.Form.setValue fooKey (embed $ Boolean true) page'
 
   test "after altering the toggle" do
     let actual :: Maybe ExprType
         actual = findOptions evaluated
         expected :: ExprType
-        expected = Array [Pair { name: String "foo", value: Int 3}]
+        expected = array_ [pair_ { name: embed (String "foo"), value: embed (Int 3)}]
     equal (Just expected) actual
 
   where
@@ -75,8 +76,8 @@ dropdownOptions = do
       { default: Nothing
       , options:
         if_ (lookup_ fooKey $ boolean_ false)
-        (Val $ Array [Pair { name: String "foo", value: Int 3}])
-        (Val $ Array [])
+        (Val $ array_ [pair_ { name: embed (String "foo"), value: embed (Int 3)}])
+        (Val $ array_ [])
       , placeholder: string_ ""
       , required: boolean_ false
       , value: NotSet

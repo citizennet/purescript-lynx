@@ -5,81 +5,55 @@ import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.BigInt as Data.BigInt
 import Data.Either (Either(..))
-import Data.Foldable (intercalate)
+import Data.Eq (class Eq1)
+import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
+import Data.Functor.Mu (Mu)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe')
 import Data.Newtype (wrap)
 import Data.NonEmpty (NonEmpty(..))
+import Data.Traversable (class Traversable, traverse)
+import Matryoshka (anaM, cata, embed, project)
 import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
 type Key = String
 
-data ExprType
-  = Array (Array ExprType)
+data ExprTypeF a
+  = Array (Array a)
   | Boolean Boolean
   | Cents Cents
   | Int Int
-  | Pair { name :: ExprType, value :: ExprType }
+  | Pair { name :: a, value :: a }
   | String String
 
-derive instance eqExprType :: Eq ExprType
+derive instance eqExprTypeF :: (Eq a) => Eq (ExprTypeF a)
 
-derive instance genericExprType :: Generic ExprType _
+derive instance eq1ExprTypeF :: Eq1 ExprTypeF
 
-instance showExprType :: Show ExprType where
+derive instance functorExprTypeF :: Functor ExprTypeF
+
+derive instance genericExprTypeF :: Generic (ExprTypeF a) _
+
+instance showExprTypeF :: (Show a) => Show (ExprTypeF a) where
   show x = genericShow x
 
-instance encodeJsonExprType :: EncodeJson ExprType where
-  encodeJson x' = case x' of
-    Array x -> "param" := encodeJson x ~> base x'
-    Boolean x -> "param" := encodeJson x ~> base x'
-    Cents x -> "param" := encodeJson x ~> base x'
-    Int x -> "param" := encodeJson x ~> base x'
-    Pair x -> "param" := encodeJson x ~> base x'
-    String x -> "param" := encodeJson x ~> base x'
-    where
-    base :: ExprType -> Json
-    base x =
-      "in" := encodeJson "Void"
-        ~> "out" := encodeJson (reflectType x)
-        ~> "op" := encodeJson "Val"
-        ~> jsonEmptyObject
+instance encodeJsonExprTypeFJson :: EncodeJson (ExprTypeF Json) where
+  encodeJson = encodeExprTypeF
 
-instance decodeJsonExprType :: DecodeJson ExprType where
-  decodeJson json' = do
-    json <- decodeJson json'
-    out <- json .: "out"
-    param <- json .: "param"
-    case out, param of
-      "Array", x -> map Array (decodeJson x)
-      "Boolean", x -> map Boolean (decodeJson x)
-      "Cents", x -> map Cents (cents x)
-      "Int", x -> map Int (decodeJson x)
-      "Pair", x -> map Pair (decodeJson x)
-      "String", x -> map String (decodeJson x)
-      _, _ ->
-        Left
-          ( stringify json'
-            <> " unsupported."
-            <> " Expected Array, Boolean, Cents, Int, Pair, or String."
-          )
-    where
-    cents :: Json -> Either String Cents
-    cents json = do
-      x <- decodeJson json
-      pure (wrap $ Data.BigInt.fromInt x)
+instance decodeJsonExprTypeFJson :: DecodeJson (ExprTypeF Json) where
+  decodeJson = decodeExprTypeF
 
-instance arbitraryExprType :: Arbitrary ExprType where
+instance arbitraryExprTypeF :: Arbitrary (ExprTypeF (Mu ExprTypeF)) where
   arbitrary = sized go
     where
       cents :: Gen Cents
       cents = do
         x <- arbitrary
         pure (wrap $ Data.BigInt.fromInt x)
-      go :: Size -> Gen ExprType
+      go :: Size -> Gen (ExprTypeF (Mu ExprTypeF))
       go size' =
         if size' < 1 then
           oneOf $ NonEmpty
@@ -91,54 +65,130 @@ instance arbitraryExprType :: Arbitrary ExprType where
         else
           let size = size' / 10
           in oneOf $ NonEmpty
-             (Array <$> arrayOf (go size))
-             [ Pair <$> ({ name: _, value: _ } <$> go size <*> go size)
+             (Array <$> (map <<< map) embed (arrayOf $ go size))
+             [ Pair <$> do
+               name <- map embed (go size)
+               value <- map embed (go size)
+               pure { name, value }
              ]
 
+instance foldableExprTypeF :: Foldable ExprTypeF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Array x -> foldMap f x
+    Boolean _ -> mempty
+    Cents _ -> mempty
+    Int _ -> mempty
+    Pair x -> f x.name <> f x.value
+    String _ -> mempty
+
+instance traversableExprTypeF :: Traversable ExprTypeF where
+  sequence = traverse identity
+  traverse f = case _ of
+    Array x -> map Array (traverse f x)
+    Boolean x -> pure (Boolean x)
+    Cents x -> pure (Cents x)
+    Int x -> pure (Int x)
+    Pair x -> ado
+      name <- f x.name
+      value <- f x.value
+      in Pair { name, value }
+    String x -> pure (String x)
+
+type ExprType
+  = Mu ExprTypeF
+
+decodeExprTypeF :: Json -> Either String (ExprTypeF Json)
+decodeExprTypeF json' = do
+  json <- decodeJson json'
+  out <- json .: "out"
+  case out of
+    "Array" -> map Array (json .: "param")
+    "Boolean" -> map Boolean (json .: "param")
+    "Cents" -> map (Cents <<< wrap <<< Data.BigInt.fromInt) (json .: "param")
+    "Int" -> map Int (json .: "param")
+    "Pair" -> map Pair (json .: "param")
+    "String" -> map String (json .: "param")
+    _ ->
+      Left
+        ( stringify json'
+          <> " unsupported."
+          <> " Expected Array, Boolean, Cents, Int, Pair, or String."
+        )
+
+encodeExprTypeF :: ExprTypeF Json -> Json
+encodeExprTypeF x' = case x' of
+  Array x -> "param" := x ~> base x'
+  Boolean x -> "param" := x ~> base x'
+  Cents x -> "param" := x ~> base x'
+  Int x -> "param" := x ~> base x'
+  Pair x -> "param" := x ~> base x'
+  String x -> "param" := x ~> base x'
+  where
+  base :: ExprTypeF Json -> Json
+  base x =
+    "in" := encodeJson "Void"
+    ~> "out" := encodeJson (reflectTypeF x)
+    ~> "op" := encodeJson "Val"
+    ~> jsonEmptyObject
+
 reflectType :: ExprType -> String
-reflectType (Array _) = "Array"
-reflectType (Boolean _) = "Boolean"
-reflectType (Cents _) = "Cents"
-reflectType (Int _) = "Int"
-reflectType (Pair _) = "Pair"
-reflectType (String _) = "String"
+reflectType = cata reflectTypeF
+
+reflectTypeF :: forall a. ExprTypeF a -> String
+reflectTypeF (Array _) = "Array"
+reflectTypeF (Boolean _) = "Boolean"
+reflectTypeF (Cents _) = "Cents"
+reflectTypeF (Int _) = "Int"
+reflectTypeF (Pair _) = "Pair"
+reflectTypeF (String _) = "String"
 
 print :: ExprType -> String
-print = case _ of
-  Array x -> "[" <> intercalate ", " (map print x) <> "]"
+print = cata printF
+
+printF :: ExprTypeF String -> String
+printF = case _ of
+  Array x -> show x
   Boolean x -> show x
   Cents x -> formatCentsToStrDollars x
   Int x -> show x
-  Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
+  Pair x -> show x
   String x -> x
 
 toArray :: ExprType -> Maybe (Array ExprType)
-toArray = case _ of
+toArray = toArrayF <<< project
+
+toArrayF :: forall a. ExprTypeF a -> Maybe (Array a)
+toArrayF = case _ of
   Array x -> Just x
   otherwise -> Nothing
 
 toBoolean :: ExprType -> Maybe Boolean
-toBoolean = case _ of
+toBoolean = cata case _ of
   Boolean x -> Just x
   otherwise -> Nothing
 
 toCents :: ExprType -> Maybe Cents
-toCents = case _ of
+toCents = cata case _ of
   Cents x -> Just x
   otherwise -> Nothing
 
 toInt :: ExprType -> Maybe Int
-toInt = case _ of
+toInt = cata case _ of
   Int x     -> Just x
   otherwise -> Nothing
 
 toPair :: ExprType -> Maybe { name :: ExprType, value :: ExprType }
-toPair = case _ of
+toPair = toPairF <<< project
+
+toPairF :: forall a. ExprTypeF a -> Maybe { name :: a, value :: a }
+toPairF = case _ of
   Pair x -> Just x
   otherwise -> Nothing
 
 toString :: ExprType -> Maybe String
-toString = case _ of
+toString = cata case _ of
   String x  -> Just x
   otherwise -> Nothing
 
@@ -163,7 +213,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
     x' .: "op" >>= case _ of
-      "Val" -> map Val (decodeJson json)
+      "Val" -> map Val (anaM decodeJson json)
       "If" -> x' .: "params" >>= case _ of
         [x, y, z] -> pure (if_ x y z)
         _ -> Left "Expected 3 params"
@@ -187,7 +237,7 @@ instance arbitraryExpr :: Arbitrary Expr where
     go :: Size -> Gen Expr
     go size' =
       if size' < 1 then
-        map Val arbitrary
+        map (Val <<< embed) arbitrary
       else
         let size = size' / 10
         in oneOf $ NonEmpty
@@ -207,7 +257,7 @@ data ExprA
 instance encodeJsonExprA :: EncodeJson ExprA where
   encodeJson =
     case _ of
-      ValA x -> encodeJson x
+      ValA x -> cata encodeJson x
       IfA x y z i o ->
         "params" := [ x, y, z ] ~> encodeHelper "If" i o
       EqualA x y i o ->
@@ -255,32 +305,38 @@ evalExpr get = case _ of
   Val x -> pure x
   If x' y z -> do
     x <- evalExpr get x'
-    case x of
+    case project x of
       Boolean false -> evalExpr get z
       Boolean true -> evalExpr get y
       _ -> Left (IfCondition x)
   Equal x' y' -> do
     left <- evalExpr get x'
     right <- evalExpr get y'
-    case left, right of
-      Boolean x, Boolean y -> Right (Boolean $ x == y)
-      Int x, Int y -> Right (Boolean $ x == y)
-      String x, String y -> Right (Boolean $ x == y)
+    case project left, project right of
+      Boolean x, Boolean y -> Right (embed $ Boolean $ x == y)
+      Int x, Int y -> Right (embed $ Boolean $ x == y)
+      String x, String y -> Right (embed $ Boolean $ x == y)
       _, _ -> Left (EqualMismatch { left, right })
-  Print x' -> map (String <<< print) (evalExpr get x')
+  Print x' -> map (embed <<< String <<< print) (evalExpr get x')
   Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
+array_ :: Array ExprType -> ExprType
+array_ = embed <<< Array
+
 boolean_ :: Boolean -> Expr
-boolean_ = Val <<< Boolean
+boolean_ = Val <<< embed <<< Boolean
 
 cents_ :: Cents -> Expr
-cents_ = Val <<< Cents
+cents_ = Val <<< embed <<< Cents
 
 int_ :: Int -> Expr
-int_ = Val <<< Int
+int_ = Val <<< embed <<< Int
+
+pair_ :: { name :: ExprType, value :: ExprType } -> ExprType
+pair_ = embed <<< Pair
 
 string_ :: String -> Expr
-string_ = Val <<< String
+string_ = Val <<< embed <<< String
 
 if_ :: Expr -> Expr -> Expr -> Expr
 if_ = If

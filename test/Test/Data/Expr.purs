@@ -2,10 +2,11 @@ module Test.Data.Expr (suite) where
 
 import Prelude
 
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
+import Data.Argonaut (Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
 import Data.String (trim)
-import Lynx.Data.Expr (Expr, ExprType)
+import Lynx.Data.Expr (Expr, ExprType, decodeExprTypeF, encodeExprTypeF)
+import Matryoshka (anaM, cata, embed)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -15,7 +16,7 @@ suite :: TestSuite
 suite = Test.Unit.suite "Test.Data.Expr" do
   Test.Unit.suite "ExprType" do
     test "decoding and encoding roundtrips properly" do
-      quickCheck exprTypeRoundTrip
+      quickCheck (exprTypeRoundTrip <<< embed)
   Test.Unit.suite "Expr" do
     test "JSON parses to an Equal" (assertRight testAEither)
     test "JSON parses to an If" (assertRight testBEither)
@@ -23,18 +24,19 @@ suite = Test.Unit.suite "Test.Data.Expr" do
       quickCheck exprRoundTrip
 
 exprTypeRoundTrip :: ExprType -> Result
-exprTypeRoundTrip = roundTrip
+exprTypeRoundTrip = roundTrip (anaM decodeExprTypeF) (cata encodeExprTypeF)
 
 exprRoundTrip :: Expr -> Result
-exprRoundTrip = roundTrip
+exprRoundTrip = roundTrip decodeJson encodeJson
 
-roundTrip :: ∀ a. DecodeJson a => EncodeJson a => Eq a => Show a => a -> Result
-roundTrip x' = case decodeJson json of
+roundTrip :: ∀ a. Eq a => Show a => (Json -> Either String a) -> (a -> Json) -> a -> Result
+roundTrip decode encode x' = case decode json of
   Left error -> Failed $ show { encodedValue: stringify json, error, value: x' }
   Right x -> x === x'
   where
   json :: Json
-  json = encodeJson x'
+  json = encode x'
+
 
 assertRight :: forall a. Either String a -> Test
 assertRight = either failure (const success)

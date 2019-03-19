@@ -13,7 +13,8 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType, ExprTypeF(..), Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, string_)
+import Matryoshka (embed)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -332,18 +333,18 @@ mvpObjective =
   options :: Expr
   options =
     Val
-    ( Array
-      [ Pair { name: String "App Installs", value: String "App Installs" }
-      , Pair { name: String "Brand Awareness", value: String "Brand Awareness" }
-      , Pair { name: String "Conversions", value: String "Conversions" }
-      , Pair { name: String "Event Responses", value: String "Event Responses" }
-      , Pair { name: String "Lead Generation", value: String "Lead Generation" }
-      , Pair { name: String "Link Clicks", value: String "Link Clicks" }
-      , Pair { name: String "Offer Claims", value: String "Offer Claims" }
-      , Pair { name: String "Page Likes", value: String "Page Likes" }
-      , Pair { name: String "Post Engagement", value: String "Post Engagement" }
-      , Pair { name: String "Reach", value: String "Reach" }
-      , Pair { name: String "VideoViews", value: String "VideoViews" }
+    ( array_
+      [ pair_ { name: embed (String "App Installs"), value: embed (String "App Installs") }
+      , pair_ { name: embed (String "Brand Awareness"), value: embed (String "Brand Awareness") }
+      , pair_ { name: embed (String "Conversions"), value: embed (String "Conversions") }
+      , pair_ { name: embed (String "Event Responses"), value: embed (String "Event Responses") }
+      , pair_ { name: embed (String "Lead Generation"), value: embed (String "Lead Generation") }
+      , pair_ { name: embed (String "Link Clicks"), value: embed (String "Link Clicks") }
+      , pair_ { name: embed (String "Offer Claims"), value: embed (String "Offer Claims") }
+      , pair_ { name: embed (String "Page Likes"), value: embed (String "Page Likes") }
+      , pair_ { name: embed (String "Post Engagement"), value: embed (String "Post Engagement") }
+      , pair_ { name: embed (String "Reach"), value: embed (String "Reach") }
+      , pair_ { name: embed (String "VideoViews"), value: embed (String "VideoViews") }
       ]
     )
 
@@ -427,17 +428,17 @@ food =
     { default: Nothing
     , options:
       If
-        do Lookup "active" (Val $ Boolean false)
+        do Lookup "active" (boolean_ false)
         do Val $
-          Array
-            [ Pair { name: String "Strawberry", value: String "Strawberry" }
-            , Pair { name: String "Blueberry", value: String "Blueberry" }
+          array_
+            [ pair_ { name: embed (String "Strawberry"), value: embed (String "Strawberry") }
+            , pair_ { name: embed (String "Blueberry"), value: embed (String "Blueberry") }
             ]
         do Val $
-          Array
-            [ Pair { name: String "Apple", value: String "Apple" }
-            , Pair { name: String "Banana", value: String "Banana" }
-            , Pair { name: String "Cherry", value: String "Cherry" }
+          array_
+            [ pair_ { name: embed (String "Apple"), value: embed (String "Apple") }
+            , pair_ { name: embed (String "Banana"), value: embed (String "Banana") }
+            , pair_ { name: embed (String "Cherry"), value: embed (String "Cherry") }
             ]
     , placeholder: string_ ""
     , required: boolean_ true
