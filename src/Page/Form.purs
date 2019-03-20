@@ -18,10 +18,10 @@ import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprTypeF(..), Key, ExprType, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
+import Lynx.Data.Expr (EvalError(..), Expr, Key)
+import Lynx.Data.ExprType (ExprType, boolean_, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
 import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
-import Matryoshka (embed)
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -186,7 +186,7 @@ component =
       Toggle.toggle
         [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateKey field.key <<< embed <<< Boolean)
+        , HE.onChecked (HE.input $ UpdateKey field.key <<< boolean_)
         ]
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m

@@ -1,26 +1,27 @@
-module Test.Data.Expr (suite) where
+module Test.Lynx.Data.ExprType (suite) where
 
 import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
-import Data.String (trim)
-import Lynx.Data.Expr (Expr)
+import Lynx.Data.ExprType (ExprType)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
 import Test.Unit.QuickCheck (quickCheck)
 
 suite :: TestSuite
-suite = Test.Unit.suite "Test.Data.Expr" do
-  Test.Unit.suite "Expr" do
-    test "JSON parses to an Equal" (assertRight testAEither)
-    test "JSON parses to an If" (assertRight testBEither)
+suite = Test.Unit.suite "Test.Lynx.Data.ExprType" do
+  Test.Unit.suite "ExprType" do
     test "decoding and encoding roundtrips properly" do
-      quickCheck exprRoundTrip
+      quickCheck exprTypeRoundTrip
+    test "JSON parses to 1" (assertRight test1Either)
+    test "JSON parses to 2" (assertRight test2Either)
+    test "JSON parses to true" (assertRight testTrueEither)
+    test "JSON parses to false" (assertRight testFalseEither)
 
-exprRoundTrip :: Expr -> Result
-exprRoundTrip = roundTrip
+exprTypeRoundTrip :: ExprType -> Result
+exprTypeRoundTrip = roundTrip
 
 roundTrip :: ∀ a. DecodeJson a => EncodeJson a => Eq a => Show a => a -> Result
 roundTrip x' = case decodeJson json of
@@ -53,36 +54,14 @@ testFalseJson = """
   { "op": "Val", "params": [false], "in": "Void", "out": "Boolean" }
 """
 
-test1Either :: Either String Expr
+test1Either :: Either String ExprType
 test1Either = decodeJson =<< jsonParser test1Json
 
-testAJson :: String
-testAJson = """
-  { "op": "Equal"
-  , "params":
-    [ """ <> trim test1Json <> """
-    , """ <> trim test2Json <> """
-    ]
-  , "in": "Int"
-  , "out": "Boolean"
-  }
-"""
+test2Either :: Either String ExprType
+test2Either = decodeJson =<< jsonParser test2Json
 
-testAEither :: Either String Expr
-testAEither = decodeJson =<< jsonParser testAJson
+testTrueEither :: Either String ExprType
+testTrueEither = decodeJson =<< jsonParser testTrueJson
 
-testBJson :: String
-testBJson = """
-  { "op": "If"
-  , "params":
-    [ """ <> trim testAJson <> """
-    , """ <> trim test1Json <> """
-    , """ <> trim test2Json <> """
-    ]
-  , "in": "Boolean"
-  , "out": "Int"
-  }
-"""
-
-testBEither :: Either String Expr
-testBEither = decodeJson =<< jsonParser testBJson
+testFalseEither :: Either String ExprType
+testFalseEither = decodeJson =<< jsonParser testFalseJson

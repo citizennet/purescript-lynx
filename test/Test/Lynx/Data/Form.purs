@@ -8,7 +8,8 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (EvalError, Expr, ExprType, ExprTypeF(..), Key, array_, boolean_, if_, lookup_, pair_, string_, val_)
+import Lynx.Data.Expr (EvalError, Expr, Key, boolean_, if_, lookup_, string_, val_)
+import Lynx.Data.ExprType (ExprType, ExprTypeF(..), array_, pair_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
 import Lynx.Data.Form as Lynx.Data.Form
 import Matryoshka (embed)
