@@ -214,30 +214,30 @@ toString = cata case _ of
   String x  -> Just x
   otherwise -> Nothing
 
--- | Our non-recursive type of expressions.
--- | This is where the structure of an expression takes place.
--- | We may go through many transformations with this value.
-data ExprF a
+-- | An expression representing a basic value.
+-- | There's no recursion here, so when we have one of these,
+-- | we know when can do something directly with it.
+data ValF a
   = Val ExprType
 
-derive instance eqExprF :: (Eq a) => Eq (ExprF a)
+derive instance eqValF :: (Eq a) => Eq (ValF a)
 
-derive instance eq1ExprF :: Eq1 ExprF
+derive instance eq1ValF :: Eq1 ValF
 
-derive instance functorExprF :: Functor ExprF
+derive instance functorValF :: Functor ValF
 
-derive instance genericExprF :: Generic (ExprF a) _
+derive instance genericValF :: Generic (ValF a) _
 
-instance showExprF :: (Show a) => Show (ExprF a) where
+instance showValF :: (Show a) => Show (ValF a) where
   show x = genericShow x
 
-instance foldableExprF :: Foldable ExprF where
+instance foldableValF :: Foldable ValF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     Val _ -> mempty
 
-instance traversableExprF :: Traversable ExprF where
+instance traversableValF :: Traversable ValF where
   sequence = traverse identity
   traverse f = case _ of
     Val x -> pure (Val x)
@@ -363,7 +363,7 @@ instance traversableLookupF :: Traversable LookupF where
 -- | The inductive version of expressions.
 -- | This is what most of our consumers should be dealing with.
 newtype Expr
-  = Expr (Mu (ExprF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF))
+  = Expr (Mu (ValF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF))
 
 derive instance genericExpr :: Generic Expr _
 
@@ -389,7 +389,7 @@ instance arbitraryExpr :: Arbitrary Expr where
             , lookup_ <$> arbitrary <*> go size
             ]
 
-instance corecursiveExprExprF :: Corecursive Expr (ExprF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF) where
+instance corecursiveExprValF :: Corecursive Expr (ValF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF) where
   embed x = Expr (embed $ map (un Expr) x)
 
 instance decodeJsonExpr :: DecodeJson Expr where
@@ -398,7 +398,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
 instance encodeJsonExpr :: EncodeJson Expr where
   encodeJson = encodeExpr
 
-instance recursiveExprExprF :: Recursive Expr (ExprF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF) where
+instance recursiveExprValF :: Recursive Expr (ValF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF) where
   project (Expr x) = map Expr (project x)
 
 -- | The JSON representation of `Expr`.
@@ -415,14 +415,14 @@ decodeExpr :: Json -> Either String Expr
 decodeExpr x' = anaM go =<< decodeJson x'
   where
   go x =
-    map inj (decodeExprF x)
+    map inj (decodeValF x)
       <|> map inj (decodeIfF x)
       <|> map inj (decodeEqualF x)
       <|> map inj (decodePrintF x)
       <|> map inj (decodeLookupF x)
 
-decodeExprF :: ExprJSON -> Either String (ExprF ExprJSON)
-decodeExprF json@{ op, params } = case op of
+decodeValF :: ExprJSON -> Either String (ValF ExprJSON)
+decodeValF json@{ op, params } = case op of
   "Val" -> map Val (anaM decodeExprTypeF json)
   _ -> Left (op <> " invalid op")
 
@@ -461,14 +461,14 @@ encodeExpr :: Expr -> Json
 encodeExpr x = encodeJson (cata go x)
   where
   go =
-    encodeExprF
+    encodeValF
       <\/> encodeIfF
       <\/> encodeEqualF
       <\/> encodePrintF
       <\/> encodeLookupF
 
-encodeExprF :: ExprF ExprJSON -> ExprJSON
-encodeExprF = case _ of
+encodeValF :: ValF ExprJSON -> ExprJSON
+encodeValF = case _ of
   Val x -> cata encodeExprTypeF x
 
 encodeIfF :: IfF ExprJSON -> ExprJSON
@@ -501,14 +501,14 @@ evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
 evalExpr get = cataM go
   where
   go =
-    pure <<< evalExprF
+    pure <<< evalValF
       <\/> evalIfF
       <\/> evalEqualF
       <\/> pure <<< evalPrintF
       <\/> pure <<< evalLookupF get
 
-evalExprF :: ExprF ExprType -> ExprType
-evalExprF = case _ of
+evalValF :: ValF ExprType -> ExprType
+evalValF = case _ of
   Val x -> x
 
 evalIfF :: IfF ExprType -> Either EvalError ExprType
