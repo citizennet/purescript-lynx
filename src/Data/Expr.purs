@@ -220,7 +220,6 @@ toString = cata case _ of
 data ExprF a
   = Val ExprType
   | If a a a
-  | Equal a a
 
 derive instance eqExprF :: (Eq a) => Eq (ExprF a)
 
@@ -239,7 +238,6 @@ instance foldableExprF :: Foldable ExprF where
   foldMap f = case _ of
     Val _ -> mempty
     If x y z -> f x <> f y <> f z
-    Equal x y -> f x <> f y
 
 instance traversableExprF :: Traversable ExprF where
   sequence = traverse identity
@@ -250,6 +248,33 @@ instance traversableExprF :: Traversable ExprF where
       y <- f y'
       z <- f z'
       in If x y z
+
+-- | An expression for checking if two expressions are equal.
+-- | When used recursively,
+-- | it will contain the two expressions to check for equality.
+data EqualF a
+  = Equal a a
+
+derive instance genericEqualF :: Generic (EqualF a) _
+
+derive instance eqEqualF :: (Eq a) => Eq (EqualF a)
+
+derive instance eq1EqualF :: Eq1 EqualF
+
+derive instance functorEqualF :: Functor EqualF
+
+instance showEqualF :: (Show a) => Show (EqualF a) where
+  show = genericShow
+
+instance foldableEqualF :: Foldable EqualF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Equal x y -> f x <> f y
+
+instance traversableEqualF :: Traversable EqualF where
+  sequence = traverse identity
+  traverse f = case _ of
     Equal x' y' -> ado
       x <- f x'
       y <- f y'
@@ -313,7 +338,7 @@ instance traversableLookupF :: Traversable LookupF where
 -- | The inductive version of expressions.
 -- | This is what most of our consumers should be dealing with.
 newtype Expr
-  = Expr (Mu (ExprF <\/> PrintF <\/> LookupF))
+  = Expr (Mu (ExprF <\/> EqualF <\/> PrintF <\/> LookupF))
 
 derive instance genericExpr :: Generic Expr _
 
@@ -339,7 +364,7 @@ instance arbitraryExpr :: Arbitrary Expr where
             , lookup_ <$> arbitrary <*> go size
             ]
 
-instance corecursiveExprExprF :: Corecursive Expr (ExprF <\/> PrintF <\/> LookupF) where
+instance corecursiveExprExprF :: Corecursive Expr (ExprF <\/> EqualF <\/> PrintF <\/> LookupF) where
   embed x = Expr (embed $ map (un Expr) x)
 
 instance decodeJsonExpr :: DecodeJson Expr where
@@ -348,7 +373,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
 instance encodeJsonExpr :: EncodeJson Expr where
   encodeJson = encodeExpr
 
-instance recursiveExprExprF :: Recursive Expr (ExprF <\/> PrintF <\/> LookupF) where
+instance recursiveExprExprF :: Recursive Expr (ExprF <\/> EqualF <\/> PrintF <\/> LookupF) where
   project (Expr x) = map Expr (project x)
 
 -- | The JSON representation of `Expr`.
@@ -366,6 +391,7 @@ decodeExpr x' = anaM go =<< decodeJson x'
   where
   go x =
     map inj (decodeExprF x)
+      <|> map inj (decodeEqualF x)
       <|> map inj (decodePrintF x)
       <|> map inj (decodeLookupF x)
 
@@ -375,6 +401,10 @@ decodeExprF json@{ op, params } = case op of
   "If" -> traverse decodeJson params >>= case _ of
     [x, y, z] -> pure (If x y z)
     _ -> Left "Expected 3 params"
+  _ -> Left (op <> " invalid op")
+
+decodeEqualF :: ExprJSON -> Either String (EqualF ExprJSON)
+decodeEqualF json@{ op, params } = case op of
   "Equal" -> traverse decodeJson params >>= case _ of
     [x, y] -> pure (Equal x y)
     _ -> Left "Expected 2 params"
@@ -402,6 +432,7 @@ encodeExpr x = encodeJson (cata go x)
   where
   go =
     encodeExprF
+      <\/> encodeEqualF
       <\/> encodePrintF
       <\/> encodeLookupF
 
@@ -410,6 +441,9 @@ encodeExprF = case _ of
   Val x -> cata encodeExprTypeF x
   If x@{ in } y@{ out } z ->
     { in, op: "If", out, params: map encodeJson [x, y, z] }
+
+encodeEqualF :: EqualF ExprJSON -> ExprJSON
+encodeEqualF = case _ of
   Equal x@{ in } y ->
     { in, op: "Equal", out: "Boolean", params: map encodeJson [x, y] }
 
@@ -434,6 +468,7 @@ evalExpr get = cataM go
   where
   go =
     evalExprF
+      <\/> evalEqualF
       <\/> pure <<< evalPrintF
       <\/> pure <<< evalLookupF get
 
@@ -445,6 +480,9 @@ evalExprF = case _ of
       Boolean false -> pure z
       Boolean true -> pure y
       _ -> Left (IfCondition x)
+
+evalEqualF :: EqualF ExprType -> Either EvalError ExprType
+evalEqualF = case _ of
   Equal left right -> do
     case project left, project right of
       Boolean x, Boolean y -> Right (embed $ Boolean $ x == y)
