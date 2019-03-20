@@ -44,38 +44,6 @@ derive instance genericExprTypeF :: Generic (ExprTypeF a) _
 instance showExprTypeF :: (Show a) => Show (ExprTypeF a) where
   show x = genericShow x
 
-instance encodeJsonExprTypeF :: EncodeJson (ExprTypeF (Mu ExprTypeF)) where
-  encodeJson = encodeExprType <<< embed
-
-instance decodeJsonExprTypeF :: DecodeJson (ExprTypeF (Mu ExprTypeF)) where
-  decodeJson = map project <<< decodeExprType
-
-instance arbitraryExprTypeF :: Arbitrary (ExprTypeF (Mu ExprTypeF)) where
-  arbitrary = sized go
-    where
-      cents :: Gen Cents
-      cents = do
-        x <- arbitrary
-        pure (wrap $ Data.BigInt.fromInt x)
-      go :: Size -> Gen (ExprTypeF (Mu ExprTypeF))
-      go size' =
-        if size' < 1 then
-          oneOf $ NonEmpty
-            (Boolean <$> arbitrary)
-            [ Cents <$> cents
-            , Int <$> arbitrary
-            , String <$> arbitrary
-            ]
-        else
-          let size = size' / 10
-          in oneOf $ NonEmpty
-             (Array <$> (map <<< map) embed (arrayOf $ go size))
-             [ Pair <$> do
-               name <- map embed (go size)
-               value <- map embed (go size)
-               pure { name, value }
-             ]
-
 instance foldableExprTypeF :: Foldable ExprTypeF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
@@ -102,11 +70,52 @@ instance traversableExprTypeF :: Traversable ExprTypeF where
 
 -- | The inductive version of `ExprTypeF _`.
 -- | This is what most of our consumers should be dealing with.
--- | It is currently a type synonym purely out of laziness for not wanting
--- | to write `Corecursive` and `Recursive` instances.
--- | Don't be afraid to newtype this and give it instances if we need to.
-type ExprType
-  = Mu ExprTypeF
+newtype ExprType
+  = ExprType (Mu ExprTypeF)
+
+derive instance newtypeExprType :: Newtype ExprType _
+
+derive newtype instance eqExprType :: Eq ExprType
+
+derive newtype instance showExprType :: Show ExprType
+
+instance arbitraryExprType :: Arbitrary ExprType where
+  arbitrary = sized go
+    where
+    cents :: Gen Cents
+    cents = do
+      x <- arbitrary
+      pure (wrap $ Data.BigInt.fromInt x)
+    go :: Size -> Gen ExprType
+    go size' =
+      if size' < 1 then
+        oneOf $ NonEmpty
+        (embed <<< Boolean <$> arbitrary)
+        [ embed <<< Cents <$> cents
+        , embed <<< Int <$> arbitrary
+        , embed <<< String <$> arbitrary
+        ]
+      else
+        let size = size' / 10
+        in oneOf $ NonEmpty
+            (array_ <$> arrayOf (go size))
+            [ pair_ <$> do
+              name <- go size
+              value <- go size
+              pure { name, value }
+            ]
+
+instance corecursiveExprTypeExprTypeF :: Corecursive ExprType ExprTypeF where
+  embed x = ExprType (embed $ map (un ExprType) x)
+
+instance decodeJsonExprType :: DecodeJson ExprType where
+  decodeJson = decodeExprType
+
+instance encodeJsonExprType :: EncodeJson ExprType where
+  encodeJson = encodeExprType
+
+instance recursiveExprTypeExprTypeF :: Recursive ExprType ExprTypeF where
+  project (ExprType x) = map ExprType (project x)
 
 decodeExprType :: Json -> Either String ExprType
 decodeExprType x = anaM decodeExprTypeF =<< decodeJson x
@@ -268,7 +277,7 @@ instance arbitraryExpr :: Arbitrary Expr where
     go :: Size -> Gen Expr
     go size' =
       if size' < 1 then
-        map (val_ <<< embed) arbitrary
+        map val_ arbitrary
       else
         let size = size' / 10
         in oneOf $ NonEmpty

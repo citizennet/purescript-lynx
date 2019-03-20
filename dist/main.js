@@ -13129,6 +13129,9 @@ var PS = {};
       };
       return $$String;
   })();
+  var ExprType = function (x) {
+      return x;
+  };
   var Val = (function () {
       function Val(value0) {
           this.value0 = value0;
@@ -13242,8 +13245,11 @@ var PS = {};
       if (v instanceof $$String) {
           return v.value0;
       };
-      throw new Error("Failed pattern match at Lynx.Data.Expr (line 161, column 10 - line 167, column 16): " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Data.Expr (line 170, column 10 - line 176, column 16): " + [ v.constructor.name ]);
   };
+  var newtypeExprType = new Data_Newtype.Newtype(function (n) {
+      return n;
+  }, ExprType);
   var newtypeExpr = new Data_Newtype.Newtype(function (n) {
       return n;
   }, Expr);
@@ -13275,29 +13281,31 @@ var PS = {};
           throw new Error("Failed pattern match at Lynx.Data.Expr (line 40, column 8 - line 40, column 54): " + [ m.constructor.name ]);
       };
   });
-  var pair_ = function ($397) {
-      return Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))(Pair.create($397));
+  var recursiveExprTypeExprTypeF = new Matryoshka_Class_Recursive.Recursive(function () {
+      return functorExprTypeF;
+  }, function (v) {
+      return Data_Functor.map(functorExprTypeF)(ExprType)(Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(v));
+  });
+  var print = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(printF);
+  var toArray = function ($402) {
+      return toArrayF(Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)($402));
   };
-  var print = Matryoshka_Fold.cata(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(printF);
-  var toArray = function ($398) {
-      return toArrayF(Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))($398));
-  };
-  var toBoolean = Matryoshka_Fold.cata(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(function (v) {
+  var toBoolean = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(function (v) {
       if (v instanceof $$Boolean) {
           return new Data_Maybe.Just(v.value0);
       };
       return Data_Maybe.Nothing.value;
   });
-  var toCents = Matryoshka_Fold.cata(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(function (v) {
+  var toCents = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(function (v) {
       if (v instanceof Cents) {
           return new Data_Maybe.Just(v.value0);
       };
       return Data_Maybe.Nothing.value;
   });
-  var toPair = function ($399) {
-      return toPairF(Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))($399));
+  var toPair = function ($403) {
+      return toPairF(Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)($403));
   };
-  var toString = Matryoshka_Fold.cata(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(function (v) {
+  var toString = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(function (v) {
       if (v instanceof $$String) {
           return new Data_Maybe.Just(v.value0);
       };
@@ -13320,7 +13328,7 @@ var PS = {};
           if (m instanceof Lookup) {
               return new Lookup(m.value0, f(m.value1));
           };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 219, column 8 - line 219, column 46): " + [ m.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 228, column 8 - line 228, column 46): " + [ m.constructor.name ]);
       };
   });
   var recursiveExprExprF = new Matryoshka_Class_Recursive.Recursive(function () {
@@ -13346,7 +13354,7 @@ var PS = {};
               if (v instanceof Lookup) {
                   return f(v.value1);
               };
-              throw new Error("Failed pattern match at Lynx.Data.Expr (line 229, column 15 - line 234, column 22): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Expr (line 238, column 15 - line 243, column 22): " + [ v.constructor.name ]);
           };
       };
   }, function (f) {
@@ -13396,54 +13404,10 @@ var PS = {};
               if (v instanceof Lookup) {
                   return Data_Functor.map((dictApplicative.Apply0()).Functor0())(Lookup.create(v.value0))(f(v.value1));
               };
-              throw new Error("Failed pattern match at Lynx.Data.Expr (line 238, column 16 - line 250, column 39): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Expr (line 247, column 16 - line 259, column 39): " + [ v.constructor.name ]);
           };
       };
   });
-  var evalExprF = function (get) {
-      return function (v) {
-          if (v instanceof Val) {
-              return Control_Applicative.pure(Data_Either.applicativeEither)(v.value0);
-          };
-          if (v instanceof If) {
-              var v1 = Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(v.value0);
-              if (v1 instanceof $$Boolean && !v1.value0) {
-                  return Control_Applicative.pure(Data_Either.applicativeEither)(v.value2);
-              };
-              if (v1 instanceof $$Boolean && v1.value0) {
-                  return Control_Applicative.pure(Data_Either.applicativeEither)(v.value1);
-              };
-              return new Data_Either.Left(new IfCondition(v.value0));
-          };
-          if (v instanceof Equal) {
-              var v1 = Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(v.value1);
-              var v2 = Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(v.value0);
-              if (v2 instanceof $$Boolean && v1 instanceof $$Boolean) {
-                  return new Data_Either.Right(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$Boolean.create(v2.value0 === v1.value0)));
-              };
-              if (v2 instanceof Int && v1 instanceof Int) {
-                  return new Data_Either.Right(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$Boolean.create(v2.value0 === v1.value0)));
-              };
-              if (v2 instanceof $$String && v1 instanceof $$String) {
-                  return new Data_Either.Right(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$Boolean.create(v2.value0 === v1.value0)));
-              };
-              return new Data_Either.Left(new EqualMismatch({
-                  left: v.value0,
-                  right: v.value1
-              }));
-          };
-          if (v instanceof Print) {
-              return Control_Applicative.pure(Data_Either.applicativeEither)(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$String.create(print(v.value0))));
-          };
-          if (v instanceof Lookup) {
-              return Data_Maybe.maybe(Control_Applicative.pure(Data_Either.applicativeEither)(v.value1))(Control_Applicative.pure(Data_Either.applicativeEither))(get(v.value0));
-          };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 351, column 17 - line 365, column 44): " + [ v.constructor.name ]);
-      };
-  };
-  var evalExpr = function (get) {
-      return Matryoshka_Fold.cataM(recursiveExprExprF)(Data_Either.monadEither)(traversableExprF)(evalExprF(get));
-  };
   var eqExprTypeF = function (dictEq) {
       return new Data_Eq.Eq(function (x) {
           return function (y) {
@@ -13471,7 +13435,8 @@ var PS = {};
   };
   var eq1ExprTypeF = new Data_Eq.Eq1(function (dictEq) {
       return Data_Eq.eq(eqExprTypeF(dictEq));
-  });                                         
+  });
+  var eqExprType = Data_Functor_Mu.eqMu(eq1ExprTypeF);
   var encodeExprTypeF = (function () {
       var base = function (dictEncodeJson) {
           return function (out) {
@@ -13532,11 +13497,63 @@ var PS = {};
           if (v instanceof $$String) {
               return base(Data_Argonaut_Encode_Class.encodeJsonJString)("String")([ v.value0 ]);
           };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 143, column 19 - line 149, column 32): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 152, column 19 - line 158, column 32): " + [ v.constructor.name ]);
       };
   })();
   var reflectType = function (x) {
-      return (Matryoshka_Fold.cata(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(encodeExprTypeF)(x)).out;
+      return (Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(encodeExprTypeF)(x)).out;
+  };
+  var corecursiveExprTypeExprTypeF = new Matryoshka_Class_Corecursive.Corecursive(function () {
+      return functorExprTypeF;
+  }, function (x) {
+      return Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))(Data_Functor.map(functorExprTypeF)(Data_Newtype.un(newtypeExprType)(ExprType))(x));
+  });                                                                                
+  var evalExprF = function (get) {
+      return function (v) {
+          if (v instanceof Val) {
+              return Control_Applicative.pure(Data_Either.applicativeEither)(v.value0);
+          };
+          if (v instanceof If) {
+              var v1 = Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)(v.value0);
+              if (v1 instanceof $$Boolean && !v1.value0) {
+                  return Control_Applicative.pure(Data_Either.applicativeEither)(v.value2);
+              };
+              if (v1 instanceof $$Boolean && v1.value0) {
+                  return Control_Applicative.pure(Data_Either.applicativeEither)(v.value1);
+              };
+              return new Data_Either.Left(new IfCondition(v.value0));
+          };
+          if (v instanceof Equal) {
+              var v1 = Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)(v.value1);
+              var v2 = Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)(v.value0);
+              if (v2 instanceof $$Boolean && v1 instanceof $$Boolean) {
+                  return new Data_Either.Right(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Boolean.create(v2.value0 === v1.value0)));
+              };
+              if (v2 instanceof Int && v1 instanceof Int) {
+                  return new Data_Either.Right(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Boolean.create(v2.value0 === v1.value0)));
+              };
+              if (v2 instanceof $$String && v1 instanceof $$String) {
+                  return new Data_Either.Right(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Boolean.create(v2.value0 === v1.value0)));
+              };
+              return new Data_Either.Left(new EqualMismatch({
+                  left: v.value0,
+                  right: v.value1
+              }));
+          };
+          if (v instanceof Print) {
+              return Control_Applicative.pure(Data_Either.applicativeEither)(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$String.create(print(v.value0))));
+          };
+          if (v instanceof Lookup) {
+              return Data_Maybe.maybe(Control_Applicative.pure(Data_Either.applicativeEither)(v.value1))(Control_Applicative.pure(Data_Either.applicativeEither))(get(v.value0));
+          };
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 360, column 17 - line 374, column 44): " + [ v.constructor.name ]);
+      };
+  };
+  var evalExpr = function (get) {
+      return Matryoshka_Fold.cataM(recursiveExprExprF)(Data_Either.monadEither)(traversableExprF)(evalExprF(get));
+  };
+  var pair_ = function ($404) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Pair.create($404));
   };
   var corecursiveExprExprF = new Matryoshka_Class_Corecursive.Corecursive(function () {
       return functorExprF;
@@ -13545,36 +13562,37 @@ var PS = {};
   });
   var if_ = function (x) {
       return function (y) {
-          return function ($403) {
-              return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(If.create(x)(y)($403));
+          return function ($406) {
+              return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(If.create(x)(y)($406));
           };
       };
   };
   var lookup_ = function (x) {
-      return function ($404) {
-          return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Lookup.create(x)($404));
+      return function ($407) {
+          return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Lookup.create(x)($407));
       };
   };
-  var val_ = function ($406) {
-      return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Val.create($406));
+  var val_ = function ($409) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Val.create($409));
   };
-  var string_ = function ($408) {
-      return val_(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$String.create($408)));
+  var string_ = function ($411) {
+      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$String.create($411)));
   };
-  var cents_ = function ($409) {
-      return val_(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))(Cents.create($409)));
+  var cents_ = function ($412) {
+      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Cents.create($412)));
   };
-  var boolean_ = function ($410) {
-      return val_(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$Boolean.create($410)));
+  var boolean_ = function ($413) {
+      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Boolean.create($413)));
   };
-  var array_ = function ($411) {
-      return Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(functorExprTypeF))($$Array.create($411));
+  var array_ = function ($414) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Array.create($414));
   };
   exports["Boolean"] = $$Boolean;
   exports["Cents"] = Cents;
   exports["Int"] = Int;
   exports["Pair"] = Pair;
   exports["String"] = $$String;
+  exports["ExprType"] = ExprType;
   exports["encodeExprTypeF"] = encodeExprTypeF;
   exports["reflectType"] = reflectType;
   exports["print"] = print;
@@ -13607,6 +13625,10 @@ var PS = {};
   exports["eqExprTypeF"] = eqExprTypeF;
   exports["eq1ExprTypeF"] = eq1ExprTypeF;
   exports["functorExprTypeF"] = functorExprTypeF;
+  exports["newtypeExprType"] = newtypeExprType;
+  exports["eqExprType"] = eqExprType;
+  exports["corecursiveExprTypeExprTypeF"] = corecursiveExprTypeExprTypeF;
+  exports["recursiveExprTypeExprTypeF"] = recursiveExprTypeExprTypeF;
   exports["functorExprF"] = functorExprF;
   exports["foldableExprF"] = foldableExprF;
   exports["traversableExprF"] = traversableExprF;
@@ -13807,38 +13829,38 @@ var PS = {};
   };
   var mvpObjective = (function () {
       var options = Lynx_Data_Expr.val_(Lynx_Data_Expr.array_([ Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("App Installs")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("App Installs"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("App Installs")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("App Installs"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Brand Awareness")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Brand Awareness"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Brand Awareness")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Brand Awareness"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Conversions")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Conversions"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Conversions")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Conversions"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Event Responses")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Event Responses"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Event Responses")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Event Responses"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Lead Generation")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Lead Generation"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Lead Generation")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Lead Generation"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Link Clicks")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Link Clicks"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Link Clicks")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Link Clicks"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Offer Claims")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Offer Claims"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Offer Claims")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Offer Claims"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Page Likes")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Page Likes"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Page Likes")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Page Likes"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Post Engagement")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Post Engagement"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Post Engagement")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Post Engagement"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Reach")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Reach"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Reach")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Reach"))
       }), Lynx_Data_Expr.pair_({
-          name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("VideoViews")),
-          value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("VideoViews"))
+          name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("VideoViews")),
+          value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("VideoViews"))
       }) ]));
       return {
           description: Lynx_Data_Expr.string_(""),
@@ -13975,20 +13997,20 @@ var PS = {};
       input: new Dropdown({
           "default": Data_Maybe.Nothing.value,
           options: Lynx_Data_Expr.if_(Lynx_Data_Expr.lookup_("active")(Lynx_Data_Expr.boolean_(false)))(Lynx_Data_Expr.val_(Lynx_Data_Expr.array_([ Lynx_Data_Expr.pair_({
-              name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Strawberry")),
-              value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Strawberry"))
+              name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Strawberry")),
+              value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Strawberry"))
           }), Lynx_Data_Expr.pair_({
-              name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Blueberry")),
-              value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Blueberry"))
+              name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Blueberry")),
+              value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Blueberry"))
           }) ])))(Lynx_Data_Expr.val_(Lynx_Data_Expr.array_([ Lynx_Data_Expr.pair_({
-              name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Apple")),
-              value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Apple"))
+              name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Apple")),
+              value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Apple"))
           }), Lynx_Data_Expr.pair_({
-              name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Banana")),
-              value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Banana"))
+              name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Banana")),
+              value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Banana"))
           }), Lynx_Data_Expr.pair_({
-              name: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Cherry")),
-              value: Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(new Lynx_Data_Expr["String"]("Cherry"))
+              name: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Cherry")),
+              value: Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(new Lynx_Data_Expr["String"]("Cherry"))
           }) ]))),
           placeholder: Lynx_Data_Expr.string_(""),
           required: Lynx_Data_Expr.boolean_(true),
@@ -16575,7 +16597,6 @@ var PS = {};
   var Data_Function = PS["Data.Function"];
   var Data_Functor = PS["Data.Functor"];
   var Data_Functor_Coproduct_Nested = PS["Data.Functor.Coproduct.Nested"];
-  var Data_Functor_Mu = PS["Data.Functor.Mu"];
   var Data_Generic_Rep = PS["Data.Generic.Rep"];
   var Data_Generic_Rep_Show = PS["Data.Generic.Rep.Show"];
   var Data_Map = PS["Data.Map"];
@@ -16850,7 +16871,7 @@ var PS = {};
               return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(v.key)(Ocelot_Component_Dropdown.component(dictMonadAff))({
                   selectedItem: Lynx_Data_Form.getValue(v.input.value0),
                   items: Data_Foldable.fold(Data_Foldable.foldableMaybe)(Data_Monoid.monoidArray)(Lynx_Data_Expr.toArray(v.input.value0.options)),
-                  render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Data_Functor_Mu.eqMu(Lynx_Data_Expr.eq1ExprTypeF))(Ocelot_Block_Button.button)([  ])(function ($95) {
+                  render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($95) {
                       return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($96) {
                           return Lynx_Data_Expr.print((function (v1) {
                               return v1.name;
@@ -16864,7 +16885,7 @@ var PS = {};
           };
           if (v.input instanceof Lynx_Data_Form.Toggle) {
               return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(v.input.value0)))), Halogen_HTML_Properties.id_(v.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($97) {
-                  return UpdateKey.create(v.key)(Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Lynx_Data_Expr.functorExprTypeF))(Lynx_Data_Expr["Boolean"].create($97)));
+                  return UpdateKey.create(v.key)(Matryoshka_Class_Corecursive.embed(Lynx_Data_Expr.corecursiveExprTypeExprTypeF)(Lynx_Data_Expr["Boolean"].create($97)));
               })) ]);
           };
           throw new Error("Failed pattern match at Lynx.Page.Form (line 153, column 25 - line 190, column 10): " + [ v.input.constructor.name ]);
