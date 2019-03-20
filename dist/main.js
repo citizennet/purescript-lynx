@@ -13193,6 +13193,18 @@ var PS = {};
   var Test_QuickCheck_Arbitrary = PS["Test.QuickCheck.Arbitrary"];
   var Test_QuickCheck_Gen = PS["Test.QuickCheck.Gen"];                 
 
+  // | An expression for printing out an expression.
+  // | When used recursively, it will contain the expression to print.
+  var Print = (function () {
+      function Print(value0) {
+          this.value0 = value0;
+      };
+      Print.create = function (value0) {
+          return new Print(value0);
+      };
+      return Print;
+  })();
+
   // | An expression for looking up a key.
   // | When used recursively,
   // | it will contain the default value to use in case the `Key` doesn't exist.
@@ -13347,19 +13359,6 @@ var PS = {};
       return Equal;
   })();
 
-  // | Our non-recursive type of expressions.
-  // | This is where the structure of an expression takes place.
-  // | We may go through many transformations with this value.
-  var Print = (function () {
-      function Print(value0) {
-          this.value0 = value0;
-      };
-      Print.create = function (value0) {
-          return new Print(value0);
-      };
-      return Print;
-  })();
-
   // | The inductive version of expressions.
   // | This is what most of our consumers should be dealing with.
   var Expr = function (x) {
@@ -13426,6 +13425,11 @@ var PS = {};
   var newtypeExpr = new Data_Newtype.Newtype(function (n) {
       return n;
   }, Expr);
+  var functorPrintF = new Data_Functor.Functor(function (f) {
+      return function (m) {
+          return new Print(f(m.value0));
+      };
+  });
   var functorLookupF = new Data_Functor.Functor(function (f) {
       return function (m) {
           return new Lookup(m.value0, f(m.value1));
@@ -13465,8 +13469,8 @@ var PS = {};
       return Data_Functor.map(functorExprTypeF)(ExprType)(Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(functorExprTypeF))(v));
   });
   var print = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(printF);
-  var toArray = function ($426) {
-      return toArrayF(Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)($426));
+  var toArray = function ($451) {
+      return toArrayF(Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)($451));
   };
   var toBoolean = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(function (v) {
       if (v instanceof $$Boolean) {
@@ -13480,8 +13484,8 @@ var PS = {};
       };
       return Data_Maybe.Nothing.value;
   });
-  var toPair = function ($427) {
-      return toPairF(Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)($427));
+  var toPair = function ($452) {
+      return toPairF(Matryoshka_Class_Recursive.project(recursiveExprTypeExprTypeF)($452));
   };
   var toString = Matryoshka_Fold.cata(recursiveExprTypeExprTypeF)(function (v) {
       if (v instanceof $$String) {
@@ -13500,17 +13504,46 @@ var PS = {};
           if (m instanceof Equal) {
               return new Equal(f(m.value0), f(m.value1));
           };
-          if (m instanceof Print) {
-              return new Print(f(m.value0));
-          };
-          throw new Error("Failed pattern match at Lynx.Data.Expr (line 230, column 8 - line 230, column 46): " + [ m.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Expr (line 229, column 8 - line 229, column 46): " + [ m.constructor.name ]);
       };
   });
   var recursiveExprExprF = new Matryoshka_Class_Recursive.Recursive(function () {
-      return Data_Functor_Coproduct.functorCoproduct(functorExprF)(functorLookupF);
+      return Data_Functor_Coproduct.functorCoproduct(functorExprF)(Data_Functor_Coproduct.functorCoproduct(functorPrintF)(functorLookupF));
   }, function (v) {
-      return Data_Functor.map(Data_Functor_Coproduct.functorCoproduct(functorExprF)(functorLookupF))(Expr)(Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(Data_Functor_Coproduct.functorCoproduct(functorExprF)(functorLookupF)))(v));
-  });                                                                                                                                                                                                                                            
+      return Data_Functor.map(Data_Functor_Coproduct.functorCoproduct(functorExprF)(Data_Functor_Coproduct.functorCoproduct(functorPrintF)(functorLookupF)))(Expr)(Matryoshka_Class_Recursive.project(Matryoshka_Class_Recursive.recursiveMu(Data_Functor_Coproduct.functorCoproduct(functorExprF)(Data_Functor_Coproduct.functorCoproduct(functorPrintF)(functorLookupF))))(v));
+  });                                                                                                                                                                                                                                                                                                                                                                                        
+  var foldablePrintF = new Data_Foldable.Foldable(function (dictMonoid) {
+      return function (f) {
+          return function (v) {
+              return f(v.value0);
+          };
+      };
+  }, function (f) {
+      return function (z) {
+          return function (x) {
+              return Data_Foldable.foldlDefault(foldablePrintF)(f)(z)(x);
+          };
+      };
+  }, function (f) {
+      return function (z) {
+          return function (x) {
+              return Data_Foldable.foldrDefault(foldablePrintF)(f)(z)(x);
+          };
+      };
+  });
+  var traversablePrintF = new Data_Traversable.Traversable(function () {
+      return foldablePrintF;
+  }, function () {
+      return functorPrintF;
+  }, function (dictApplicative) {
+      return Data_Traversable.traverse(traversablePrintF)(dictApplicative)(Control_Category.identity(Control_Category.categoryFn));
+  }, function (dictApplicative) {
+      return function (f) {
+          return function (v) {
+              return Data_Functor.map((dictApplicative.Apply0()).Functor0())(Print.create)(f(v.value0));
+          };
+      };
+  });
   var foldableLookupF = new Data_Foldable.Foldable(function (dictMonoid) {
       return function (f) {
           return function (v) {
@@ -13555,10 +13588,7 @@ var PS = {};
               if (v instanceof Equal) {
                   return Data_Semigroup.append(dictMonoid.Semigroup0())(f(v.value0))(f(v.value1));
               };
-              if (v instanceof Print) {
-                  return f(v.value0);
-              };
-              throw new Error("Failed pattern match at Lynx.Data.Expr (line 240, column 15 - line 244, column 19): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Expr (line 239, column 15 - line 242, column 28): " + [ v.constructor.name ]);
           };
       };
   }, function (f) {
@@ -13602,10 +13632,7 @@ var PS = {};
                       };
                   })(f(v.value0)))(f(v.value1));
               };
-              if (v instanceof Print) {
-                  return Data_Functor.map((dictApplicative.Apply0()).Functor0())(Print.create)(f(v.value0));
-              };
-              throw new Error("Failed pattern match at Lynx.Data.Expr (line 248, column 16 - line 259, column 31): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Expr (line 246, column 16 - line 256, column 19): " + [ v.constructor.name ]);
           };
       };
   });
@@ -13745,50 +13772,53 @@ var PS = {};
               right: v.value1
           }));
       };
-      if (v instanceof Print) {
-          return Control_Applicative.pure(Data_Either.applicativeEither)(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$String.create(print(v.value0))));
-      };
-      throw new Error("Failed pattern match at Lynx.Data.Expr (line 399, column 13 - line 412, column 45): " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Data.Expr (line 441, column 13 - line 453, column 51): " + [ v.constructor.name ]);
+  };
+  var evalPrintF = function (v) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$String.create(print(v.value0)));
   };
   var evalExpr = function (get) {
-      return Matryoshka_Fold.cataM(recursiveExprExprF)(Data_Either.monadEither)(Data_Functor_Coproduct.traversableCoproduct(traversableExprF)(traversableLookupF))(Data_Functor_Coproduct.coproduct(evalExprF)(function ($428) {
-          return Control_Applicative.pure(Data_Either.applicativeEither)(evalLookupF(get)($428));
+      var go = Data_Functor_Coproduct.coproduct(evalExprF)(Data_Functor_Coproduct.coproduct(function ($453) {
+          return Control_Applicative.pure(Data_Either.applicativeEither)(evalPrintF($453));
+      })(function ($454) {
+          return Control_Applicative.pure(Data_Either.applicativeEither)(evalLookupF(get)($454));
       }));
+      return Matryoshka_Fold.cataM(recursiveExprExprF)(Data_Either.monadEither)(Data_Functor_Coproduct.traversableCoproduct(traversableExprF)(Data_Functor_Coproduct.traversableCoproduct(traversablePrintF)(traversableLookupF)))(go);
   };
-  var pair_ = function ($429) {
-      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Pair.create($429));
+  var pair_ = function ($455) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Pair.create($455));
   };
   var corecursiveExprExprF = new Matryoshka_Class_Corecursive.Corecursive(function () {
-      return Data_Functor_Coproduct.functorCoproduct(functorExprF)(functorLookupF);
+      return Data_Functor_Coproduct.functorCoproduct(functorExprF)(Data_Functor_Coproduct.functorCoproduct(functorPrintF)(functorLookupF));
   }, function (x) {
-      return Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Data_Functor_Coproduct.functorCoproduct(functorExprF)(functorLookupF)))(Data_Functor.map(Data_Functor_Coproduct.functorCoproduct(functorExprF)(functorLookupF))(Data_Newtype.un(newtypeExpr)(Expr))(x));
+      return Matryoshka_Class_Corecursive.embed(Matryoshka_Class_Corecursive.corecursiveMu(Data_Functor_Coproduct.functorCoproduct(functorExprF)(Data_Functor_Coproduct.functorCoproduct(functorPrintF)(functorLookupF))))(Data_Functor.map(Data_Functor_Coproduct.functorCoproduct(functorExprF)(Data_Functor_Coproduct.functorCoproduct(functorPrintF)(functorLookupF)))(Data_Newtype.un(newtypeExpr)(Expr))(x));
   });
   var if_ = function (x) {
       return function (y) {
-          return function ($431) {
-              return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectLeft)(If.create(x)(y)($431)));
+          return function ($457) {
+              return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectLeft)(If.create(x)(y)($457)));
           };
       };
   };
   var lookup_ = function (x) {
-      return function ($432) {
-          return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectRight(Data_Functor_Coproduct_Inject.injectReflexive))(Lookup.create(x)($432)));
+      return function ($458) {
+          return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectRight(Data_Functor_Coproduct_Inject.injectRight(Data_Functor_Coproduct_Inject.injectReflexive)))(Lookup.create(x)($458)));
       };
   };
-  var val_ = function ($434) {
-      return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectLeft)(Val.create($434)));
+  var val_ = function ($460) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprExprF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectLeft)(Val.create($460)));
   };
-  var string_ = function ($436) {
-      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$String.create($436)));
+  var string_ = function ($462) {
+      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$String.create($462)));
   };
-  var cents_ = function ($437) {
-      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Cents.create($437)));
+  var cents_ = function ($463) {
+      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Cents.create($463)));
   };
-  var boolean_ = function ($438) {
-      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Boolean.create($438)));
+  var boolean_ = function ($464) {
+      return val_(Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Boolean.create($464)));
   };
-  var array_ = function ($439) {
-      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Array.create($439));
+  var array_ = function ($465) {
+      return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)($$Array.create($465));
   };
   exports["Boolean"] = $$Boolean;
   exports["Cents"] = Cents;
@@ -13817,6 +13847,7 @@ var PS = {};
   exports["EqualMismatch"] = EqualMismatch;
   exports["evalExpr"] = evalExpr;
   exports["evalExprF"] = evalExprF;
+  exports["evalPrintF"] = evalPrintF;
   exports["evalLookupF"] = evalLookupF;
   exports["array_"] = array_;
   exports["boolean_"] = boolean_;
@@ -13836,6 +13867,9 @@ var PS = {};
   exports["functorExprF"] = functorExprF;
   exports["foldableExprF"] = foldableExprF;
   exports["traversableExprF"] = traversableExprF;
+  exports["functorPrintF"] = functorPrintF;
+  exports["foldablePrintF"] = foldablePrintF;
+  exports["traversablePrintF"] = traversablePrintF;
   exports["functorLookupF"] = functorLookupF;
   exports["foldableLookupF"] = foldableLookupF;
   exports["traversableLookupF"] = traversableLookupF;
