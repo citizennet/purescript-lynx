@@ -219,7 +219,6 @@ toString = cata case _ of
 -- | We may go through many transformations with this value.
 data ExprF a
   = Val ExprType
-  | If a a a
 
 derive instance eqExprF :: (Eq a) => Eq (ExprF a)
 
@@ -237,12 +236,38 @@ instance foldableExprF :: Foldable ExprF where
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     Val _ -> mempty
-    If x y z -> f x <> f y <> f z
 
 instance traversableExprF :: Traversable ExprF where
   sequence = traverse identity
   traverse f = case _ of
     Val x -> pure (Val x)
+
+-- | An expression for conditionally choosing another expression.
+-- | When used recursively, it will contain the "condition,"
+-- | the "true" expression, and the "false" expression.
+data IfF a
+  = If a a a
+
+derive instance genericIfF :: Generic (IfF a) _
+
+derive instance eqIfF :: (Eq a) => Eq (IfF a)
+
+derive instance eq1IfF :: Eq1 IfF
+
+derive instance functorIfF :: Functor IfF
+
+instance showIfF :: (Show a) => Show (IfF a) where
+  show = genericShow
+
+instance foldableIfF :: Foldable IfF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    If x y z -> f x <> f y <> f z
+
+instance traversableIfF :: Traversable IfF where
+  sequence = traverse identity
+  traverse f = case _ of
     If x' y' z' -> ado
       x <- f x'
       y <- f y'
@@ -338,7 +363,7 @@ instance traversableLookupF :: Traversable LookupF where
 -- | The inductive version of expressions.
 -- | This is what most of our consumers should be dealing with.
 newtype Expr
-  = Expr (Mu (ExprF <\/> EqualF <\/> PrintF <\/> LookupF))
+  = Expr (Mu (ExprF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF))
 
 derive instance genericExpr :: Generic Expr _
 
@@ -364,7 +389,7 @@ instance arbitraryExpr :: Arbitrary Expr where
             , lookup_ <$> arbitrary <*> go size
             ]
 
-instance corecursiveExprExprF :: Corecursive Expr (ExprF <\/> EqualF <\/> PrintF <\/> LookupF) where
+instance corecursiveExprExprF :: Corecursive Expr (ExprF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF) where
   embed x = Expr (embed $ map (un Expr) x)
 
 instance decodeJsonExpr :: DecodeJson Expr where
@@ -373,7 +398,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
 instance encodeJsonExpr :: EncodeJson Expr where
   encodeJson = encodeExpr
 
-instance recursiveExprExprF :: Recursive Expr (ExprF <\/> EqualF <\/> PrintF <\/> LookupF) where
+instance recursiveExprExprF :: Recursive Expr (ExprF <\/> IfF <\/> EqualF <\/> PrintF <\/> LookupF) where
   project (Expr x) = map Expr (project x)
 
 -- | The JSON representation of `Expr`.
@@ -391,6 +416,7 @@ decodeExpr x' = anaM go =<< decodeJson x'
   where
   go x =
     map inj (decodeExprF x)
+      <|> map inj (decodeIfF x)
       <|> map inj (decodeEqualF x)
       <|> map inj (decodePrintF x)
       <|> map inj (decodeLookupF x)
@@ -398,6 +424,10 @@ decodeExpr x' = anaM go =<< decodeJson x'
 decodeExprF :: ExprJSON -> Either String (ExprF ExprJSON)
 decodeExprF json@{ op, params } = case op of
   "Val" -> map Val (anaM decodeExprTypeF json)
+  _ -> Left (op <> " invalid op")
+
+decodeIfF :: ExprJSON -> Either String (IfF ExprJSON)
+decodeIfF json@{ op, params } = case op of
   "If" -> traverse decodeJson params >>= case _ of
     [x, y, z] -> pure (If x y z)
     _ -> Left "Expected 3 params"
@@ -432,6 +462,7 @@ encodeExpr x = encodeJson (cata go x)
   where
   go =
     encodeExprF
+      <\/> encodeIfF
       <\/> encodeEqualF
       <\/> encodePrintF
       <\/> encodeLookupF
@@ -439,6 +470,9 @@ encodeExpr x = encodeJson (cata go x)
 encodeExprF :: ExprF ExprJSON -> ExprJSON
 encodeExprF = case _ of
   Val x -> cata encodeExprTypeF x
+
+encodeIfF :: IfF ExprJSON -> ExprJSON
+encodeIfF = case _ of
   If x@{ in } y@{ out } z ->
     { in, op: "If", out, params: map encodeJson [x, y, z] }
 
@@ -467,14 +501,18 @@ evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
 evalExpr get = cataM go
   where
   go =
-    evalExprF
+    pure <<< evalExprF
+      <\/> evalIfF
       <\/> evalEqualF
       <\/> pure <<< evalPrintF
       <\/> pure <<< evalLookupF get
 
-evalExprF :: ExprF ExprType -> Either EvalError ExprType
+evalExprF :: ExprF ExprType -> ExprType
 evalExprF = case _ of
-  Val x -> pure x
+  Val x -> x
+
+evalIfF :: IfF ExprType -> Either EvalError ExprType
+evalIfF = case _ of
   If x y z -> do
     case project x of
       Boolean false -> pure z
