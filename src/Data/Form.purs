@@ -6,6 +6,7 @@ import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
+import Data.Functor.Coproduct.Inject (inj)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -14,7 +15,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
 import Lynx.Data.Expr (EvalError, Expr, boolean_, cents_, evalExpr, string_)
-import Lynx.Data.ExprType (ExprType, ExprTypeF(..), array_, pair_)
+import Lynx.Data.ExprType (ExprType, StringF(..), array_, pair_)
 import Lynx.Data.If (if_)
 import Lynx.Data.Lookup (Key, lookup_)
 import Lynx.Data.Val (val_)
@@ -338,17 +339,17 @@ mvpObjective =
   options =
     val_
     ( array_
-      [ pair_ { name: embed (String "App Installs"), value: embed (String "App Installs") }
-      , pair_ { name: embed (String "Brand Awareness"), value: embed (String "Brand Awareness") }
-      , pair_ { name: embed (String "Conversions"), value: embed (String "Conversions") }
-      , pair_ { name: embed (String "Event Responses"), value: embed (String "Event Responses") }
-      , pair_ { name: embed (String "Lead Generation"), value: embed (String "Lead Generation") }
-      , pair_ { name: embed (String "Link Clicks"), value: embed (String "Link Clicks") }
-      , pair_ { name: embed (String "Offer Claims"), value: embed (String "Offer Claims") }
-      , pair_ { name: embed (String "Page Likes"), value: embed (String "Page Likes") }
-      , pair_ { name: embed (String "Post Engagement"), value: embed (String "Post Engagement") }
-      , pair_ { name: embed (String "Reach"), value: embed (String "Reach") }
-      , pair_ { name: embed (String "VideoViews"), value: embed (String "VideoViews") }
+      [ pair_ { name: embed (inj $ String "App Installs"), value: embed (inj $ String "App Installs") }
+      , pair_ { name: embed (inj $ String "Brand Awareness"), value: embed (inj $ String "Brand Awareness") }
+      , pair_ { name: embed (inj $ String "Conversions"), value: embed (inj $ String "Conversions") }
+      , pair_ { name: embed (inj $ String "Event Responses"), value: embed (inj $ String "Event Responses") }
+      , pair_ { name: embed (inj $ String "Lead Generation"), value: embed (inj $ String "Lead Generation") }
+      , pair_ { name: embed (inj $ String "Link Clicks"), value: embed (inj $ String "Link Clicks") }
+      , pair_ { name: embed (inj $ String "Offer Claims"), value: embed (inj $ String "Offer Claims") }
+      , pair_ { name: embed (inj $ String "Page Likes"), value: embed (inj $ String "Page Likes") }
+      , pair_ { name: embed (inj $ String "Post Engagement"), value: embed (inj $ String "Post Engagement") }
+      , pair_ { name: embed (inj $ String "Reach"), value: embed (inj $ String "Reach") }
+      , pair_ { name: embed (inj $ String "VideoViews"), value: embed (inj $ String "VideoViews") }
       ]
     )
 
@@ -435,14 +436,14 @@ food =
         do lookup_ "active" (boolean_ false)
         do val_ $
           array_
-            [ pair_ { name: embed (String "Strawberry"), value: embed (String "Strawberry") }
-            , pair_ { name: embed (String "Blueberry"), value: embed (String "Blueberry") }
+            [ pair_ { name: embed (inj $ String "Strawberry"), value: embed (inj $ String "Strawberry") }
+            , pair_ { name: embed (inj $ String "Blueberry"), value: embed (inj $ String "Blueberry") }
             ]
         do val_ $
           array_
-            [ pair_ { name: embed (String "Apple"), value: embed (String "Apple") }
-            , pair_ { name: embed (String "Banana"), value: embed (String "Banana") }
-            , pair_ { name: embed (String "Cherry"), value: embed (String "Cherry") }
+            [ pair_ { name: embed (inj $ String "Apple"), value: embed (inj $ String "Apple") }
+            , pair_ { name: embed (inj $ String "Banana"), value: embed (inj $ String "Banana") }
+            , pair_ { name: embed (inj $ String "Cherry"), value: embed (inj $ String "Cherry") }
             ]
     , placeholder: string_ ""
     , required: boolean_ true

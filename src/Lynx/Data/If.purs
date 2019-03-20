@@ -9,9 +9,10 @@ import Data.Foldable (class Foldable, foldlDefault, foldrDefault)
 import Data.Functor.Coproduct.Inject (class Inject, inj)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Maybe (maybe')
 import Data.Traversable (class Traversable, traverse)
-import Lynx.Data.ExprType (ExprJSON, ExprType, ExprTypeF(..), reflectType)
-import Matryoshka (class Corecursive, embed, project)
+import Lynx.Data.ExprType (ExprJSON, ExprType, reflectType, toBoolean)
+import Matryoshka (class Corecursive, embed)
 
 -- | An expression for conditionally choosing another expression.
 -- | When used recursively, it will contain the "condition,"
@@ -67,11 +68,9 @@ renderEvalError = case _ of
 
 evalIfF :: IfF ExprType -> Either EvalError ExprType
 evalIfF = case _ of
-  If x y z -> do
-    case project x of
-      Boolean false -> pure z
-      Boolean true -> pure y
-      _ -> Left (Condition x)
+  If x y z -> maybe' (\_ -> Left (Condition x)) pure do
+    b <- toBoolean x
+    pure if b then y else z
 
 if_ ::
   forall expr f.

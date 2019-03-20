@@ -2,6 +2,7 @@ module Lynx.Data.Equal where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Argonaut (decodeJson, encodeJson)
 import Data.Either (Either(..))
 import Data.Eq (class Eq1)
@@ -9,9 +10,10 @@ import Data.Foldable (class Foldable, foldlDefault, foldrDefault)
 import Data.Functor.Coproduct.Inject (class Inject, inj)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Maybe (Maybe(..))
 import Data.Traversable (class Traversable, traverse)
-import Lynx.Data.ExprType (ExprJSON, ExprType, ExprTypeF(..), reflectType)
-import Matryoshka (class Corecursive, embed, project)
+import Lynx.Data.ExprType (ExprJSON, ExprType, boolean_, reflectType, toBoolean, toInt, toString)
+import Matryoshka (class Corecursive, embed)
 
 -- | An expression for checking if two expressions are equal.
 -- | When used recursively,
@@ -71,12 +73,26 @@ renderEvalError = case _ of
 
 evalEqualF :: EqualF ExprType -> Either EvalError ExprType
 evalEqualF = case _ of
-  Equal left right -> do
-    case project left, project right of
-      Boolean x, Boolean y -> Right (embed $ Boolean $ x == y)
-      Int x, Int y -> Right (embed $ Boolean $ x == y)
-      String x, String y -> Right (embed $ Boolean $ x == y)
-      _, _ -> Left (Mismatch { left, right })
+  Equal left right -> case result left right of
+    Just x -> pure (boolean_ x)
+    Nothing -> Left (Mismatch { left, right })
+  where
+  boolean left right = do
+    x <- toBoolean left
+    y <- toBoolean right
+    pure (x == y)
+  int left right = do
+    x <- toInt left
+    y <- toInt right
+    pure (x == y)
+  result left right =
+    boolean left right
+      <|> int left right
+      <|> string left right
+  string left right = do
+    x <- toString left
+    y <- toString right
+    pure (x == y)
 
 equal_ ::
   forall expr f.

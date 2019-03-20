@@ -5,11 +5,12 @@ import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
 import Data.Foldable (findMap)
+import Data.Functor.Coproduct.Inject (inj)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Lynx.Data.Expr (EvalError, Expr, boolean_, string_)
-import Lynx.Data.ExprType (ExprType, ExprTypeF(..), array_, pair_)
+import Lynx.Data.ExprType (BooleanF(..), ExprType, IntF(..), StringF(..), array_, pair_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
 import Lynx.Data.Form as Lynx.Data.Form
 import Lynx.Data.If (if_)
@@ -64,13 +65,13 @@ dropdownOptions = do
       keys :: Map Key ExprType
       keys = Lynx.Data.Form.keys page
       page :: Page Expr
-      page = Lynx.Data.Form.setValue fooKey (embed $ Boolean true) page'
+      page = Lynx.Data.Form.setValue fooKey (embed (inj $ Boolean true)) page'
 
   test "after altering the toggle" do
     let actual :: Maybe ExprType
         actual = findOptions evaluated
         expected :: ExprType
-        expected = array_ [pair_ { name: embed (String "foo"), value: embed (Int 3)}]
+        expected = array_ [pair_ { name: embed (inj $ String "foo"), value: embed (inj $ Int 3)}]
     equal (Just expected) actual
 
   where
@@ -80,7 +81,7 @@ dropdownOptions = do
       { default: Nothing
       , options:
         if_ (lookup_ fooKey $ boolean_ false)
-        (val_ $ array_ [pair_ { name: embed (String "foo"), value: embed (Int 3)}])
+        (val_ $ array_ [pair_ { name: embed (inj $ String "foo"), value: embed (inj $ Int 3)}])
         (val_ $ array_ [])
       , placeholder: string_ ""
       , required: boolean_ false
