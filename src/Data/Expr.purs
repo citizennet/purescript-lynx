@@ -2,15 +2,18 @@ module Lynx.Data.Expr where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, stringify)
 import Data.BigInt as Data.BigInt
 import Data.Either (Either(..))
 import Data.Eq (class Eq1)
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
+import Data.Functor.Coproduct.Inject (inj)
+import Data.Functor.Coproduct.Nested (type (<\/>), (<\/>))
 import Data.Functor.Mu (Mu)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype, un, wrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.Traversable (class Traversable, traverse)
@@ -219,7 +222,6 @@ data ExprF a
   | If a a a
   | Equal a a
   | Print a
-  | Lookup Key a
 
 derive instance eqExprF :: (Eq a) => Eq (ExprF a)
 
@@ -240,7 +242,6 @@ instance foldableExprF :: Foldable ExprF where
     If x y z -> f x <> f y <> f z
     Equal x y -> f x <> f y
     Print x -> f x
-    Lookup _ x -> f x
 
 instance traversableExprF :: Traversable ExprF where
   sequence = traverse identity
@@ -256,12 +257,39 @@ instance traversableExprF :: Traversable ExprF where
       y <- f y'
       in Equal x y
     Print x -> map Print (f x)
+
+-- | An expression for looking up a key.
+-- | When used recursively,
+-- | it will contain the default value to use in case the `Key` doesn't exist.
+data LookupF a
+  = Lookup Key a
+
+derive instance genericLookupF :: Generic (LookupF a) _
+
+derive instance eqLookupF :: (Eq a) => Eq (LookupF a)
+
+derive instance eq1LookupF :: Eq1 LookupF
+
+derive instance functorLookupF :: Functor LookupF
+
+instance showLookupF :: (Show a) => Show (LookupF a) where
+  show = genericShow
+
+instance foldableLookupF :: Foldable LookupF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Lookup _ x -> f x
+
+instance traversableLookupF :: Traversable LookupF where
+  sequence = traverse identity
+  traverse f = case _ of
     Lookup x y -> map (Lookup x) (f y)
 
--- | The inductive version of `ExprF _`.
+-- | The inductive version of expressions.
 -- | This is what most of our consumers should be dealing with.
 newtype Expr
-  = Expr (Mu ExprF)
+  = Expr (Mu (ExprF <\/> LookupF))
 
 derive instance genericExpr :: Generic Expr _
 
@@ -287,7 +315,7 @@ instance arbitraryExpr :: Arbitrary Expr where
             , lookup_ <$> arbitrary <*> go size
             ]
 
-instance corecursiveExprExprF :: Corecursive Expr ExprF where
+instance corecursiveExprExprF :: Corecursive Expr (ExprF <\/> LookupF) where
   embed x = Expr (embed $ map (un Expr) x)
 
 instance decodeJsonExpr :: DecodeJson Expr where
@@ -296,7 +324,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
 instance encodeJsonExpr :: EncodeJson Expr where
   encodeJson = encodeExpr
 
-instance recursiveExprExprF :: Recursive Expr ExprF where
+instance recursiveExprExprF :: Recursive Expr (ExprF <\/> LookupF) where
   project (Expr x) = map Expr (project x)
 
 -- | The JSON representation of `Expr`.
@@ -310,7 +338,11 @@ type ExprJSON
     }
 
 decodeExpr :: Json -> Either String Expr
-decodeExpr x = anaM decodeExprF =<< decodeJson x
+decodeExpr x' = anaM go =<< decodeJson x'
+  where
+  go x =
+    map inj (decodeExprF x)
+      <|> map inj (decodeLookupF x)
 
 decodeExprF :: ExprJSON -> Either String (ExprF ExprJSON)
 decodeExprF json@{ op, params } = case op of
@@ -324,6 +356,10 @@ decodeExprF json@{ op, params } = case op of
   "Print" -> traverse decodeJson params >>= case _ of
     [x] -> pure (Print x)
     _ -> Left "Expected 1 params"
+  _ -> Left (op <> " invalid op")
+
+decodeLookupF :: ExprJSON -> Either String (LookupF ExprJSON)
+decodeLookupF json@{ op, params } = case op of
   "Lookup" -> case params of
     [x', y'] -> do
       x <- decodeJson x'
@@ -333,7 +369,7 @@ decodeExprF json@{ op, params } = case op of
   _ -> Left (op <> " invalid op")
 
 encodeExpr :: Expr -> Json
-encodeExpr x = encodeJson (cata encodeExprF x)
+encodeExpr x = encodeJson (cata (encodeExprF <\/> encodeLookupF) x)
 
 encodeExprF :: ExprF ExprJSON -> ExprJSON
 encodeExprF = case _ of
@@ -344,6 +380,9 @@ encodeExprF = case _ of
     { in, op: "Equal", out: "Boolean", params: map encodeJson [x, y] }
   Print x@{ in } ->
     { in, op: "Print", out: "String", params: map encodeJson [x] }
+
+encodeLookupF :: LookupF ExprJSON -> ExprJSON
+encodeLookupF = case _ of
   Lookup x y@{ out } ->
     { in: "Void", op: "Lookup", out, params: [encodeJson x, encodeJson y] }
 
@@ -354,10 +393,10 @@ data EvalError
 derive instance eqEvalError :: Eq EvalError
 
 evalExpr :: (Key -> Maybe ExprType) -> Expr -> Either EvalError ExprType
-evalExpr get = cataM (evalExprF get)
+evalExpr get = cataM (evalExprF <\/> pure <<< evalLookupF get)
 
-evalExprF :: (Key -> Maybe ExprType) -> ExprF ExprType -> Either EvalError ExprType
-evalExprF get = case _ of
+evalExprF :: ExprF ExprType -> Either EvalError ExprType
+evalExprF = case _ of
   Val x -> pure x
   If x y z -> do
     case project x of
@@ -371,7 +410,10 @@ evalExprF get = case _ of
       String x, String y -> Right (embed $ Boolean $ x == y)
       _, _ -> Left (EqualMismatch { left, right })
   Print x -> pure (embed $ String $ print x)
-  Lookup x y -> maybe (pure y) pure (get x)
+
+evalLookupF :: (Key -> Maybe ExprType) -> LookupF ExprType -> ExprType
+evalLookupF get = case _ of
+  Lookup x y -> fromMaybe y (get x)
 
 array_ :: Array ExprType -> ExprType
 array_ = embed <<< Array
@@ -392,16 +434,16 @@ string_ :: String -> Expr
 string_ = val_ <<< embed <<< String
 
 if_ :: Expr -> Expr -> Expr -> Expr
-if_ x y = embed <<< If x y
+if_ x y = embed <<< inj <<< If x y
 
 equal_ :: Expr -> Expr -> Expr
-equal_ x = embed <<< Equal x
+equal_ x = embed <<< inj <<< Equal x
 
 print_ :: Expr -> Expr
-print_ = embed <<< Print
+print_ = embed <<< inj <<< Print
 
 lookup_ :: Key -> Expr -> Expr
-lookup_ x = embed <<< Lookup x
+lookup_ x = embed <<< inj <<< Lookup x
 
 val_ :: ExprType -> Expr
-val_ = embed <<< Val
+val_ = embed <<< inj <<< Val
