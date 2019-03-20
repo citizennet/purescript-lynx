@@ -43,16 +43,6 @@ test2Json = """
   { "op": "Val", "params": [2], "in": "Void", "out": "Int" }
 """
 
-testTrueJson :: String
-testTrueJson = """
-  { "op": "Val", "params": [true], "in": "Void", "out": "Boolean" }
-"""
-
-testFalseJson :: String
-testFalseJson = """
-  { "op": "Val", "params": [false], "in": "Void", "out": "Boolean" }
-"""
-
 test1Either :: Either String Expr
 test1Either = decodeJson =<< jsonParser test1Json
 

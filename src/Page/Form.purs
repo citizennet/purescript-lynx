@@ -18,10 +18,11 @@ import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, Key)
-import Lynx.Data.ExprType (ExprType, boolean_, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
+import Lynx.Data.Expr (EvalError, Expr, renderEvalError)
+import Lynx.Data.ExprType (ExprType, boolean_, print, toArray, toBoolean, toCents, toPair, toString)
 import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
+import Lynx.Data.Lookup (Key)
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -109,28 +110,15 @@ component =
         Loading ->
           [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text "Loading..." ] ] ]
         Failure e ->
-          [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
+          [ Card.card_
+            [ Format.p [ css "text-red" ] [ HH.text (renderEvalError e) ] ]
+          ]
         Success page ->
           append
           [ Format.heading_
             [ HH.text page.evaled.name ]
           ]
           $ renderSection <$> page.evaled.contents
-
-  renderEvalError :: forall a b c d. EvalError -> H.ParentHTML a b c d
-  renderEvalError = case _ of
-    IfCondition x ->
-      HH.text $
-        "Expected conditional to be a Boolean, but its type is: "
-          <> reflectType x
-    EqualMismatch x ->
-      HH.text $
-        "Expected both sides of equal to have the same type,"
-          <> " but they are different."
-          <> " left: "
-          <> reflectType x.left
-          <> " right: "
-          <> reflectType x.right
 
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection (section) =
