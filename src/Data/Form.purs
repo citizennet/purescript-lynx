@@ -13,7 +13,8 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr as Lynx.Data.Expr
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -62,6 +63,11 @@ type CurrencyRows f r =
   | r
   )
 
+type DateTimeRows f r =
+  ( placeholder :: f
+  | r
+  )
+
 type DropdownRows f r =
   ( options :: f
   , placeholder :: f
@@ -70,6 +76,7 @@ type DropdownRows f r =
 
 data Input f
   = Currency (Record (SharedRows f + RequiredRows f + CurrencyRows f + ()))
+  | DateTime (Record (SharedRows f + RequiredRows f + DateTimeRows f + ()))
   | Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
   | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
@@ -82,6 +89,7 @@ instance showInput :: Show (Input Expr) where show = genericShow
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
     Currency r -> "type" := "Currency" ~> encodeJson r
+    DateTime r -> "type" := "DateTime" ~> encodeJson r
     Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
@@ -91,6 +99,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
     x <- decodeJson json
     x .: "type" >>= case _ of
       "Currency" -> pure <<< Currency <=< decodeJson $ json
+      "DateTime" -> pure <<< DateTime <=< decodeJson $ json
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
@@ -184,6 +193,19 @@ eval get page = do
           , value
           }
         )
+    DateTime input -> do
+      default <- traverse (evalExpr get) input.default
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure
+        ( DateTime
+          { default
+          , placeholder
+          , required
+          , value
+          }
+        )
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
@@ -236,6 +258,7 @@ keys page = foldMap keysSection page.contents
     where
     value = case field.input of
       Currency currency -> getValue currency
+      DateTime dateTime -> getValue dateTime
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
@@ -257,6 +280,8 @@ setValue key val page = page { contents = map setSection page.contents}
     | key == field.key = case field.input of
       Currency input ->
         field { input = Currency input { value = UserInput (Val val) } }
+      DateTime input ->
+        field { input = DateTime input { value = UserInput (Val val) } }
       Dropdown input ->
         field { input = Dropdown input { value = UserInput (Val val) } }
       Text input ->
@@ -276,9 +301,26 @@ mvpPage =
         [ mvpName
         , mvpObjective
         , mvpMediaBudget
+        , mvpStart
+        , mvpEnd
         ]
       }
     ]
+  }
+
+mvpEnd :: Field Expr
+mvpEnd =
+  { description: string_ ""
+  , input:
+    DateTime
+      { default: Nothing
+      , placeholder: string_ "Choose a end date for the campaign"
+      , required: boolean_ true
+      , value: NotSet
+      }
+  , key: "end"
+  , name: string_ "End"
+  , visibility: boolean_ true
   }
 
 mvpMediaBudget :: Field Expr
@@ -332,20 +374,68 @@ mvpObjective =
   options :: Expr
   options =
     Val
-    ( Array
-      [ Pair { name: String "App Installs", value: String "App Installs" }
-      , Pair { name: String "Brand Awareness", value: String "Brand Awareness" }
-      , Pair { name: String "Conversions", value: String "Conversions" }
-      , Pair { name: String "Event Responses", value: String "Event Responses" }
-      , Pair { name: String "Lead Generation", value: String "Lead Generation" }
-      , Pair { name: String "Link Clicks", value: String "Link Clicks" }
-      , Pair { name: String "Offer Claims", value: String "Offer Claims" }
-      , Pair { name: String "Page Likes", value: String "Page Likes" }
-      , Pair { name: String "Post Engagement", value: String "Post Engagement" }
-      , Pair { name: String "Reach", value: String "Reach" }
-      , Pair { name: String "VideoViews", value: String "VideoViews" }
+    ( Lynx.Data.Expr.Array
+      [ Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "App Installs"
+        , value: Lynx.Data.Expr.String "App Installs"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Brand Awareness"
+        , value: Lynx.Data.Expr.String "Brand Awareness"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Conversions"
+        , value: Lynx.Data.Expr.String "Conversions"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Event Responses"
+        , value: Lynx.Data.Expr.String "Event Responses"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Lead Generation"
+        , value: Lynx.Data.Expr.String "Lead Generation"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Link Clicks"
+        , value: Lynx.Data.Expr.String "Link Clicks"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Offer Claims"
+        , value: Lynx.Data.Expr.String "Offer Claims"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Page Likes"
+        , value: Lynx.Data.Expr.String "Page Likes"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Post Engagement"
+        , value: Lynx.Data.Expr.String "Post Engagement"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "Reach"
+        , value: Lynx.Data.Expr.String "Reach"
+        }
+      , Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "VideoViews"
+        , value: Lynx.Data.Expr.String "VideoViews"
+        }
       ]
     )
+
+mvpStart :: Field Expr
+mvpStart =
+  { description: string_ ""
+  , input:
+    DateTime
+      { default: Nothing
+      , placeholder: string_ "Choose a start date for the campaign"
+      , required: boolean_ true
+      , value: NotSet
+      }
+  , key: "start"
+  , name: string_ "Start"
+  , visibility: boolean_ true
+  }
 
 -- Test
 
@@ -427,17 +517,32 @@ food =
     { default: Nothing
     , options:
       If
-        do Lookup "active" (Val $ Boolean false)
+        do Lookup "active" (Val $ Lynx.Data.Expr.Boolean false)
         do Val $
-          Array
-            [ Pair { name: String "Strawberry", value: String "Strawberry" }
-            , Pair { name: String "Blueberry", value: String "Blueberry" }
+          Lynx.Data.Expr.Array
+            [ Lynx.Data.Expr.Pair
+              { name: Lynx.Data.Expr.String "Strawberry"
+              , value: Lynx.Data.Expr.String "Strawberry"
+              }
+            , Lynx.Data.Expr.Pair
+              { name: Lynx.Data.Expr.String "Blueberry"
+              , value: Lynx.Data.Expr.String "Blueberry"
+              }
             ]
         do Val $
-          Array
-            [ Pair { name: String "Apple", value: String "Apple" }
-            , Pair { name: String "Banana", value: String "Banana" }
-            , Pair { name: String "Cherry", value: String "Cherry" }
+          Lynx.Data.Expr.Array
+            [ Lynx.Data.Expr.Pair
+              { name: Lynx.Data.Expr.String "Apple"
+              , value: Lynx.Data.Expr.String "Apple"
+              }
+            , Lynx.Data.Expr.Pair
+              { name: Lynx.Data.Expr.String "Banana"
+              , value: Lynx.Data.Expr.String "Banana"
+              }
+            , Lynx.Data.Expr.Pair
+              { name: Lynx.Data.Expr.String "Cherry"
+              , value: Lynx.Data.Expr.String "Cherry"
+              }
             ]
     , placeholder: string_ ""
     , required: boolean_ true

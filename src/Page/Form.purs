@@ -12,14 +12,16 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Symbol (SProxy(..))
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
-import Halogen.Component.ChildPath (cp1)
+import Halogen.Component.ChildPath (cp1, cp2)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, datetime_, print, reflectType, toArray, toBoolean, toCents, toDateTime, toPair, toString)
+import Lynx.Data.Expr as Lynx.Data.Expr
 import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
@@ -30,9 +32,11 @@ import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.Block.Layout as Layout
 import Ocelot.Block.Toggle (toggle) as Toggle
+import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.HTML.Properties (css)
+import Prim.TypeError (class Warn, Beside, Text)
 import Routing.Duplex (RouteDuplex', path)
 import Routing.Duplex.Generic (noArgs, sum)
 
@@ -66,15 +70,18 @@ data Query a
   | EvalForm (Page Expr) a
   | UpdateKey Key ExprType a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
+  | DateTimePickerQuery Key DateTimePicker.Message a
 
 type ParentInput = Route
 
 type ChildQuery m
   = Dropdown.Query Query ExprType  m
+  <\/> DateTimePicker.Query
   <\/> Const Void
 
 type ChildSlot
   = Key
+  \/ Key
   \/ Void
 
 type Message = Void
@@ -162,6 +169,15 @@ component =
           _ <- toCents value
           pure (print value)
         ]
+    DateTime dateTime ->
+      HH.slot'
+        cp2
+        field.key
+        DateTimePicker.component
+        { selection: toDateTime =<< getValue dateTime
+        , targetDate: Nothing
+        }
+        (HE.input $ DateTimePickerQuery field.key)
     Dropdown dropdown ->
       HH.slot'
         cp1
@@ -188,7 +204,7 @@ component =
       Toggle.toggle
         [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
+        , HE.onChecked (HE.input $ UpdateKey field.key <<< Lynx.Data.Expr.Boolean)
         ]
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
@@ -210,6 +226,7 @@ eval = case _ of
         for_ section.contents \field -> do
           case field.input of
             Currency _ -> pure unit
+            DateTime _ -> pure unit
             Dropdown dropdown ->
               for_ (toArray dropdown.options) \options ->
                 H.query' cp1 field.key (Dropdown.SetItems options unit)
@@ -230,3 +247,21 @@ eval = case _ of
     Dropdown.Emit x -> a <$ eval x
     Dropdown.Selected val -> eval (UpdateKey key val a)
     Dropdown.VisibilityChanged _ -> pure a
+
+  DateTimePickerQuery key message a -> case message of
+    DateTimePicker.DateMessage _ -> pure a
+    DateTimePicker.SelectionChanged (Just val) ->
+      eval (UpdateKey key (datetime_ val) a)
+    DateTimePicker.SelectionChanged Nothing -> do
+      let _ = todo $ SProxy :: SProxy "Handle the removal of a datetime. Will require `UserCleared`."
+      pure a
+    DateTimePicker.TimeMessage _ -> pure a
+
+-- | A helper that should give us a warning and prevent CI from passing.
+-- | Useful for preventing merging of unfinished code.
+todo ::
+  forall proxy todo.
+  Warn (Beside (Text "TODO: ") (Text todo)) =>
+  proxy todo ->
+  Unit
+todo _ = unit
