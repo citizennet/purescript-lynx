@@ -68,11 +68,9 @@ data Query a
 
 type ParentInput = Route
 
-type ChildQuery m = Coproduct1 (DropdownQuery m)
+type ChildQuery m = Coproduct1 (Dropdown.Query Query ExprType  m)
 
 type ChildSlot = Either1 Key
-
-type DropdownQuery m = Dropdown.Query Query ExprType m
 
 type Message = Void
 
