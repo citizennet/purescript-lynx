@@ -19,7 +19,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, mvpPage, testPage)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, getValue, mvpPage, testPage, userInput)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -63,7 +63,7 @@ type State =
 data Query a
   = Initialize a
   | EvalForm (Page Expr) a
-  | UpdateKey Key ExprType a
+  | UpdateKey Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
 
 type ParentInput = Route
@@ -185,7 +185,7 @@ component =
       Toggle.toggle
         [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateKey field.key <<< Boolean)
+        , HE.onChecked (HE.input $ UpdateKey field.key <<< UserInput <<< Boolean)
         ]
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
@@ -216,7 +216,8 @@ eval = case _ of
     H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
 
   UpdateKey key val a -> do
-    H.modify_ \state -> state { values = Data.Map.insert key val state.values }
+    H.modify_ \state ->
+      state { values = Data.Map.alter (\_ -> userInput val) key state.values }
     { form } <- H.get
     case form of
       Success { expr } ->
@@ -225,5 +226,5 @@ eval = case _ of
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
-    Dropdown.Selected val -> eval (UpdateKey key val a)
+    Dropdown.Selected val -> eval (UpdateKey key (UserInput val) a)
     Dropdown.VisibilityChanged _ -> pure a

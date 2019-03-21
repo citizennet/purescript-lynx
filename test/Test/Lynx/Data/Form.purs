@@ -241,3 +241,6 @@ value = case _ of
   NotSet -> """
       { "type": "NotSet" }
     """
+  UserCleared -> """
+      { "type": "UserCleared" }
+    """
