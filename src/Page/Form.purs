@@ -3,9 +3,10 @@ module Lynx.Page.Form where
 import Prelude
 
 import Data.Bifoldable (bifor_)
-import Data.Either.Nested (Either1)
+import Data.Const (Const)
+import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
-import Data.Functor.Coproduct.Nested (Coproduct1)
+import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -68,9 +69,13 @@ data Query a
 
 type ParentInput = Route
 
-type ChildQuery m = Coproduct1 (Dropdown.Query Query ExprType  m)
+type ChildQuery m
+  = Dropdown.Query Query ExprType  m
+  <\/> Const Void
 
-type ChildSlot = Either1 Key
+type ChildSlot
+  = Key
+  \/ Void
 
 type Message = Void
 

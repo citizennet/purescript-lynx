@@ -15883,6 +15883,7 @@ var PS = {};
   var Control_Monad_State_Class = PS["Control.Monad.State.Class"];
   var Control_Semigroupoid = PS["Control.Semigroupoid"];
   var Data_Bifoldable = PS["Data.Bifoldable"];
+  var Data_Const = PS["Data.Const"];
   var Data_Either = PS["Data.Either"];
   var Data_Either_Nested = PS["Data.Either.Nested"];
   var Data_Eq = PS["Data.Eq"];
@@ -16001,7 +16002,7 @@ var PS = {};
       if (x instanceof Profile1) {
           return new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value);
       };
-      throw new Error("Failed pattern match at Lynx.Page.Form (line 44, column 8 - line 44, column 48): " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Page.Form (line 45, column 8 - line 45, column 48): " + [ x.constructor.name ]);
   }, function (x) {
       if (x instanceof Data_Generic_Rep.Inl) {
           return MVP.value;
@@ -16009,7 +16010,7 @@ var PS = {};
       if (x instanceof Data_Generic_Rep.Inr) {
           return Profile1.value;
       };
-      throw new Error("Failed pattern match at Lynx.Page.Form (line 44, column 8 - line 44, column 48): " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Page.Form (line 45, column 8 - line 45, column 48): " + [ x.constructor.name ]);
   });
   var routeCodec = Routing_Duplex_Generic.sum(genericRoute)(Routing_Duplex_Generic.gRouteSum(Routing_Duplex_Generic.gRouteConstructor(new Data_Symbol.IsSymbol(function () {
       return "MVP";
@@ -16029,7 +16030,7 @@ var PS = {};
                   if (v1.route instanceof Profile1) {
                       return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(new Network_RemoteData.Success(Lynx_Data_Form.testPage));
                   };
-                  throw new Error("Failed pattern match at Lynx.Page.Form (line 193, column 14 - line 195, column 42): " + [ v1.route.constructor.name ]);
+                  throw new Error("Failed pattern match at Lynx.Page.Form (line 198, column 14 - line 200, column 42): " + [ v1.route.constructor.name ]);
               })())(function (v2) {
                   return Data_Bifoldable.bifor_(Network_RemoteData.bifoldableRemoteData)(Halogen_Query_HalogenM.applicativeHalogenM)(v2)(function (e) {
                       return Control_Monad_State_Class.modify(Halogen_Query_HalogenM.monadStateHalogenM)(function (v3) {
@@ -16081,7 +16082,7 @@ var PS = {};
                           if (field.input instanceof Lynx_Data_Form.Toggle) {
                               return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
                           };
-                          throw new Error("Failed pattern match at Lynx.Page.Form (line 206, column 11 - line 212, column 34): " + [ field.input.constructor.name ]);
+                          throw new Error("Failed pattern match at Lynx.Page.Form (line 211, column 11 - line 217, column 34): " + [ field.input.constructor.name ]);
                       });
                   }))(function () {
                       return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(page);
@@ -16134,9 +16135,9 @@ var PS = {};
           if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
               return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
           };
-          throw new Error("Failed pattern match at Lynx.Page.Form (line 224, column 34 - line 227, column 42): " + [ v.value1.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Page.Form (line 229, column 34 - line 232, column 42): " + [ v.value1.constructor.name ]);
       };
-      throw new Error("Failed pattern match at Lynx.Page.Form (line 190, column 8 - line 227, column 42): " + [ v.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Page.Form (line 195, column 8 - line 232, column 42): " + [ v.constructor.name ]);
   };
   var eqRoute = new Data_Eq.Eq(function (x) {
       return function (y) {
@@ -16179,7 +16180,7 @@ var PS = {};
                   return UpdateKey.create(v.key)(Lynx_Data_Expr["Boolean"].create($97));
               })) ]);
           };
-          throw new Error("Failed pattern match at Lynx.Page.Form (line 150, column 25 - line 187, column 10): " + [ v.input.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Page.Form (line 155, column 25 - line 192, column 10): " + [ v.input.constructor.name ]);
       };
       var renderField = function (v) {
           return Ocelot_Block_FormField.field_({
@@ -16199,7 +16200,7 @@ var PS = {};
           if (v instanceof Lynx_Data_Expr.EqualMismatch) {
               return Halogen_HTML_Core.text("Expected both sides of equal to have the same type," + (" but they are different." + (" left: " + (Lynx_Data_Expr.reflectType(v.value0.left) + (" right: " + Lynx_Data_Expr.reflectType(v.value0.right))))));
           };
-          throw new Error("Failed pattern match at Lynx.Page.Form (line 118, column 21 - line 130, column 33): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Page.Form (line 123, column 21 - line 135, column 33): " + [ v.constructor.name ]);
       };
       var render = function (v) {
           return Ocelot_Block_Layout.section_((function () {
@@ -16215,7 +16216,7 @@ var PS = {};
               if (v.form instanceof Network_RemoteData.Success) {
                   return Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Ocelot_Block_Format.heading_([ Halogen_HTML_Core.text(v.form.value0.evaled.name) ]) ])(Data_Functor.map(Data_Functor.functorArray)(renderSection)(v.form.value0.evaled.contents));
               };
-              throw new Error("Failed pattern match at Lynx.Page.Form (line 103, column 7 - line 115, column 51): " + [ v.form.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Page.Form (line 108, column 7 - line 120, column 51): " + [ v.form.constructor.name ]);
           })());
       };
       var initialState = function (v) {
