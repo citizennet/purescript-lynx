@@ -2,7 +2,6 @@ module Lynx.Page.Form where
 
 import Prelude
 
-import Data.Array as Data.Array
 import Data.Bitraversable (bitraverse_)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either1)
@@ -210,12 +209,6 @@ eval = case _ of
             Dropdown dropdown ->
               for_ (toArray dropdown.options) \options -> do
                 void $ H.query' cp1 field.key (Dropdown.SetItems options unit)
-                -- Not the move
-                -- for_ (Data.Map.lookup field.key values) \val -> do
-                  -- if (not $ Data.Array.elem val options)
-                    -- then do
-                      -- void $ H.fork $ eval $ UpdateValue field.key (Invalid $ Val val) unit
-                    -- else pure unit
             Text _ -> pure unit
             Toggle _ -> pure unit
       pure page

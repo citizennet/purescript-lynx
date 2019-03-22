@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
+import Data.Array as Data.Array
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
@@ -11,11 +12,12 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
+import Data.Maybe as Data.Maybe
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, string_, toArray)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -261,7 +263,14 @@ eval get page = do
       options <- evalExpr get input.options
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
-      value <- traverse (evalExpr get) input.value
+      value' <- traverse (evalExpr get) input.value
+      let arrayOptions = Data.Maybe.fromMaybe [] (toArray options)
+          value = case value' of
+            UserInput x ->
+              if (not $ x `Data.Array.elem` arrayOptions)
+                then Invalid x
+                else UserInput x
+            otherwise -> otherwise
       pure $ validate $ Dropdown
         { default
         , options

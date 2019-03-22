@@ -51147,6 +51147,7 @@ var Data_Argonaut_Decode_Class = require("../Data.Argonaut.Decode.Class/index.js
 var Data_Argonaut_Decode_Combinators = require("../Data.Argonaut.Decode.Combinators/index.js");
 var Data_Argonaut_Encode_Class = require("../Data.Argonaut.Encode.Class/index.js");
 var Data_Argonaut_Encode_Combinators = require("../Data.Argonaut.Encode.Combinators/index.js");
+var Data_Array = require("../Data.Array/index.js");
 var Data_BigInt = require("../Data.BigInt/index.js");
 var Data_Boolean = require("../Data.Boolean/index.js");
 var Data_Either = require("../Data.Either/index.js");
@@ -51281,8 +51282,8 @@ var userInput = function (v) {
     return Data_Maybe.Nothing.value;
 };
 var singletonError = function (dictOrd) {
-    return function ($298) {
-        return Errors(Data_Set.singleton($298));
+    return function ($301) {
+        return Errors(Data_Set.singleton($301));
     };
 };
 var setValue = function (key) {
@@ -51351,12 +51352,12 @@ var setValue = function (key) {
                             })
                         };
                     };
-                    throw new Error("Failed pattern match at Lynx.Data.Form (line 370, column 26 - line 378, column 55): " + [ field.input.constructor.name ]);
+                    throw new Error("Failed pattern match at Lynx.Data.Form (line 379, column 26 - line 387, column 55): " + [ field.input.constructor.name ]);
                 };
                 if (Data_Boolean.otherwise) {
                     return field;
                 };
-                throw new Error("Failed pattern match at Lynx.Data.Form (line 368, column 3 - line 368, column 39): " + [ field.constructor.name ]);
+                throw new Error("Failed pattern match at Lynx.Data.Form (line 377, column 3 - line 377, column 39): " + [ field.constructor.name ]);
             };
             var setSection = function (section) {
                 return {
@@ -51417,9 +51418,9 @@ var isEmpty = function (v) {
         if (v.value0 instanceof Lynx_Data_Expr["String"]) {
             return false;
         };
-        throw new Error("Failed pattern match at Lynx.Data.Form (line 346, column 20 - line 354, column 21): " + [ v.value0.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Data.Form (line 355, column 20 - line 363, column 21): " + [ v.value0.constructor.name ]);
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 344, column 1 - line 344, column 37): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 353, column 1 - line 353, column 37): " + [ v.constructor.name ]);
 };
 var getValue = function (x) {
     return Control_Alt.alt(Data_Maybe.altMaybe)(userInput(x.value))(x["default"]);
@@ -51439,7 +51440,7 @@ var keys = function (page) {
             if (field.input instanceof Toggle) {
                 return getValue(field.input.value0);
             };
-            throw new Error("Failed pattern match at Lynx.Data.Form (line 332, column 13 - line 336, column 39): " + [ field.input.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Data.Form (line 341, column 13 - line 345, column 39): " + [ field.input.constructor.name ]);
         })();
         if (value instanceof Data_Maybe.Just) {
             var v = Lynx_Data_Expr.evalExpr(Data_Function["const"](Data_Maybe.Nothing.value))(value.value0);
@@ -51449,12 +51450,12 @@ var keys = function (page) {
             if (v instanceof Data_Either.Right) {
                 return Data_Map_Internal.singleton(field.key)(v.value0);
             };
-            throw new Error("Failed pattern match at Lynx.Data.Form (line 327, column 18 - line 329, column 48): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Data.Form (line 336, column 18 - line 338, column 48): " + [ v.constructor.name ]);
         };
         if (value instanceof Data_Maybe.Nothing) {
             return Data_Monoid.mempty(Data_Map_Internal.monoidMap(Data_Ord.ordString));
         };
-        throw new Error("Failed pattern match at Lynx.Data.Form (line 326, column 21 - line 330, column 22): " + [ value.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Data.Form (line 335, column 21 - line 339, column 22): " + [ value.constructor.name ]);
     };
     var keysSection = function (section) {
         return Data_Foldable.foldMap(Data_Foldable.foldableArray)(Data_Map_Internal.monoidMap(Data_Ord.ordString))(keysField)(section.contents);
@@ -51471,7 +51472,7 @@ var genericValidationError = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof MaxLength) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0));
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 204, column 8 - line 204, column 68): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 206, column 8 - line 206, column 68): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return Required.value;
@@ -51482,7 +51483,7 @@ var genericValidationError = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inr) {
         return new MaxLength(x.value0.value0);
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 204, column 8 - line 204, column 68): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 206, column 8 - line 206, column 68): " + [ x.constructor.name ]);
 });
 var showValidationError = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericValidationError)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
     return "Required";
@@ -51504,7 +51505,7 @@ var genericInputSource = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof NotSet) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value)));
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 115, column 8 - line 115, column 64): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 117, column 8 - line 117, column 64): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new UserInput(x.value0);
@@ -51518,7 +51519,7 @@ var genericInputSource = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return NotSet.value;
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 115, column 8 - line 115, column 64): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 117, column 8 - line 117, column 64): " + [ x.constructor.name ]);
 });
 var showInputSource = function (dictShow) {
     return new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInputSource)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(dictShow))(new Data_Symbol.IsSymbol(function () {
@@ -51544,7 +51545,7 @@ var genericInput = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Toggle) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 82, column 8 - line 82, column 52): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 84, column 8 - line 84, column 52): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new Currency(x.value0);
@@ -51558,7 +51559,7 @@ var genericInput = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new Toggle(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 82, column 8 - line 82, column 52): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 84, column 8 - line 84, column 52): " + [ x.constructor.name ]);
 });
 var genericErrors = new Data_Generic_Rep.Generic(function (x) {
     return x;
@@ -51635,7 +51636,7 @@ var functorInputSource = new Data_Functor.Functor(function (f) {
         if (m instanceof NotSet) {
             return NotSet.value;
         };
-        throw new Error("Failed pattern match at Lynx.Data.Form (line 113, column 8 - line 113, column 58): " + [ m.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Data.Form (line 115, column 8 - line 115, column 58): " + [ m.constructor.name ]);
     };
 });
 var foldableInputSource = new Data_Foldable.Foldable(function (dictMonoid) {
@@ -51653,7 +51654,7 @@ var foldableInputSource = new Data_Foldable.Foldable(function (dictMonoid) {
             if (v instanceof NotSet) {
                 return Data_Monoid.mempty(dictMonoid);
             };
-            throw new Error("Failed pattern match at Lynx.Data.Form (line 118, column 15 - line 122, column 21): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Data.Form (line 120, column 15 - line 124, column 21): " + [ v.constructor.name ]);
         };
     };
 }, function (f) {
@@ -51682,7 +51683,7 @@ var traversableInputSource = new Data_Traversable.Traversable(function () {
             if (v instanceof NotSet) {
                 return Control_Applicative.pure(dictApplicative)(NotSet.value);
             };
-            throw new Error("Failed pattern match at Lynx.Data.Form (line 128, column 16 - line 132, column 26): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Data.Form (line 130, column 16 - line 134, column 26): " + [ v.constructor.name ]);
         };
     };
 });
@@ -51730,7 +51731,7 @@ var ordValidationError = new Data_Ord.Ord(function () {
         if (x instanceof MaxLength && y instanceof MaxLength) {
             return Data_Ord.compare(Data_Ord.ordInt)(x.value0)(y.value0);
         };
-        throw new Error("Failed pattern match at Lynx.Data.Form (line 202, column 8 - line 202, column 58): " + [ x.constructor.name, y.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Data.Form (line 204, column 8 - line 204, column 58): " + [ x.constructor.name, y.constructor.name ]);
     };
 });
 var firstName = {
@@ -51860,7 +51861,7 @@ var encodeValidationError = new Data_Argonaut_Encode_Class.EncodeJson(function (
     if (v instanceof MaxLength) {
         return Data_Argonaut_Encode_Combinators.extend(Data_Argonaut_Encode_Class.encodeJsonJson)(Data_Argonaut_Encode_Combinators.assoc(Data_Argonaut_Encode_Class.encodeJsonJString)("type")("MaxLength"))(Data_Argonaut_Encode_Combinators.extend(Data_Argonaut_Encode_Class.encodeJsonJson)(Data_Argonaut_Encode_Combinators.assoc(Data_Argonaut_Encode_Class.encodeJsonInt)("param")(v.value0))(Data_Argonaut_Core.jsonEmptyObject));
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 210, column 16 - line 213, column 76): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 212, column 16 - line 215, column 76): " + [ v.constructor.name ]);
 });
 var encodeInputSource = function (dictEncodeJson) {
     return new Data_Argonaut_Encode_Class.EncodeJson(function (v) {
@@ -51876,7 +51877,7 @@ var encodeInputSource = function (dictEncodeJson) {
         if (v instanceof NotSet) {
             return Data_Argonaut_Encode_Combinators.extend(Data_Argonaut_Encode_Class.encodeJsonJson)(Data_Argonaut_Encode_Combinators.assoc(Data_Argonaut_Encode_Class.encodeJsonJString)("type")("NotSet"))(Data_Argonaut_Core.jsonEmptyObject);
         };
-        throw new Error("Failed pattern match at Lynx.Data.Form (line 138, column 16 - line 142, column 52): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Data.Form (line 140, column 16 - line 144, column 52): " + [ v.constructor.name ]);
     });
 };
 var encodeErrors = function (dictEncodeJson) {
@@ -51941,7 +51942,7 @@ var encodeInput = new Data_Argonaut_Encode_Class.EncodeJson(function (v) {
             return "default";
         }))())())(v.value0));
     };
-    throw new Error("Failed pattern match at Lynx.Data.Form (line 86, column 16 - line 90, column 51): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at Lynx.Data.Form (line 88, column 16 - line 92, column 51): " + [ v.constructor.name ]);
 });
 var displayError = function (x) {
     return Data_Eq.notEq(eqInputSource(Lynx_Data_Expr.eqExprType))(x.value)(NotSet.value);
@@ -52001,7 +52002,7 @@ var $$eval = function (get) {
             if (v instanceof Toggle) {
                 return new Toggle(v.value0);
             };
-            throw new Error("Failed pattern match at Lynx.Data.Form (line 295, column 14 - line 308, column 33): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Data.Form (line 304, column 14 - line 317, column 33): " + [ v.constructor.name ]);
         };
         var evalInput = function (v) {
             if (v instanceof Currency) {
@@ -52027,12 +52028,23 @@ var $$eval = function (get) {
                         return Control_Bind.bind(Data_Either.bindEither)(Lynx_Data_Expr.evalExpr(get)(v.value0.placeholder))(function (v3) {
                             return Control_Bind.bind(Data_Either.bindEither)(Lynx_Data_Expr.evalExpr(get)(v.value0.required))(function (v4) {
                                 return Control_Bind.bind(Data_Either.bindEither)(Data_Traversable.traverse(traversableInputSource)(Data_Either.applicativeEither)(Lynx_Data_Expr.evalExpr(get))(v.value0.value))(function (v5) {
+                                    var arrayOptions = Data_Maybe.fromMaybe([  ])(Lynx_Data_Expr.toArray(v2));
+                                    var value = (function () {
+                                        if (v5 instanceof UserInput) {
+                                            var $276 = !Data_Foldable.elem(Data_Foldable.foldableArray)(Lynx_Data_Expr.eqExprType)(v5.value0)(arrayOptions);
+                                            if ($276) {
+                                                return new Invalid(v5.value0);
+                                            };
+                                            return new UserInput(v5.value0);
+                                        };
+                                        return v5;
+                                    })();
                                     return Control_Applicative.pure(Data_Either.applicativeEither)(validate(new Dropdown({
                                         "default": v1,
                                         options: v2,
                                         placeholder: v3,
                                         required: v4,
-                                        value: v5,
+                                        value: value,
                                         errors: Data_Monoid.mempty(monoidErrors(ordValidationError))
                                     })));
                                 });
@@ -52075,7 +52087,7 @@ var $$eval = function (get) {
                     });
                 });
             };
-            throw new Error("Failed pattern match at Lynx.Data.Form (line 246, column 15 - line 292, column 66): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Data.Form (line 248, column 15 - line 301, column 66): " + [ v.constructor.name ]);
         };
         var evalField = function (field) {
             return Control_Bind.bind(Data_Either.bindEither)(Lynx_Data_Expr.evalExpr(get)(field.description))(function (v) {
@@ -52117,13 +52129,13 @@ var decodeValidationError = new Data_Argonaut_Decode_Class.DecodeJson(function (
                 return Control_Applicative.pure(Data_Either.applicativeEither)(Required.value);
             };
             if (v1 === "MinLength") {
-                return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(Data_Argonaut_Decode_Class.decodeJsonInt)(v)("param"))(function ($299) {
-                    return Control_Applicative.pure(Data_Either.applicativeEither)(MinLength.create($299));
+                return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(Data_Argonaut_Decode_Class.decodeJsonInt)(v)("param"))(function ($302) {
+                    return Control_Applicative.pure(Data_Either.applicativeEither)(MinLength.create($302));
                 });
             };
             if (v1 === "MaxLength") {
-                return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(Data_Argonaut_Decode_Class.decodeJsonInt)(v)("param"))(function ($300) {
-                    return Control_Applicative.pure(Data_Either.applicativeEither)(MaxLength.create($300));
+                return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(Data_Argonaut_Decode_Class.decodeJsonInt)(v)("param"))(function ($303) {
+                    return Control_Applicative.pure(Data_Either.applicativeEither)(MaxLength.create($303));
                 });
             };
             return Data_Either.Left.create(v1 + " is not a supported ValidationError");
@@ -52135,13 +52147,13 @@ var decodeInputSource = function (dictDecodeJson) {
         return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeForeignObject(Data_Argonaut_Decode_Class.decodeJsonJson))(json))(function (v) {
             return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(Data_Argonaut_Decode_Class.decodeJsonString)(v)("type"))(function (v1) {
                 if (v1 === "UserInput") {
-                    return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(dictDecodeJson)(v)("value"))(function ($301) {
-                        return Control_Applicative.pure(Data_Either.applicativeEither)(UserInput.create($301));
+                    return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(dictDecodeJson)(v)("value"))(function ($304) {
+                        return Control_Applicative.pure(Data_Either.applicativeEither)(UserInput.create($304));
                     });
                 };
                 if (v1 === "Invalid") {
-                    return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(dictDecodeJson)(v)("value"))(function ($302) {
-                        return Control_Applicative.pure(Data_Either.applicativeEither)(Invalid.create($302));
+                    return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(dictDecodeJson)(v)("value"))(function ($305) {
+                        return Control_Applicative.pure(Data_Either.applicativeEither)(Invalid.create($305));
                     });
                 };
                 if (v1 === "UserCleared") {
@@ -52157,8 +52169,8 @@ var decodeInputSource = function (dictDecodeJson) {
 };
 var decodeErrors = function (dictDecodeJson) {
     return function (dictOrd) {
-        return new Data_Argonaut_Decode_Class.DecodeJson(function ($303) {
-            return Data_Functor.map(Data_Either.functorEither)(Errors)(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeSet(dictOrd)(dictDecodeJson))($303));
+        return new Data_Argonaut_Decode_Class.DecodeJson(function ($306) {
+            return Data_Functor.map(Data_Either.functorEither)(Errors)(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeSet(dictOrd)(dictDecodeJson))($306));
         });
     };
 };
@@ -52166,8 +52178,8 @@ var decodeInput = new Data_Argonaut_Decode_Class.DecodeJson(function (json) {
     return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeForeignObject(Data_Argonaut_Decode_Class.decodeJsonJson))(json))(function (v) {
         return Control_Bind.bind(Data_Either.bindEither)(Data_Argonaut_Decode_Combinators.getField(Data_Argonaut_Decode_Class.decodeJsonString)(v)("type"))(function (v1) {
             if (v1 === "Currency") {
-                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($304) {
-                    return Control_Applicative.pure(Data_Either.applicativeEither)(Currency.create($304));
+                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($307) {
+                    return Control_Applicative.pure(Data_Either.applicativeEither)(Currency.create($307));
                 })(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeRecord(Data_Argonaut_Decode_Class.gDecodeJsonCons(Data_Argonaut_Decode_Class.decodeJsonMaybe(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeErrors(decodeValidationError)(ordValidationError))(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeInputSource(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonNil)(new Data_Symbol.IsSymbol(function () {
                     return "value";
                 }))()())(new Data_Symbol.IsSymbol(function () {
@@ -52181,8 +52193,8 @@ var decodeInput = new Data_Argonaut_Decode_Class.DecodeJson(function (json) {
                 }))()())()))(json);
             };
             if (v1 === "Dropdown") {
-                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($305) {
-                    return Control_Applicative.pure(Data_Either.applicativeEither)(Dropdown.create($305));
+                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($308) {
+                    return Control_Applicative.pure(Data_Either.applicativeEither)(Dropdown.create($308));
                 })(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeRecord(Data_Argonaut_Decode_Class.gDecodeJsonCons(Data_Argonaut_Decode_Class.decodeJsonMaybe(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeErrors(decodeValidationError)(ordValidationError))(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeInputSource(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonNil)(new Data_Symbol.IsSymbol(function () {
                     return "value";
                 }))()())(new Data_Symbol.IsSymbol(function () {
@@ -52198,8 +52210,8 @@ var decodeInput = new Data_Argonaut_Decode_Class.DecodeJson(function (json) {
                 }))()())()))(json);
             };
             if (v1 === "Text") {
-                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($306) {
-                    return Control_Applicative.pure(Data_Either.applicativeEither)(Text.create($306));
+                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($309) {
+                    return Control_Applicative.pure(Data_Either.applicativeEither)(Text.create($309));
                 })(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeRecord(Data_Argonaut_Decode_Class.gDecodeJsonCons(Data_Argonaut_Decode_Class.decodeJsonMaybe(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeErrors(decodeValidationError)(ordValidationError))(Data_Argonaut_Decode_Class.gDecodeJsonCons(Data_Argonaut_Decode_Class.decodeJsonMaybe(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonCons(Data_Argonaut_Decode_Class.decodeJsonMaybe(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(Lynx_Data_Expr.decodeJsonExpr)(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeInputSource(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonNil)(new Data_Symbol.IsSymbol(function () {
                     return "value";
                 }))()())(new Data_Symbol.IsSymbol(function () {
@@ -52217,8 +52229,8 @@ var decodeInput = new Data_Argonaut_Decode_Class.DecodeJson(function (json) {
                 }))()())()))(json);
             };
             if (v1 === "Toggle") {
-                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($307) {
-                    return Control_Applicative.pure(Data_Either.applicativeEither)(Toggle.create($307));
+                return Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(function ($310) {
+                    return Control_Applicative.pure(Data_Either.applicativeEither)(Toggle.create($310));
                 })(Data_Argonaut_Decode_Class.decodeJson(Data_Argonaut_Decode_Class.decodeRecord(Data_Argonaut_Decode_Class.gDecodeJsonCons(Data_Argonaut_Decode_Class.decodeJsonMaybe(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeErrors(decodeValidationError)(ordValidationError))(Data_Argonaut_Decode_Class.gDecodeJsonCons(decodeInputSource(Lynx_Data_Expr.decodeJsonExpr))(Data_Argonaut_Decode_Class.gDecodeJsonNil)(new Data_Symbol.IsSymbol(function () {
                     return "value";
                 }))()())(new Data_Symbol.IsSymbol(function () {
@@ -52367,14 +52379,13 @@ module.exports = {
     arbitraryValidationError: arbitraryValidationError
 };
 
-},{"../Control.Alt/index.js":4,"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Semigroupoid/index.js":61,"../Data.Argonaut.Core/index.js":78,"../Data.Argonaut.Decode.Class/index.js":79,"../Data.Argonaut.Decode.Combinators/index.js":80,"../Data.Argonaut.Encode.Class/index.js":82,"../Data.Argonaut.Encode.Combinators/index.js":83,"../Data.Argonaut/index.js":90,"../Data.BigInt/index.js":108,"../Data.Boolean/index.js":110,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor/index.js":153,"../Data.Generic.Rep.Show/index.js":159,"../Data.Generic.Rep/index.js":160,"../Data.HeytingAlgebra/index.js":162,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Newtype/index.js":220,"../Data.Ord/index.js":229,"../Data.Ordering/index.js":230,"../Data.Semigroup/index.js":248,"../Data.Semiring/index.js":251,"../Data.Set/index.js":252,"../Data.Show/index.js":254,"../Data.Symbol/index.js":274,"../Data.Traversable/index.js":281,"../Data.Unfoldable/index.js":285,"../Lynx.Data.Expr/index.js":356,"../Ocelot.Data.Currency/index.js":379,"../Prelude/index.js":385,"../Test.QuickCheck.Arbitrary/index.js":407,"../Test.QuickCheck.Gen/index.js":409,"../Test.QuickCheck/index.js":410,"../Type.Row/index.js":423}],358:[function(require,module,exports){
+},{"../Control.Alt/index.js":4,"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Semigroupoid/index.js":61,"../Data.Argonaut.Core/index.js":78,"../Data.Argonaut.Decode.Class/index.js":79,"../Data.Argonaut.Decode.Combinators/index.js":80,"../Data.Argonaut.Encode.Class/index.js":82,"../Data.Argonaut.Encode.Combinators/index.js":83,"../Data.Argonaut/index.js":90,"../Data.Array/index.js":99,"../Data.BigInt/index.js":108,"../Data.Boolean/index.js":110,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor/index.js":153,"../Data.Generic.Rep.Show/index.js":159,"../Data.Generic.Rep/index.js":160,"../Data.HeytingAlgebra/index.js":162,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Newtype/index.js":220,"../Data.Ord/index.js":229,"../Data.Ordering/index.js":230,"../Data.Semigroup/index.js":248,"../Data.Semiring/index.js":251,"../Data.Set/index.js":252,"../Data.Show/index.js":254,"../Data.Symbol/index.js":274,"../Data.Traversable/index.js":281,"../Data.Unfoldable/index.js":285,"../Lynx.Data.Expr/index.js":356,"../Ocelot.Data.Currency/index.js":379,"../Prelude/index.js":385,"../Test.QuickCheck.Arbitrary/index.js":407,"../Test.QuickCheck.Gen/index.js":409,"../Test.QuickCheck/index.js":410,"../Type.Row/index.js":423}],358:[function(require,module,exports){
 // Generated by purs version 0.12.3
 "use strict";
 var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
 var Control_Monad_State_Class = require("../Control.Monad.State.Class/index.js");
 var Control_Semigroupoid = require("../Control.Semigroupoid/index.js");
-var Data_Array = require("../Data.Array/index.js");
 var Data_Bifoldable = require("../Data.Bifoldable/index.js");
 var Data_Bitraversable = require("../Data.Bitraversable/index.js");
 var Data_Either = require("../Data.Either/index.js");
@@ -52511,7 +52522,7 @@ var $$eval = function (dictMonadAff) {
                             if (field.input instanceof Lynx_Data_Form.Toggle) {
                                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
                             };
-                            throw new Error("Failed pattern match at Lynx.Page.Form (line 208, column 11 - line 220, column 34): " + [ field.input.constructor.name ]);
+                            throw new Error("Failed pattern match at Lynx.Page.Form (line 207, column 11 - line 213, column 34): " + [ field.input.constructor.name ]);
                         });
                     }))(function () {
                         return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(page);
@@ -52554,9 +52565,9 @@ var $$eval = function (dictMonadAff) {
             if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 234, column 34 - line 237, column 42): " + [ v.value1.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 227, column 34 - line 230, column 42): " + [ v.value1.constructor.name ]);
         };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 195, column 8 - line 237, column 42): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 194, column 8 - line 230, column 42): " + [ v.constructor.name ]);
     };
 };
 var component = function (dictMonadAff) {
@@ -52571,7 +52582,7 @@ var component = function (dictMonadAff) {
             if (v instanceof Lynx_Data_Form.MaxLength) {
                 return "Cannot contain more than " + (Data_Show.show(Data_Show.showInt)(v.value0) + " characters");
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 185, column 29 - line 190, column 1): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 184, column 29 - line 189, column 1): " + [ v.constructor.name ]);
         };
         var renderValidation$prime = function ($79) {
             return (function (v) {
@@ -52599,7 +52610,7 @@ var component = function (dictMonadAff) {
             if (v instanceof Lynx_Data_Form.Toggle) {
                 return renderValidation$prime(v.value0.errors);
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 174, column 22 - line 178, column 53): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 173, column 22 - line 177, column 53): " + [ v.constructor.name ]);
         };
     })();
     var renderInput = function (v) {
@@ -52637,7 +52648,7 @@ var component = function (dictMonadAff) {
                 return UpdateValue.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.Val.create(Lynx_Data_Expr["Boolean"].create($86))));
             })) ]);
         };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 133, column 25 - line 169, column 10): " + [ v.input.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 132, column 25 - line 168, column 10): " + [ v.input.constructor.name ]);
     };
     var renderField = function (v) {
         return Ocelot_Block_FormField.field_({
@@ -52657,7 +52668,7 @@ var component = function (dictMonadAff) {
         if (v instanceof Lynx_Data_Expr.EqualMismatch) {
             return Halogen_HTML_Core.text("Expected both sides of equal to have the same type," + (" but they are different." + (" left: " + (Lynx_Data_Expr.reflectType(v.value0.left) + (" right: " + Lynx_Data_Expr.reflectType(v.value0.right))))));
         };
-        throw new Error("Failed pattern match at Lynx.Page.Form (line 101, column 21 - line 113, column 33): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Lynx.Page.Form (line 100, column 21 - line 112, column 33): " + [ v.constructor.name ]);
     };
     var render = function (v) {
         return Halogen_HTML_Elements.div_([ Ocelot_Block_Layout.section_((function () {
@@ -52673,7 +52684,7 @@ var component = function (dictMonadAff) {
             if (v.form instanceof Network_RemoteData.Success) {
                 return Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Ocelot_Block_Format.heading_([ Halogen_HTML_Core.text(v.form.value0.evaled.name) ]) ])(Data_Functor.map(Data_Functor.functorArray)(renderSection)(v.form.value0.evaled.contents));
             };
-            throw new Error("Failed pattern match at Lynx.Page.Form (line 84, column 9 - line 96, column 53): " + [ v.form.constructor.name ]);
+            throw new Error("Failed pattern match at Lynx.Page.Form (line 83, column 9 - line 95, column 53): " + [ v.form.constructor.name ]);
         })()), Halogen_HTML_Elements.pre_([ Halogen_HTML_Core.text(Data_Show.show(Data_Map_Internal.showMap(Data_Show.showString)(Lynx_Data_Expr.showExprType))(v.values)) ]) ]);
     };
     var initialState = {
@@ -52698,7 +52709,7 @@ module.exports = {
     "eval": $$eval
 };
 
-},{"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Monad.State.Class/index.js":48,"../Control.Semigroupoid/index.js":61,"../Data.Array/index.js":99,"../Data.Bifoldable/index.js":100,"../Data.Bitraversable/index.js":109,"../Data.Either.Nested/index.js":130,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor.Coproduct.Nested/index.js":149,"../Data.Functor/index.js":153,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Ord/index.js":229,"../Data.Semigroup/index.js":248,"../Data.Show/index.js":254,"../Data.Traversable/index.js":281,"../Data.Unit/index.js":289,"../Effect.Aff.Class/index.js":295,"../Halogen.Component.ChildPath/index.js":330,"../Halogen.Component/index.js":331,"../Halogen.HTML.Core/index.js":334,"../Halogen.HTML.Elements/index.js":335,"../Halogen.HTML.Events/index.js":336,"../Halogen.HTML.Properties/index.js":338,"../Halogen.HTML/index.js":339,"../Halogen.Query.HalogenM/index.js":342,"../Halogen.Query/index.js":344,"../Halogen/index.js":353,"../Lynx.Data.Expr/index.js":356,"../Lynx.Data.Form/index.js":357,"../Network.RemoteData/index.js":365,"../Ocelot.Block.Button/index.js":367,"../Ocelot.Block.Card/index.js":368,"../Ocelot.Block.FormField/index.js":369,"../Ocelot.Block.Format/index.js":370,"../Ocelot.Block.Input/index.js":372,"../Ocelot.Block.Layout/index.js":374,"../Ocelot.Block.Toggle/index.js":376,"../Ocelot.Component.Dropdown.Render/index.js":377,"../Ocelot.Component.Dropdown/index.js":378,"../Ocelot.Data.Currency/index.js":379,"../Ocelot.HTML.Properties/index.js":380,"../Prelude/index.js":385}],359:[function(require,module,exports){
+},{"../Control.Applicative/index.js":7,"../Control.Bind/index.js":13,"../Control.Monad.State.Class/index.js":48,"../Control.Semigroupoid/index.js":61,"../Data.Bifoldable/index.js":100,"../Data.Bitraversable/index.js":109,"../Data.Either.Nested/index.js":130,"../Data.Either/index.js":131,"../Data.Eq/index.js":135,"../Data.Foldable/index.js":141,"../Data.Function/index.js":145,"../Data.Functor.Coproduct.Nested/index.js":149,"../Data.Functor/index.js":153,"../Data.Map.Internal/index.js":206,"../Data.Map/index.js":207,"../Data.Maybe/index.js":210,"../Data.Monoid/index.js":218,"../Data.Ord/index.js":229,"../Data.Semigroup/index.js":248,"../Data.Show/index.js":254,"../Data.Traversable/index.js":281,"../Data.Unit/index.js":289,"../Effect.Aff.Class/index.js":295,"../Halogen.Component.ChildPath/index.js":330,"../Halogen.Component/index.js":331,"../Halogen.HTML.Core/index.js":334,"../Halogen.HTML.Elements/index.js":335,"../Halogen.HTML.Events/index.js":336,"../Halogen.HTML.Properties/index.js":338,"../Halogen.HTML/index.js":339,"../Halogen.Query.HalogenM/index.js":342,"../Halogen.Query/index.js":344,"../Halogen/index.js":353,"../Lynx.Data.Expr/index.js":356,"../Lynx.Data.Form/index.js":357,"../Network.RemoteData/index.js":365,"../Ocelot.Block.Button/index.js":367,"../Ocelot.Block.Card/index.js":368,"../Ocelot.Block.FormField/index.js":369,"../Ocelot.Block.Format/index.js":370,"../Ocelot.Block.Input/index.js":372,"../Ocelot.Block.Layout/index.js":374,"../Ocelot.Block.Toggle/index.js":376,"../Ocelot.Component.Dropdown.Render/index.js":377,"../Ocelot.Component.Dropdown/index.js":378,"../Ocelot.Data.Currency/index.js":379,"../Ocelot.HTML.Properties/index.js":380,"../Prelude/index.js":385}],359:[function(require,module,exports){
 // Generated by purs version 0.12.3
 "use strict";
 var Control_Applicative = require("../Control.Applicative/index.js");
