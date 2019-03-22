@@ -249,7 +249,7 @@ eval = case _ of
   UpdateValue key val a -> do
     { values, form } <- H.get
     case form of
-      Success { expr } -> do
+      Success { expr } ->
         eval $ EvalForm (Lynx.Data.Form.setValue key val expr) a
       _ -> pure a
 
