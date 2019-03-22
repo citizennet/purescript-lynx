@@ -59,12 +59,17 @@
 
 BOWER_COMPONENTS := bower_components/.stamp
 BUILD := .build
+DEPS := 'bower_components/purescript-*/src/**/*.purs'
 NODE_MODULES := node_modules/.stamp
 OUTPUT := output
 PSA_ARGS := --censor-lib --stash=$(BUILD)/.psa_stash --strict
 SRC := src
 SRCS := $(shell find $(SRC) -name '*.purs' -type f)
 TESTS := $(shell find test -name '*.purs' -type f)
+
+# Allow RTS args to be passed in to override the default behavior.
+# We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
+RTS_ARGS ?=
 
 .DEFAULT_GOAL := dist/main.js
 
@@ -75,8 +80,26 @@ $(BOWER_COMPONENTS): bower.json $(NODE_MODULES)
 $(BUILD):
 	mkdir -p $@
 
-$(BUILD)/test.out: $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
-	npx pulp test | tee $@.tmp # Store output in a temp file in case of a failure.
+$(BUILD)/main.js: $(OUTPUT)/Main/index.js | $(BUILD)
+	npx purs bundle \
+	  $(RTS_ARGS) \
+	  '$(OUTPUT)/*/index.js' \
+	  '$(OUTPUT)/*/foreign.js' \
+	  --main Main \
+	  --module Main \
+	  --output $@
+
+$(BUILD)/test.js: $(OUTPUT)/Test.Main/index.js | $(BUILD)
+	npx purs bundle \
+	  $(RTS_ARGS) \
+	  '$(OUTPUT)/*/index.js' \
+	  '$(OUTPUT)/*/foreign.js' \
+	  --main Test.Main \
+	  --module Test.Main \
+	  --output $@
+
+$(BUILD)/test.out: $(BUILD)/test.js | $(BUILD)
+	node $< | tee $@.tmp # Store output in a temp file in case of a failure.
 	mv $@.tmp $@ # Move the output where it belongs.
 
 $(NODE_MODULES): package.json
@@ -84,7 +107,10 @@ $(NODE_MODULES): package.json
 	touch $@
 
 $(OUTPUT)/Main/index.js: $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
-	npx pulp build -- $(PSA_ARGS)
+	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(SRCS)
+
+$(OUTPUT)/Test.Main/index.js: $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(SRCS) $(TESTS)
 
 .PHONY: clean
 clean:
@@ -95,8 +121,8 @@ clean:
 	  dist/main.js \
 	  node_modules
 
-dist/main.js: $(OUTPUT)/Main/index.js
-	npx pulp browserify --to $@
+dist/main.js: $(BUILD)/main.js
+	npx browserify $< --outfile $@
 
 test: dist/main.js $(BUILD)/test.out
 

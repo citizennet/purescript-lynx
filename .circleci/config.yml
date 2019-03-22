@@ -15,27 +15,44 @@ jobs:
           keys:
             - v0.1-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
             - v0.1-npm-cache-{{ .Branch }}
-            - v0.1-npm-cache
+            - v0.1-npm-cache-master-{{ checksum "package.json" }}
+            - v0.1-npm-cache-master
 
       - restore_cache:
           keys:
-            - v0.1-purs-cache-{{ .Branch }}-{{ checksum "bower.json" }}
-            - v0.1-purs-cache-{{ .Branch }}
-            - v0.1-purs-cache
+            - v0.1-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+            - v0.1-bower-cache-{{ .Branch }}
+            - v0.1-bower-cache-master-{{ checksum "bower.json" }}
+            - v0.1-bower-cache-master
+
+      - restore_cache:
+          keys:
+            - v0.1-output-cache-{{ .Branch }}-{{ checksum "dist/main.js" }}
+            - v0.1-output-cache-{{ .Branch }}
+            - v0.1-output-cache-master-{{ checksum "dist/main.js" }}
+            - v0.1-output-cache-master
 
       - run:
           name: Verify the project builds and tests run successfully
           command: make test
+          environment:
+            # The machines might have more cores than `purs` can actually use.
+            # Set the number of threads to two (the cores we have available).
+            RTS_ARGS: +RTS -N2 -RTS
 
       - save_cache:
-          key: v0.1-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
+          key: v0.3-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
           paths:
             - ~/lynx/node_modules
 
       - save_cache:
-          key: v0.1-purs-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+          key: v0.1-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
           paths:
             - ~/lynx/bower_components
+
+      - save_cache:
+          key: v0.1-output-cache-{{ .Branch }}-{{ checksum "dist/main.js" }}
+          paths:
             - ~/lynx/output
 
 workflows:
