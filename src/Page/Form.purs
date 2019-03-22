@@ -223,21 +223,21 @@ eval = case _ of
     page' <- case route of
       MVP -> pure (Success mvpPage)
       Profile1 -> pure (Success testPage)
-    void $ bifor_ page'
+    bifor_ page'
       do \e -> H.modify _ { form = Failure e }
       do \f -> eval (EvalForm f a)
 
   EvalForm expr a -> a <$ do
     let values = Lynx.Data.Form.keys expr
-    let evaled' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+        evaled' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
     evaled <- for evaled' \page -> do
       for_ page.contents \section -> do
         for_ section.contents \field -> do
           case field.input of
             Currency _ -> pure unit
             Dropdown dropdown ->
-              for_ (toArray dropdown.options) \options -> do
-                void $ H.query' cp1 field.key (Dropdown.SetItems options unit)
+              for_ (toArray dropdown.options) \options ->
+                H.query' cp1 field.key (Dropdown.SetItems options unit)
             Text _ -> pure unit
             Toggle _ -> pure unit
       pure page

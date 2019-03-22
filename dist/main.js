@@ -17258,7 +17258,7 @@ var PS = {};
                       };
                       throw new Error("Failed pattern match at Lynx.Page.Form (line 223, column 14 - line 225, column 42): " + [ v1.route.constructor.name ]);
                   })())(function (v2) {
-                      return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Data_Bifoldable.bifor_(Network_RemoteData.bifoldableRemoteData)(Halogen_Query_HalogenM.applicativeHalogenM)(v2)(function (e) {
+                      return Data_Bifoldable.bifor_(Network_RemoteData.bifoldableRemoteData)(Halogen_Query_HalogenM.applicativeHalogenM)(v2)(function (e) {
                           return Control_Monad_State_Class.modify(Halogen_Query_HalogenM.monadStateHalogenM)(function (v3) {
                               var $35 = {};
                               for (var $36 in v3) {
@@ -17271,7 +17271,7 @@ var PS = {};
                           });
                       })(function (f) {
                           return $$eval(dictMonadAff)(new EvalForm(f, v.value0));
-                      }));
+                      });
                   });
               }));
           };
@@ -17289,7 +17289,7 @@ var PS = {};
                               };
                               if (field.input instanceof Lynx_Data_Form.Dropdown) {
                                   return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Lynx_Data_Expr.toArray(field.input.value0.options))(function (options) {
-                                      return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))(Halogen_Component_ChildPath.cp1)(field.key)(new Ocelot_Component_Dropdown.SetItems(options, Data_Unit.unit)));
+                                      return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))(Halogen_Component_ChildPath.cp1)(field.key)(new Ocelot_Component_Dropdown.SetItems(options, Data_Unit.unit));
                                   });
                               };
                               if (field.input instanceof Lynx_Data_Form.Text) {
