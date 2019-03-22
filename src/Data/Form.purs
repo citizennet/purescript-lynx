@@ -13,11 +13,11 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
+import Data.Newtype (wrap)
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
-import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, string_, toArray)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, print, string_, toArray)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -198,6 +198,7 @@ data ValidationError
   = Required
   | MinLength Int
   | MaxLength Int
+  | InvalidOption String
 
 derive instance eqValidationError :: Eq ValidationError
 
@@ -213,6 +214,7 @@ instance encodeValidationError :: EncodeJson ValidationError where
     Required -> "type" := "Required" ~> jsonEmptyObject
     MinLength x -> "type" := "MinLength" ~> "param" := x ~> jsonEmptyObject
     MaxLength x -> "type" := "MaxLength" ~> "param" := x ~> jsonEmptyObject
+    InvalidOption x -> "type" := "InvalidOption" ~> "param" := x ~> jsonEmptyObject
 
 instance decodeValidationError :: DecodeJson ValidationError where
   decodeJson json = do
@@ -221,6 +223,7 @@ instance decodeValidationError :: DecodeJson ValidationError where
       "Required" -> pure Required
       "MinLength" -> x' .: "param" >>= (pure <<< MinLength)
       "MaxLength" -> x' .: "param" >>= (pure <<< MaxLength)
+      "InvalidOption" -> x' .: "param" >>= (pure <<< InvalidOption)
       x -> Left $ x <> " is not a supported ValidationError"
 
 instance arbitraryValidationError :: Arbitrary ValidationError where
@@ -304,15 +307,18 @@ eval get page = do
   validate = case _ of
     Currency input ->
       if displayError input
-        then Currency $ input { errors = input.errors <> validateRequired input }
+        then Currency $
+          input { errors = input.errors <> validateRequired input }
         else Currency input
     Dropdown input ->
       if displayError input
-        then Dropdown $ input { errors = input.errors <> validateRequired input }
+        then Dropdown $
+          input { errors = input.errors <> validateInvalid input <> validateRequired input }
         else Dropdown input
     Text input ->
       if displayError input
-        then Text $ input { errors = input.errors <> validateRequired input }
+        then Text $
+          input { errors = input.errors <> validateRequired input }
         else Text input
     Toggle input -> Toggle input
 
@@ -320,10 +326,19 @@ eval get page = do
     :: ∀ r
      . Record (SharedRows ExprType + ( required :: ExprType | r ))
     -> Errors ValidationError
-  validateRequired input = do
+  validateRequired input =
     if input.required == Boolean true && isEmpty (getValue input)
       then singletonError Required
       else mempty
+
+  validateInvalid
+    :: ∀ r
+     . Record (SharedRows ExprType + r )
+    -> Errors ValidationError
+  validateInvalid input =
+    case input.value of
+      Invalid x -> singletonError (InvalidOption $ print x)
+      otherwise -> mempty
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -567,7 +582,7 @@ food =
             , Pair { name: String "Banana", value: String "Banana" }
             , Pair { name: String "Cherry", value: String "Cherry" }
             ]
-    , placeholder: string_ ""
+    , placeholder: string_ "Choose a food"
     , required: boolean_ true
     , value: NotSet
     , errors: mempty

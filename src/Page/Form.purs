@@ -210,6 +210,7 @@ component =
       Required -> "This field is required"
       MinLength x -> "Must contain at least " <> show x <> " characters"
       MaxLength x -> "Cannot contain more than " <> show x <> " characters"
+      InvalidOption x -> x <> " is not a valid option"
 
 eval
   :: ∀ m
