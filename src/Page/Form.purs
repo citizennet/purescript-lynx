@@ -12,7 +12,6 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Symbol (SProxy(..))
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
@@ -36,7 +35,6 @@ import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.HTML.Properties (css)
-import Prim.TypeError (class Warn, Beside, Text)
 import Routing.Duplex (RouteDuplex', path)
 import Routing.Duplex.Generic (noArgs, sum)
 
@@ -253,16 +251,6 @@ eval = case _ of
     DateTimePicker.DateMessage _ -> pure a
     DateTimePicker.SelectionChanged (Just val) ->
       eval (UpdateKey key (UserInput $ datetime_ val) a)
-    DateTimePicker.SelectionChanged Nothing -> do
-      let _ = todo $ SProxy :: SProxy "Handle the removal of a datetime. Will require `UserCleared`."
-      pure a
+    DateTimePicker.SelectionChanged Nothing ->
+      eval (UpdateKey key UserCleared a)
     DateTimePicker.TimeMessage _ -> pure a
-
--- | A helper that should give us a warning and prevent CI from passing.
--- | Useful for preventing merging of unfinished code.
-todo ::
-  forall proxy todo.
-  Warn (Beside (Text "TODO: ") (Text todo)) =>
-  proxy todo ->
-  Unit
-todo _ = unit
