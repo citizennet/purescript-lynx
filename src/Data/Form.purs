@@ -103,6 +103,7 @@ data InputSource a
   = UserInput a
   | Invalid a
   | NotSet
+  | UserCleared
 
 derive instance eqInputSource :: (Eq a) => Eq (InputSource a)
 
@@ -115,6 +116,7 @@ instance foldableInputSource :: Foldable InputSource where
     UserInput x -> f x
     Invalid x -> f x
     NotSet -> mempty
+    UserCleared -> mempty
   foldl f = foldlDefault f
   foldr f = foldrDefault f
 
@@ -124,6 +126,7 @@ instance traversableInputSource :: Traversable InputSource where
     UserInput x -> map UserInput (f x)
     Invalid x -> map Invalid (f x)
     NotSet -> pure NotSet
+    UserCleared -> pure UserCleared
 
 instance showInputSource :: (Show a) => Show (InputSource a) where
   show = genericShow
@@ -133,6 +136,7 @@ instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
     UserInput x -> "type" := "UserInput" ~> "value" := x ~> jsonEmptyObject
     Invalid x -> "type" := "Invalid" ~> "value" := x ~> jsonEmptyObject
     NotSet -> "type" := "NotSet" ~> jsonEmptyObject
+    UserCleared -> "type" := "UserCleared" ~> jsonEmptyObject
 
 instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
   decodeJson json = do
@@ -141,6 +145,7 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
       "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
       "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
       "NotSet" -> pure NotSet
+      "UserCleared" -> pure UserCleared
       x -> Left $ x <> " is not a valid InputSource"
 
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
@@ -246,7 +251,7 @@ getValue
   -> Maybe a
 getValue x = userInput x.value <|> x.default
 
-setValue :: Key -> ExprType -> Page Expr -> Page Expr
+setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
 setValue key val page = page { contents = map setSection page.contents}
   where
   setSection :: Section Expr -> Section Expr
@@ -256,13 +261,13 @@ setValue key val page = page { contents = map setSection page.contents}
   setField field
     | key == field.key = case field.input of
       Currency input ->
-        field { input = Currency input { value = UserInput (Val val) } }
+        field { input = Currency input { value = map Val val } }
       Dropdown input ->
-        field { input = Dropdown input { value = UserInput (Val val) } }
+        field { input = Dropdown input { value = map Val val } }
       Text input ->
-        field { input = Text input { value = UserInput (Val val) } }
+        field { input = Text input { value = map Val val } }
       Toggle input ->
-        field { input = Toggle input { value = UserInput (Val val) } }
+        field { input = Toggle input { value = map Val val } }
     | otherwise = field
 
 -- MVP
