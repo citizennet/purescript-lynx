@@ -3,9 +3,10 @@ module Lynx.Page.Form where
 import Prelude
 
 import Data.Bifoldable (bifor_)
-import Data.Either.Nested (Either1)
+import Data.Const (Const)
+import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
-import Data.Functor.Coproduct.Nested (Coproduct1)
+import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -14,11 +15,12 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
-import Halogen.Component.ChildPath (cp1)
+import Halogen.Component.ChildPath (cp1, cp2)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType(..), Key, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, datetime_, print, reflectType, toArray, toBoolean, toCents, toDateTime, toPair, toString)
+import Lynx.Data.Expr as Lynx.Data.Expr
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, getValue, mvpPage, testPage, userInput)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
@@ -29,6 +31,7 @@ import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.Block.Layout as Layout
 import Ocelot.Block.Toggle (toggle) as Toggle
+import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.HTML.Properties (css)
@@ -65,14 +68,19 @@ data Query a
   | EvalForm (Page Expr) a
   | UpdateKey Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
+  | DateTimePickerQuery Key DateTimePicker.Message a
 
 type ParentInput = Route
 
-type ChildQuery m = Coproduct1 (DropdownQuery m)
+type ChildQuery m
+  = Dropdown.Query Query ExprType  m
+  <\/> DateTimePicker.Query
+  <\/> Const Void
 
-type ChildSlot = Either1 Key
-
-type DropdownQuery m = Dropdown.Query Query ExprType m
+type ChildSlot
+  = Key
+  \/ Key
+  \/ Void
 
 type Message = Void
 
@@ -159,6 +167,15 @@ component =
           _ <- toCents value
           pure (print value)
         ]
+    DateTime dateTime ->
+      HH.slot'
+        cp2
+        field.key
+        DateTimePicker.component
+        { selection: toDateTime =<< getValue dateTime
+        , targetDate: Nothing
+        }
+        (HE.input $ DateTimePickerQuery field.key)
     Dropdown dropdown ->
       HH.slot'
         cp1
@@ -185,7 +202,7 @@ component =
       Toggle.toggle
         [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateKey field.key <<< UserInput <<< Boolean)
+        , HE.onChecked (HE.input $ UpdateKey field.key <<< UserInput <<< Lynx.Data.Expr.Boolean)
         ]
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
@@ -207,6 +224,7 @@ eval = case _ of
         for_ section.contents \field -> do
           case field.input of
             Currency _ -> pure unit
+            DateTime _ -> pure unit
             Dropdown dropdown ->
               for_ (toArray dropdown.options) \options ->
                 H.query' cp1 field.key (Dropdown.SetItems options unit)
@@ -228,3 +246,11 @@ eval = case _ of
     Dropdown.Emit x -> a <$ eval x
     Dropdown.Selected val -> eval (UpdateKey key (UserInput val) a)
     Dropdown.VisibilityChanged _ -> pure a
+
+  DateTimePickerQuery key message a -> case message of
+    DateTimePicker.DateMessage _ -> pure a
+    DateTimePicker.SelectionChanged (Just val) ->
+      eval (UpdateKey key (UserInput $ datetime_ val) a)
+    DateTimePicker.SelectionChanged Nothing ->
+      eval (UpdateKey key UserCleared a)
+    DateTimePicker.TimeMessage _ -> pure a

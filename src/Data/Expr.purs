@@ -4,8 +4,11 @@ import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.BigInt as Data.BigInt
+import Data.DateTime (DateTime)
 import Data.Either (Either(..))
 import Data.Foldable (intercalate)
+import Data.Formatter.DateTime (format, unformat)
+import Data.Formatter.Parser.Interval (extendedDateTimeFormatInUTC)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), maybe')
@@ -21,6 +24,7 @@ data ExprType
   = Array (Array ExprType)
   | Boolean Boolean
   | Cents Cents
+  | DateTime DateTime
   | Int Int
   | Pair { name :: ExprType, value :: ExprType }
   | String String
@@ -37,6 +41,7 @@ instance encodeJsonExprType :: EncodeJson ExprType where
     Array x -> "param" := encodeJson x ~> base x'
     Boolean x -> "param" := encodeJson x ~> base x'
     Cents x -> "param" := encodeJson x ~> base x'
+    DateTime x -> "param" := format extendedDateTimeFormatInUTC x ~> base x'
     Int x -> "param" := encodeJson x ~> base x'
     Pair x -> "param" := encodeJson x ~> base x'
     String x -> "param" := encodeJson x ~> base x'
@@ -57,6 +62,7 @@ instance decodeJsonExprType :: DecodeJson ExprType where
       "Array", x -> map Array (decodeJson x)
       "Boolean", x -> map Boolean (decodeJson x)
       "Cents", x -> map Cents (cents x)
+      "DateTime", x -> map DateTime (dateTime x)
       "Int", x -> map Int (decodeJson x)
       "Pair", x -> map Pair (decodeJson x)
       "String", x -> map String (decodeJson x)
@@ -64,13 +70,17 @@ instance decodeJsonExprType :: DecodeJson ExprType where
         Left
           ( stringify json'
             <> " unsupported."
-            <> " Expected Array, Boolean, Cents, Int, Pair, or String."
+            <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
           )
     where
     cents :: Json -> Either String Cents
     cents json = do
       x <- decodeJson json
       pure (wrap $ Data.BigInt.fromInt x)
+    dateTime :: Json -> Either String DateTime
+    dateTime json = do
+      x <- decodeJson json
+      unformat extendedDateTimeFormatInUTC x
 
 instance arbitraryExprType :: Arbitrary ExprType where
   arbitrary = sized go
@@ -99,6 +109,7 @@ reflectType :: ExprType -> String
 reflectType (Array _) = "Array"
 reflectType (Boolean _) = "Boolean"
 reflectType (Cents _) = "Cents"
+reflectType (DateTime _) = "DateTime"
 reflectType (Int _) = "Int"
 reflectType (Pair _) = "Pair"
 reflectType (String _) = "String"
@@ -108,6 +119,7 @@ print = case _ of
   Array x -> "[" <> intercalate ", " (map print x) <> "]"
   Boolean x -> show x
   Cents x -> formatCentsToStrDollars x
+  DateTime x -> format extendedDateTimeFormatInUTC x
   Int x -> show x
   Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
   String x -> x
@@ -120,6 +132,11 @@ toArray = case _ of
 toBoolean :: ExprType -> Maybe Boolean
 toBoolean = case _ of
   Boolean x -> Just x
+  otherwise -> Nothing
+
+toDateTime :: ExprType -> Maybe DateTime
+toDateTime = case _ of
+  DateTime x -> Just x
   otherwise -> Nothing
 
 toCents :: ExprType -> Maybe Cents
@@ -275,6 +292,9 @@ boolean_ = Val <<< Boolean
 
 cents_ :: Cents -> Expr
 cents_ = Val <<< Cents
+
+datetime_ :: DateTime -> ExprType
+datetime_ = DateTime
 
 int_ :: Int -> Expr
 int_ = Val <<< Int
