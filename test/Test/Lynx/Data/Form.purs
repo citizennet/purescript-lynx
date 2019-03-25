@@ -59,7 +59,7 @@ dropdownOptions = do
       keys :: Map Key ExprType
       keys = Lynx.Data.Form.keys page
       page :: Page Expr
-      page = Lynx.Data.Form.setValue fooKey (Boolean true) page'
+      page = Lynx.Data.Form.setValue fooKey (UserInput $ Boolean true) page'
 
   test "after altering the toggle" do
     let actual :: Maybe ExprType
@@ -240,4 +240,7 @@ value = case _ of
     """
   NotSet -> """
       { "type": "NotSet" }
+    """
+  UserCleared -> """
+      { "type": "UserCleared" }
     """

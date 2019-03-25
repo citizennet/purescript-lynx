@@ -22,7 +22,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, datetime_, print, reflectType, toArray, toBoolean, toCents, toDateTime, toPair, toString)
 import Lynx.Data.Expr as Lynx.Data.Expr
-import Lynx.Data.Form (Field, Input(..), Page, Section, getValue, mvpPage, testPage)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, getValue, mvpPage, testPage, userInput)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
@@ -68,7 +68,7 @@ type State =
 data Query a
   = Initialize a
   | EvalForm (Page Expr) a
-  | UpdateKey Key ExprType a
+  | UpdateKey Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
 
@@ -204,7 +204,7 @@ component =
       Toggle.toggle
         [ HP.checked $ fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateKey field.key <<< Lynx.Data.Expr.Boolean)
+        , HE.onChecked (HE.input $ UpdateKey field.key <<< UserInput <<< Lynx.Data.Expr.Boolean)
         ]
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
@@ -236,7 +236,8 @@ eval = case _ of
     H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
 
   UpdateKey key val a -> do
-    H.modify_ \state -> state { values = Data.Map.insert key val state.values }
+    H.modify_ \state ->
+      state { values = Data.Map.alter (\_ -> userInput val) key state.values }
     { form } <- H.get
     case form of
       Success { expr } ->
@@ -245,13 +246,13 @@ eval = case _ of
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
-    Dropdown.Selected val -> eval (UpdateKey key val a)
+    Dropdown.Selected val -> eval (UpdateKey key (UserInput val) a)
     Dropdown.VisibilityChanged _ -> pure a
 
   DateTimePickerQuery key message a -> case message of
     DateTimePicker.DateMessage _ -> pure a
     DateTimePicker.SelectionChanged (Just val) ->
-      eval (UpdateKey key (datetime_ val) a)
+      eval (UpdateKey key (UserInput $ datetime_ val) a)
     DateTimePicker.SelectionChanged Nothing -> do
       let _ = todo $ SProxy :: SProxy "Handle the removal of a datetime. Will require `UserCleared`."
       pure a
