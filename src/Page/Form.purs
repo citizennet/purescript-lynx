@@ -221,7 +221,7 @@ component =
             { name: name', value: value' } <- toPair item
             name <- toString name'
             value <- toString value'
-            pure (Foreign.Object.singleton name value)
+            pure (Foreign.Object.fromHomogeneous { name, value })
           , renderFuzzy: \(Fuzzy { original }) -> HH.text $ fold do
             { value: value' } <- toPair original
             value <- toString value'
