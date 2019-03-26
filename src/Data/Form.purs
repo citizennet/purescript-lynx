@@ -73,12 +73,18 @@ type DropdownRows f r =
   | r
   )
 
+type TypeaheadSingleRows f r =
+  ( options :: f
+  | r
+  )
+
 data Input f
   = Currency (Record (SharedRows f + RequiredRows f + CurrencyRows f + ()))
   | DateTime (Record (SharedRows f + RequiredRows f + DateTimeRows f + ()))
   | Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
   | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
+  | TypeaheadSingle (Record (SharedRows f + TypeaheadSingleRows f + ()))
 
 derive instance eqInput :: (Eq f) => Eq (Input f)
 
@@ -92,6 +98,7 @@ instance encodeInput :: EncodeJson (Input Expr) where
     Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
+    TypeaheadSingle r -> "type" := "TypeaheadSingle" ~> encodeJson r
 
 instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
@@ -102,6 +109,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
+      "TypeaheadSingle" -> pure <<< TypeaheadSingle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
 
 instance arbitraryInput :: Arbitrary (Input Expr) where
@@ -246,6 +254,11 @@ eval get page = do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
+    TypeaheadSingle input -> do
+      default <- traverse (evalExpr get) input.default
+      options <- evalExpr get input.options
+      value <- traverse (evalExpr get) input.value
+      pure (TypeaheadSingle { default, options, value })
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -266,6 +279,7 @@ keys page = foldMap keysSection page.contents
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
+      TypeaheadSingle typeahead -> getValue typeahead
 
 getValue
   :: ∀ a r
@@ -292,6 +306,8 @@ setValue key val page = page { contents = map setSection page.contents}
         field { input = Text input { value = map val_ val } }
       Toggle input ->
         field { input = Toggle input { value = map val_ val } }
+      TypeaheadSingle input ->
+        field { input = TypeaheadSingle input { value = map val_ val } }
     | otherwise = field
 
 -- MVP
@@ -303,6 +319,8 @@ mvpPage =
     [ { name: "Campaign"
       , contents:
         [ mvpName
+        , mvpTargetableInterest
+        , mvpFacebookTwitterPage
         , mvpObjective
         , mvpMediaBudget
         , mvpStart
@@ -326,6 +344,30 @@ mvpEnd =
   , name: val_ (string_ "End")
   , visibility: val_ (boolean_ true)
   }
+
+mvpFacebookTwitterPage :: Field Expr
+mvpFacebookTwitterPage =
+  { description: val_ (string_ "")
+  , input:
+    TypeaheadSingle
+      { default: Nothing
+      , options
+      , value: NotSet
+      }
+  , key: "facebook-twitter-page"
+  , name: val_ (string_ "Facebook / Twitter Page")
+  , visibility: val_ (boolean_ true)
+  }
+  where
+  options :: Expr
+  options =
+    val_
+    ( array_
+      [ pair_ { name: string_ "ABC News", value: string_ "ABC News"}
+      , pair_ { name: string_ "CBS New York", value: string_ "CBS New York"}
+      , pair_ { name: string_ "NBC News", value: string_ "NBC News"}
+      ]
+    )
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
@@ -407,6 +449,30 @@ mvpStart =
   , name: val_ (string_ "Start")
   , visibility: val_ (boolean_ true)
   }
+
+mvpTargetableInterest :: Field Expr
+mvpTargetableInterest =
+  { description: val_ (string_ "")
+  , input:
+    TypeaheadSingle
+      { default: Nothing
+      , options
+      , value: NotSet
+      }
+  , key: "targetable-interest"
+  , name: val_ (string_ "Targetable Interest")
+  , visibility: val_ (boolean_ true)
+  }
+  where
+  options :: Expr
+  options =
+    val_
+    ( array_
+      [ pair_ { name: string_ "ABC", value: string_ "ABC" }
+      , pair_ { name: string_ "CBS", value: string_ "CBS" }
+      , pair_ { name: string_ "NBC", value: string_ "NBC" }
+      ]
+    )
 
 -- Test
 
