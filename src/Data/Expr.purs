@@ -180,7 +180,7 @@ instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
     x' .: "op" >>= case _ of
-      "Val" -> map Val (decodeJson json)
+      "Val" -> map val_ (decodeJson json)
       "If" -> x' .: "params" >>= case _ of
         [x, y, z] -> pure (if_ x y z)
         _ -> Left "Expected 3 params"
@@ -204,7 +204,7 @@ instance arbitraryExpr :: Arbitrary Expr where
     go :: Size -> Gen Expr
     go size' =
       if size' < 1 then
-        map Val arbitrary
+        map val_ arbitrary
       else
         let size = size' / 10
         in oneOf $ NonEmpty
@@ -288,19 +288,19 @@ evalExpr get = case _ of
   Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
 boolean_ :: Boolean -> Expr
-boolean_ = Val <<< Boolean
+boolean_ = val_ <<< Boolean
 
 cents_ :: Cents -> Expr
-cents_ = Val <<< Cents
+cents_ = val_ <<< Cents
 
 datetime_ :: DateTime -> ExprType
 datetime_ = DateTime
 
 int_ :: Int -> Expr
-int_ = Val <<< Int
+int_ = val_ <<< Int
 
 string_ :: String -> Expr
-string_ = Val <<< String
+string_ = val_ <<< String
 
 if_ :: Expr -> Expr -> Expr -> Expr
 if_ = If
@@ -313,3 +313,6 @@ print_ = Print
 
 lookup_ :: Key -> Expr -> Expr
 lookup_ = Lookup
+
+val_ :: ExprType -> Expr
+val_ = Val

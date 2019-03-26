@@ -13,7 +13,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, cents_, evalExpr, if_, lookup_, string_, val_)
 import Lynx.Data.Expr as Lynx.Data.Expr
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
@@ -284,15 +284,15 @@ setValue key val page = page { contents = map setSection page.contents}
   setField field
     | key == field.key = case field.input of
       Currency input ->
-        field { input = Currency input { value = map Val val } }
+        field { input = Currency input { value = map val_ val } }
       DateTime input ->
-        field { input = DateTime input { value = map Val val } }
+        field { input = DateTime input { value = map val_ val } }
       Dropdown input ->
-        field { input = Dropdown input { value = map Val val } }
+        field { input = Dropdown input { value = map val_ val } }
       Text input ->
-        field { input = Text input { value = map Val val } }
+        field { input = Text input { value = map val_ val } }
       Toggle input ->
-        field { input = Toggle input { value = map Val val } }
+        field { input = Toggle input { value = map val_ val } }
     | otherwise = field
 
 -- MVP
@@ -378,7 +378,7 @@ mvpObjective =
   where
   options :: Expr
   options =
-    Val
+    val_
     ( Lynx.Data.Expr.Array
       [ Lynx.Data.Expr.Pair
         { name: Lynx.Data.Expr.String "App Installs"
@@ -522,8 +522,8 @@ food =
     { default: Nothing
     , options:
       If
-        do Lookup "active" (Val $ Lynx.Data.Expr.Boolean false)
-        do Val $
+        do Lookup "active" (val_ $ Lynx.Data.Expr.Boolean false)
+        do val_ $
           Lynx.Data.Expr.Array
             [ Lynx.Data.Expr.Pair
               { name: Lynx.Data.Expr.String "Strawberry"
@@ -534,7 +534,7 @@ food =
               , value: Lynx.Data.Expr.String "Blueberry"
               }
             ]
-        do Val $
+        do val_ $
           Lynx.Data.Expr.Array
             [ Lynx.Data.Expr.Pair
               { name: Lynx.Data.Expr.String "Apple"

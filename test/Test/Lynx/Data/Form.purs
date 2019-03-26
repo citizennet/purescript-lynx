@@ -8,7 +8,7 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, if_, lookup_, string_)
+import Lynx.Data.Expr (EvalError, Expr, ExprType(..), Key, boolean_, if_, lookup_, string_, val_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
 import Lynx.Data.Form as Lynx.Data.Form
 import Test.QuickCheck (Result(..), (===))
@@ -75,8 +75,8 @@ dropdownOptions = do
       { default: Nothing
       , options:
         if_ (lookup_ fooKey $ boolean_ false)
-        (Val $ Array [Pair { name: String "foo", value: Int 3}])
-        (Val $ Array [])
+        (val_ $ Array [Pair { name: String "foo", value: Int 3}])
+        (val_ $ Array [])
       , placeholder: string_ ""
       , required: boolean_ false
       , value: NotSet
