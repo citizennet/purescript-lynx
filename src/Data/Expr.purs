@@ -287,20 +287,20 @@ evalExpr get = case _ of
   Print x' -> map (String <<< print) (evalExpr get x')
   Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
-boolean_ :: Boolean -> Expr
-boolean_ = val_ <<< Boolean
+boolean_ :: Boolean -> ExprType
+boolean_ = Boolean
 
-cents_ :: Cents -> Expr
-cents_ = val_ <<< Cents
+cents_ :: Cents -> ExprType
+cents_ = Cents
 
 datetime_ :: DateTime -> ExprType
 datetime_ = DateTime
 
-int_ :: Int -> Expr
-int_ = val_ <<< Int
+int_ :: Int -> ExprType
+int_ = Int
 
-string_ :: String -> Expr
-string_ = val_ <<< String
+string_ :: String -> ExprType
+string_ = String
 
 if_ :: Expr -> Expr -> Expr -> Expr
 if_ = If

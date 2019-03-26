@@ -315,65 +315,65 @@ mvpPage =
 
 mvpEnd :: Field Expr
 mvpEnd =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     DateTime
       { default: Nothing
-      , placeholder: string_ "Choose a end date for the campaign"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose a end date for the campaign")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "end"
-  , name: string_ "End"
-  , visibility: boolean_ true
+  , name: val_ (string_ "End")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Currency
       { default: Nothing
-      , placeholder: cents_ (wrap zero)
-      , required: boolean_ true
+      , placeholder: val_ (cents_ (wrap zero))
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "media-budget"
-  , name: string_ "Media Budget"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Media Budget")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpName :: Field Expr
 mvpName =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Text
       { default: Nothing
       , maxLength: Nothing
       , minLength: Nothing
-      , placeholder: string_ ""
-      , required: boolean_ true
+      , placeholder: val_ (string_ "")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "name"
-  , name: string_ "Name"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Name")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpObjective :: Field Expr
 mvpObjective =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Dropdown
       { default: Nothing
       , options
-      , placeholder: string_ "Choose an objective"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose an objective")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "objective"
-  , name: string_ "Objective"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Objective")
+  , visibility: val_ (boolean_ true)
   }
   where
   options :: Expr
@@ -429,17 +429,17 @@ mvpObjective =
 
 mvpStart :: Field Expr
 mvpStart =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     DateTime
       { default: Nothing
-      , placeholder: string_ "Choose a start date for the campaign"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose a start date for the campaign")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "start"
-  , name: string_ "Start"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Start")
+  , visibility: val_ (boolean_ true)
   }
 
 -- Test
@@ -466,57 +466,57 @@ testSection =
 
 firstName :: Field Expr
 firstName =
-  { name: string_ "First Name"
-  , visibility: boolean_ true
-  , description: string_ "Enter your first name"
+  { name: val_ (string_ "First Name")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "Enter your first name")
   , key: "firstName"
   , input: Text
-    { default: Just (string_ "John")
+    { default: Just (val_ (string_ "John"))
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
 
 lastName :: Field Expr
 lastName =
-  { name: string_ "Last Name"
-  , visibility: boolean_ true
-  , description: string_ "Enter your last name"
+  { name: val_ (string_ "Last Name")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "Enter your last name")
   , key: "lastName"
   , input: Text
-    { default: Just (string_ "Smith")
+    { default: Just (val_ (string_ "Smith"))
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
 
 active :: Field Expr
 active =
-  { name: string_ "Active"
-  , visibility: boolean_ true
+  { name: val_ (string_ "Active")
+  , visibility: val_ (boolean_ true)
   , description
   , key: "active"
   , input: Toggle
-    { default: Just (boolean_ true)
+    { default: Just (val_ (boolean_ true))
     , value: NotSet
     }
   }
   where
-  description = if_ (lookup_ "active" $ boolean_ true)
-    (string_ "User's account is active!")
-    (string_ "User's account is not active")
+  description = if_ (lookup_ "active" $ val_ (boolean_ true))
+    (val_ (string_ "User's account is active!"))
+    (val_ (string_ "User's account is not active"))
 
 food :: Field Expr
 food =
-  { name: string_ "Favorite Food"
-  , visibility: boolean_ true
-  , description: string_ "What is your favorite food?"
+  { name: val_ (string_ "Favorite Food")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "What is your favorite food?")
   , key: "food"
   , input: Dropdown
     { default: Nothing
@@ -549,22 +549,22 @@ food =
               , value: Lynx.Data.Expr.String "Cherry"
               }
             ]
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
 
 money :: Field Expr
 money =
-  { name: string_ "money"
-  , visibility: boolean_ true
-  , description: string_ ""
+  { name: val_ (string_ "money")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "")
   , key: "money"
   , input: Currency
     { default: Nothing
-    , placeholder: cents_ (wrap zero)
-    , required: boolean_ true
+    , placeholder: val_ (cents_ (wrap zero))
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }

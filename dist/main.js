@@ -18415,9 +18415,7 @@ var PS = {};
       };
       return Data_Maybe.Nothing.value;
   };
-  var string_ = function ($340) {
-      return val_($$String.create($340));
-  };
+  var string_ = $$String.create;
   var reflectType = function (v) {
       if (v instanceof $$Array) {
           return "Array";
@@ -18504,8 +18502,8 @@ var PS = {};
               });
           };
           if (v instanceof Print) {
-              return Data_Functor.map(Data_Either.functorEither)(function ($342) {
-                  return $$String.create(print($342));
+              return Data_Functor.map(Data_Either.functorEither)(function ($340) {
+                  return $$String.create(print($340));
               })(evalExpr(get)(v.value0));
           };
           if (v instanceof Lookup) {
@@ -18543,12 +18541,8 @@ var PS = {};
       };
   });
   var datetime_ = DateTime.create;
-  var cents_ = function ($344) {
-      return val_(Cents.create($344));
-  };
-  var boolean_ = function ($345) {
-      return val_($$Boolean.create($345));
-  };
+  var cents_ = Cents.create;
+  var boolean_ = $$Boolean.create;
   exports["Array"] = $$Array;
   exports["Boolean"] = $$Boolean;
   exports["Cents"] = Cents;
@@ -18704,16 +18698,16 @@ var PS = {};
       return Data_Maybe.Nothing.value;
   };
   var mvpStart = {
-      description: Lynx_Data_Expr.string_(""),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
       input: new DateTime({
           "default": Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.string_("Choose a start date for the campaign"),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Choose a start date for the campaign")),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       }),
       key: "start",
-      name: Lynx_Data_Expr.string_("Start"),
-      visibility: Lynx_Data_Expr.boolean_(true)
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Start")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))
   };
   var mvpObjective = (function () {
       var options = Lynx_Data_Expr.val_(new Lynx_Data_Expr["Array"]([ new Lynx_Data_Expr.Pair({
@@ -18751,56 +18745,56 @@ var PS = {};
           value: new Lynx_Data_Expr["String"]("VideoViews")
       }) ]));
       return {
-          description: Lynx_Data_Expr.string_(""),
+          description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
           input: new Dropdown({
               "default": Data_Maybe.Nothing.value,
               options: options,
-              placeholder: Lynx_Data_Expr.string_("Choose an objective"),
-              required: Lynx_Data_Expr.boolean_(true),
+              placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Choose an objective")),
+              required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
               value: NotSet.value
           }),
           key: "objective",
-          name: Lynx_Data_Expr.string_("Objective"),
-          visibility: Lynx_Data_Expr.boolean_(true)
+          name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Objective")),
+          visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))
       };
   })();
   var mvpName = {
-      description: Lynx_Data_Expr.string_(""),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
       input: new Text({
           "default": Data_Maybe.Nothing.value,
           maxLength: Data_Maybe.Nothing.value,
           minLength: Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.string_(""),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       }),
       key: "name",
-      name: Lynx_Data_Expr.string_("Name"),
-      visibility: Lynx_Data_Expr.boolean_(true)
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Name")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))
   };
   var mvpMediaBudget = {
-      description: Lynx_Data_Expr.string_(""),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
       input: new Currency({
           "default": Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.cents_(Data_Newtype.wrap(Ocelot_Data_Currency.newtypeCents)(Data_Semiring.zero(Data_BigInt.semiringBigInt))),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.cents_(Data_Newtype.wrap(Ocelot_Data_Currency.newtypeCents)(Data_Semiring.zero(Data_BigInt.semiringBigInt)))),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       }),
       key: "media-budget",
-      name: Lynx_Data_Expr.string_("Media Budget"),
-      visibility: Lynx_Data_Expr.boolean_(true)
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Media Budget")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))
   };
   var mvpEnd = {
-      description: Lynx_Data_Expr.string_(""),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
       input: new DateTime({
           "default": Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.string_("Choose a end date for the campaign"),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Choose a end date for the campaign")),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       }),
       key: "end",
-      name: Lynx_Data_Expr.string_("End"),
-      visibility: Lynx_Data_Expr.boolean_(true)
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("End")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))
   };
 
   // MVP
@@ -18812,28 +18806,28 @@ var PS = {};
       } ]
   };
   var money = {
-      name: Lynx_Data_Expr.string_("money"),
-      visibility: Lynx_Data_Expr.boolean_(true),
-      description: Lynx_Data_Expr.string_(""),
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("money")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
       key: "money",
       input: new Currency({
           "default": Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.cents_(Data_Newtype.wrap(Ocelot_Data_Currency.newtypeCents)(Data_Semiring.zero(Data_BigInt.semiringBigInt))),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.cents_(Data_Newtype.wrap(Ocelot_Data_Currency.newtypeCents)(Data_Semiring.zero(Data_BigInt.semiringBigInt)))),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       })
   };
   var lastName = {
-      name: Lynx_Data_Expr.string_("Last Name"),
-      visibility: Lynx_Data_Expr.boolean_(true),
-      description: Lynx_Data_Expr.string_("Enter your last name"),
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Last Name")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Enter your last name")),
       key: "lastName",
       input: new Text({
-          "default": new Data_Maybe.Just(Lynx_Data_Expr.string_("Smith")),
+          "default": new Data_Maybe.Just(Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Smith"))),
           maxLength: Data_Maybe.Nothing.value,
           minLength: Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.string_(""),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       })
   };
@@ -18994,9 +18988,9 @@ var PS = {};
       };
   };
   var food = {
-      name: Lynx_Data_Expr.string_("Favorite Food"),
-      visibility: Lynx_Data_Expr.boolean_(true),
-      description: Lynx_Data_Expr.string_("What is your favorite food?"),
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Favorite Food")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("What is your favorite food?")),
       key: "food",
       input: new Dropdown({
           "default": Data_Maybe.Nothing.value,
@@ -19016,8 +19010,8 @@ var PS = {};
               name: new Lynx_Data_Expr["String"]("Cherry"),
               value: new Lynx_Data_Expr["String"]("Cherry")
           }) ]))),
-          placeholder: Lynx_Data_Expr.string_(""),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       })
   };
@@ -19070,16 +19064,16 @@ var PS = {};
       };
   });
   var firstName = {
-      name: Lynx_Data_Expr.string_("First Name"),
-      visibility: Lynx_Data_Expr.boolean_(true),
-      description: Lynx_Data_Expr.string_("Enter your first name"),
+      name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("First Name")),
+      visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
+      description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Enter your first name")),
       key: "firstName",
       input: new Text({
-          "default": new Data_Maybe.Just(Lynx_Data_Expr.string_("John")),
+          "default": new Data_Maybe.Just(Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("John"))),
           maxLength: Data_Maybe.Nothing.value,
           minLength: Data_Maybe.Nothing.value,
-          placeholder: Lynx_Data_Expr.string_(""),
-          required: Lynx_Data_Expr.boolean_(true),
+          placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
+          required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           value: NotSet.value
       })
   };
@@ -19205,14 +19199,14 @@ var PS = {};
       };
   };           
   var active = (function () {
-      var description = Lynx_Data_Expr.if_(Lynx_Data_Expr.lookup_("active")(Lynx_Data_Expr.boolean_(true)))(Lynx_Data_Expr.string_("User's account is active!"))(Lynx_Data_Expr.string_("User's account is not active"));
+      var description = Lynx_Data_Expr.if_(Lynx_Data_Expr.lookup_("active")(Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))))(Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("User's account is active!")))(Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("User's account is not active")));
       return {
-          name: Lynx_Data_Expr.string_("Active"),
-          visibility: Lynx_Data_Expr.boolean_(true),
+          name: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("Active")),
+          visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
           description: description,
           key: "active",
           input: new Toggle({
-              "default": new Data_Maybe.Just(Lynx_Data_Expr.boolean_(true)),
+              "default": new Data_Maybe.Just(Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))),
               value: NotSet.value
           })
       };

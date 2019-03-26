@@ -74,11 +74,11 @@ dropdownOptions = do
     Dropdown
       { default: Nothing
       , options:
-        if_ (lookup_ fooKey $ boolean_ false)
+        if_ (lookup_ fooKey $ val_ (boolean_ false))
         (val_ $ Array [Pair { name: String "foo", value: Int 3}])
         (val_ $ Array [])
-      , placeholder: string_ ""
-      , required: boolean_ false
+      , placeholder: val_ (string_ "")
+      , required: val_ (boolean_ false)
       , value: NotSet
       }
   dropdownKey :: Key
@@ -107,15 +107,15 @@ dropdownOptions = do
     , contents:
       [ { name: ""
         , contents:
-          [ { name: string_ ""
-            , visibility: boolean_ false
-            , description: string_ ""
+          [ { name: val_ (string_ "")
+            , visibility: val_ (boolean_ false)
+            , description: val_ (string_ "")
             , key: fooKey
             , input: foo
             }
-          , { name: string_ ""
-            , visibility: boolean_ false
-            , description: string_ ""
+          , { name: val_ (string_ "")
+            , visibility: val_ (boolean_ false)
+            , description: val_ (string_ "")
             , key: dropdownKey
             , input: dropdown
             }
