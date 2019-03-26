@@ -7,7 +7,6 @@ import Data.Const (Const)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (type (<\/>))
-import Data.Fuzzy (Fuzzy(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -32,6 +31,7 @@ import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
+import Ocelot.Block.ItemContainer (boldMatches)
 import Ocelot.Block.Layout as Layout
 import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.Component.DateTimePicker as DateTimePicker
@@ -222,10 +222,7 @@ component =
             name <- toString name'
             value <- toString value'
             pure (Foreign.Object.fromHomogeneous { name, value })
-          , renderFuzzy: \(Fuzzy { original }) -> HH.text $ fold do
-            { value: value' } <- toPair original
-            value <- toString value'
-            pure value
+          , renderFuzzy: HH.span_ <<< boldMatches "value"
           }
           []
         )
