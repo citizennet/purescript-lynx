@@ -74,12 +74,18 @@ type DropdownRows f r =
   | r
   )
 
+type TypeaheadRows f r =
+  ( options :: f
+  | r
+  )
+
 data Input f
   = Currency (Record (SharedRows f + RequiredRows f + CurrencyRows f + ()))
   | DateTime (Record (SharedRows f + RequiredRows f + DateTimeRows f + ()))
   | Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
   | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
+  | Typeahead (Record (SharedRows f + TypeaheadRows f + ()))
 
 derive instance eqInput :: (Eq f) => Eq (Input f)
 
@@ -93,6 +99,7 @@ instance encodeInput :: EncodeJson (Input Expr) where
     Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
+    Typeahead r -> "type" := "Typeahead" ~> encodeJson r
 
 instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
@@ -103,6 +110,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
+      "Typeahead" -> pure <<< Typeahead <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
 
 instance arbitraryInput :: Arbitrary (Input Expr) where
@@ -247,6 +255,11 @@ eval get page = do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
+    Typeahead input -> do
+      default <- traverse (evalExpr get) input.default
+      options <- evalExpr get input.options
+      value <- traverse (evalExpr get) input.value
+      pure (Typeahead { default, options, value })
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -267,6 +280,7 @@ keys page = foldMap keysSection page.contents
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
+      Typeahead typeahead -> getValue typeahead
 
 getValue
   :: ∀ a r
@@ -293,6 +307,8 @@ setValue key val page = page { contents = map setSection page.contents}
         field { input = Text input { value = map Val val } }
       Toggle input ->
         field { input = Toggle input { value = map Val val } }
+      Typeahead input ->
+        field { input = Typeahead input { value = map Val val } }
     | otherwise = field
 
 -- MVP
@@ -304,6 +320,8 @@ mvpPage =
     [ { name: "Campaign"
       , contents:
         [ mvpName
+        , mvpTargetableInterest
+        , mvpFacebookTwitterPage
         , mvpObjective
         , mvpMediaBudget
         , mvpStart
@@ -327,6 +345,39 @@ mvpEnd =
   , name: string_ "End"
   , visibility: boolean_ true
   }
+
+mvpFacebookTwitterPage :: Field Expr
+mvpFacebookTwitterPage =
+  { description: string_ ""
+  , input:
+    Typeahead
+      { default: Nothing
+      , options
+      , value: NotSet
+      }
+  , key: "facebook-twitter-page"
+  , name: string_ "Facebook / Twitter Page"
+  , visibility: boolean_ true
+  }
+  where
+  options :: Expr
+  options =
+    Val
+    ( Lynx.Data.Expr.Array
+      [ Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "ABC News"
+        , value: Lynx.Data.Expr.String "ABC News"
+        }
+      ,  Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "CBS New York"
+        , value: Lynx.Data.Expr.String "CBS New York"
+        }
+      ,  Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "NBC News"
+        , value: Lynx.Data.Expr.String "NBC News"
+        }
+      ]
+    )
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
@@ -441,6 +492,39 @@ mvpStart =
   , name: string_ "Start"
   , visibility: boolean_ true
   }
+
+mvpTargetableInterest :: Field Expr
+mvpTargetableInterest =
+  { description: string_ ""
+  , input:
+    Typeahead
+      { default: Nothing
+      , options
+      , value: NotSet
+      }
+  , key: "targetable-interest"
+  , name: string_ "Targetable Interest"
+  , visibility: boolean_ true
+  }
+  where
+  options :: Expr
+  options =
+    Val
+    ( Lynx.Data.Expr.Array
+      [ Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "ABC"
+        , value: Lynx.Data.Expr.String "ABC"
+        }
+      ,  Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "CBS"
+        , value: Lynx.Data.Expr.String "CBS"
+        }
+      ,  Lynx.Data.Expr.Pair
+        { name: Lynx.Data.Expr.String "NBC"
+        , value: Lynx.Data.Expr.String "NBC"
+        }
+      ]
+    )
 
 -- Test
 

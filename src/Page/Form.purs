@@ -7,6 +7,7 @@ import Data.Const (Const)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (type (<\/>))
+import Data.Fuzzy (Fuzzy(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -14,8 +15,9 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
+import Foreign.Object as Foreign.Object
 import Halogen as H
-import Halogen.Component.ChildPath (cp1, cp2)
+import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -24,6 +26,7 @@ import Lynx.Data.Expr as Lynx.Data.Expr
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, getValue, mvpPage, testPage, userInput)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
+import Network.RemoteData as Network.RemoteData
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -34,6 +37,7 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
+import Ocelot.Component.Typeahead as Typeahead
 import Ocelot.HTML.Properties (css)
 import Routing.Duplex (RouteDuplex', path)
 import Routing.Duplex.Generic (noArgs, sum)
@@ -69,16 +73,19 @@ data Query a
   | UpdateKey Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
+  | TypeaheadQuery  Key (Typeahead.Message Query Maybe ExprType) a
 
 type ParentInput = Route
 
 type ChildQuery m
   = Dropdown.Query Query ExprType  m
   <\/> DateTimePicker.Query
+  <\/> Typeahead.Query Query Maybe ExprType m
   <\/> Const Void
 
 type ChildSlot
   = Key
+  \/ Key
   \/ Key
   \/ Void
 
@@ -204,6 +211,27 @@ component =
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< UserInput <<< Lynx.Data.Expr.Boolean)
         ]
+    Typeahead typeahead ->
+      HH.slot'
+        cp3
+        field.key
+        Typeahead.single
+        ( Typeahead.syncSingle
+          { itemToObject: \item -> fold do
+            { name: name', value: value' } <- toPair item
+            name <- toString name'
+            value <- toString value'
+            pure (Foreign.Object.singleton name value)
+          , renderFuzzy: \(Fuzzy { original }) -> HH.text $ fold do
+            { value: value' } <- toPair original
+            value <- toString value'
+            pure value
+          }
+          []
+        )
+        { items = Network.RemoteData.fromMaybe (toArray typeahead.options)
+        }
+        (HE.input $ TypeaheadQuery field.key)
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
@@ -230,6 +258,9 @@ eval = case _ of
                 H.query' cp1 field.key (Dropdown.SetItems options unit)
             Text _ -> pure unit
             Toggle _ -> pure unit
+            Typeahead typeahead ->
+              for_ (toArray typeahead.options) \options ->
+                H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
       pure page
     H.modify_ _ { form = map { expr, evaled: _ } (fromEither evaled) }
 
@@ -254,3 +285,9 @@ eval = case _ of
     DateTimePicker.SelectionChanged Nothing ->
       eval (UpdateKey key UserCleared a)
     DateTimePicker.TimeMessage _ -> pure a
+
+  TypeaheadQuery key message a -> case message of
+    Typeahead.Emit x -> a <$ eval x
+    Typeahead.Searched _ -> pure a
+    Typeahead.Selected val -> eval (UpdateKey key (UserInput val) a)
+    Typeahead.SelectionChanged _ _ -> pure a
