@@ -73,7 +73,7 @@ type DropdownRows f r =
   | r
   )
 
-type TypeaheadRows f r =
+type TypeaheadSingleRows f r =
   ( options :: f
   | r
   )
@@ -84,7 +84,7 @@ data Input f
   | Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
   | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
-  | Typeahead (Record (SharedRows f + TypeaheadRows f + ()))
+  | TypeaheadSingle (Record (SharedRows f + TypeaheadSingleRows f + ()))
 
 derive instance eqInput :: (Eq f) => Eq (Input f)
 
@@ -98,7 +98,7 @@ instance encodeInput :: EncodeJson (Input Expr) where
     Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
-    Typeahead r -> "type" := "Typeahead" ~> encodeJson r
+    TypeaheadSingle r -> "type" := "TypeaheadSingle" ~> encodeJson r
 
 instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
@@ -109,7 +109,7 @@ instance decodeInput :: DecodeJson (Input Expr) where
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
-      "Typeahead" -> pure <<< Typeahead <=< decodeJson $ json
+      "TypeaheadSingle" -> pure <<< TypeaheadSingle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
 
 instance arbitraryInput :: Arbitrary (Input Expr) where
@@ -254,11 +254,11 @@ eval get page = do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
       pure (Toggle { default, value })
-    Typeahead input -> do
+    TypeaheadSingle input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
       value <- traverse (evalExpr get) input.value
-      pure (Typeahead { default, options, value })
+      pure (TypeaheadSingle { default, options, value })
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -279,7 +279,7 @@ keys page = foldMap keysSection page.contents
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
-      Typeahead typeahead -> getValue typeahead
+      TypeaheadSingle typeahead -> getValue typeahead
 
 getValue
   :: ∀ a r
@@ -306,8 +306,8 @@ setValue key val page = page { contents = map setSection page.contents}
         field { input = Text input { value = map val_ val } }
       Toggle input ->
         field { input = Toggle input { value = map val_ val } }
-      Typeahead input ->
-        field { input = Typeahead input { value = map val_ val } }
+      TypeaheadSingle input ->
+        field { input = TypeaheadSingle input { value = map val_ val } }
     | otherwise = field
 
 -- MVP
@@ -349,7 +349,7 @@ mvpFacebookTwitterPage :: Field Expr
 mvpFacebookTwitterPage =
   { description: val_ (string_ "")
   , input:
-    Typeahead
+    TypeaheadSingle
       { default: Nothing
       , options
       , value: NotSet
@@ -454,7 +454,7 @@ mvpTargetableInterest :: Field Expr
 mvpTargetableInterest =
   { description: val_ (string_ "")
   , input:
-    Typeahead
+    TypeaheadSingle
       { default: Nothing
       , options
       , value: NotSet

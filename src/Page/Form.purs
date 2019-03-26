@@ -73,7 +73,7 @@ data Query a
   | UpdateKey Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
-  | TypeaheadQuery  Key (Typeahead.Message Query Maybe ExprType) a
+  | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
 
 type ParentInput = Route
 
@@ -211,7 +211,7 @@ component =
         , HP.id_ field.key
         , HE.onChecked (HE.input $ UpdateKey field.key <<< UserInput <<< Lynx.Data.Expr.Boolean)
         ]
-    Typeahead typeahead ->
+    TypeaheadSingle typeahead ->
       HH.slot'
         cp3
         field.key
@@ -231,7 +231,7 @@ component =
         )
         { items = Network.RemoteData.fromMaybe (toArray typeahead.options)
         }
-        (HE.input $ TypeaheadQuery field.key)
+        (HE.input $ TypeaheadSingleQuery field.key)
 
 eval :: forall m. Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
@@ -258,7 +258,7 @@ eval = case _ of
                 H.query' cp1 field.key (Dropdown.SetItems options unit)
             Text _ -> pure unit
             Toggle _ -> pure unit
-            Typeahead typeahead ->
+            TypeaheadSingle typeahead ->
               for_ (toArray typeahead.options) \options ->
                 H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
       pure page
@@ -286,7 +286,7 @@ eval = case _ of
       eval (UpdateKey key UserCleared a)
     DateTimePicker.TimeMessage _ -> pure a
 
-  TypeaheadQuery key message a -> case message of
+  TypeaheadSingleQuery key message a -> case message of
     Typeahead.Emit x -> a <$ eval x
     Typeahead.Searched _ -> pure a
     Typeahead.Selected val -> eval (UpdateKey key (UserInput val) a)

@@ -19098,14 +19098,14 @@ var PS = {};
       };
       return Toggle;
   })();
-  var Typeahead = (function () {
-      function Typeahead(value0) {
+  var TypeaheadSingle = (function () {
+      function TypeaheadSingle(value0) {
           this.value0 = value0;
       };
-      Typeahead.create = function (value0) {
-          return new Typeahead(value0);
+      TypeaheadSingle.create = function (value0) {
+          return new TypeaheadSingle(value0);
       };
-      return Typeahead;
+      return TypeaheadSingle;
   })();
   var userInput = function (v) {
       if (v instanceof UserInput) {
@@ -19126,7 +19126,7 @@ var PS = {};
       }) ]));
       return {
           description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
-          input: new Typeahead({
+          input: new TypeaheadSingle({
               "default": Data_Maybe.Nothing.value,
               options: options,
               value: NotSet.value
@@ -19236,7 +19236,7 @@ var PS = {};
       }) ]));
       return {
           description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
-          input: new Typeahead({
+          input: new TypeaheadSingle({
               "default": Data_Maybe.Nothing.value,
               options: options,
               value: NotSet.value
@@ -19314,10 +19314,10 @@ var PS = {};
               if (field.input instanceof Toggle) {
                   return getValue(field.input.value0);
               };
-              if (field.input instanceof Typeahead) {
+              if (field.input instanceof TypeaheadSingle) {
                   return getValue(field.input.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 276, column 13 - line 282, column 48): " + [ field.input.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 276, column 13 - line 282, column 54): " + [ field.input.constructor.name ]);
           })();
           if (value instanceof Data_Maybe.Just) {
               var v = Lynx_Data_Expr.evalExpr(Data_Function["const"](Data_Maybe.Nothing.value))(value.value0);
@@ -19432,20 +19432,20 @@ var PS = {};
                               })
                           };
                       };
-                      if (field.input instanceof Typeahead) {
+                      if (field.input instanceof TypeaheadSingle) {
                           return {
                               name: field.name,
                               visibility: field.visibility,
                               description: field.description,
                               key: field.key,
-                              input: new Typeahead({
+                              input: new TypeaheadSingle({
                                   "default": field["input"]["value0"]["default"],
                                   value: Data_Functor.map(functorInputSource)(Lynx_Data_Expr.val_)(val),
                                   options: field.input.value0.options
                               })
                           };
                       };
-                      throw new Error("Failed pattern match at Lynx.Data.Form (line 298, column 26 - line 310, column 67): " + [ field.input.constructor.name ]);
+                      throw new Error("Failed pattern match at Lynx.Data.Form (line 298, column 26 - line 310, column 73): " + [ field.input.constructor.name ]);
                   };
                   if (Data_Boolean.otherwise) {
                       return field;
@@ -19641,11 +19641,11 @@ var PS = {};
                       });
                   });
               };
-              if (v instanceof Typeahead) {
+              if (v instanceof TypeaheadSingle) {
                   return Control_Bind.bind(Data_Either.bindEither)(Data_Traversable.traverse(Data_Traversable.traversableMaybe)(Data_Either.applicativeEither)(Lynx_Data_Expr.evalExpr(get))(v["value0"]["default"]))(function (v1) {
                       return Control_Bind.bind(Data_Either.bindEither)(Lynx_Data_Expr.evalExpr(get)(v.value0.options))(function (v2) {
                           return Control_Bind.bind(Data_Either.bindEither)(Data_Traversable.traverse(traversableInputSource)(Data_Either.applicativeEither)(Lynx_Data_Expr.evalExpr(get))(v.value0.value))(function (v3) {
-                              return Control_Applicative.pure(Data_Either.applicativeEither)(new Typeahead({
+                              return Control_Applicative.pure(Data_Either.applicativeEither)(new TypeaheadSingle({
                                   "default": v1,
                                   options: v2,
                                   value: v3
@@ -19654,7 +19654,7 @@ var PS = {};
                       });
                   });
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 194, column 15 - line 261, column 51): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 194, column 15 - line 261, column 57): " + [ v.constructor.name ]);
           };
           var evalField = function (field) {
               return Control_Bind.bind(Data_Either.bindEither)(Lynx_Data_Expr.evalExpr(get)(field.description))(function (v) {
@@ -19717,7 +19717,7 @@ var PS = {};
   exports["Dropdown"] = Dropdown;
   exports["Text"] = Text;
   exports["Toggle"] = Toggle;
-  exports["Typeahead"] = Typeahead;
+  exports["TypeaheadSingle"] = TypeaheadSingle;
   exports["UserInput"] = UserInput;
   exports["Invalid"] = Invalid;
   exports["NotSet"] = NotSet;
@@ -25661,8 +25661,7 @@ var PS = {};
   exports["gRouteAll"] = gRouteAll;
 })(PS["Routing.Duplex.Generic"] = PS["Routing.Duplex.Generic"] || {});
 (function(exports) {
-  // Generated by purs version 0.12.3
-  "use strict";
+    "use strict";
   var Control_Applicative = PS["Control.Applicative"];
   var Control_Bind = PS["Control.Bind"];
   var Control_Monad_State_Class = PS["Control.Monad.State.Class"];
@@ -25800,20 +25799,20 @@ var PS = {};
       };
       return DateTimePickerQuery;
   })();
-  var TypeaheadQuery = (function () {
-      function TypeaheadQuery(value0, value1, value2) {
+  var TypeaheadSingleQuery = (function () {
+      function TypeaheadSingleQuery(value0, value1, value2) {
           this.value0 = value0;
           this.value1 = value1;
           this.value2 = value2;
       };
-      TypeaheadQuery.create = function (value0) {
+      TypeaheadSingleQuery.create = function (value0) {
           return function (value1) {
               return function (value2) {
-                  return new TypeaheadQuery(value0, value1, value2);
+                  return new TypeaheadSingleQuery(value0, value1, value2);
               };
           };
       };
-      return TypeaheadQuery;
+      return TypeaheadSingleQuery;
   })();
   var genericRoute = new Data_Generic_Rep.Generic(function (x) {
       if (x instanceof MVP) {
@@ -25905,7 +25904,7 @@ var PS = {};
                           if (field.input instanceof Lynx_Data_Form.Toggle) {
                               return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
                           };
-                          if (field.input instanceof Lynx_Data_Form.Typeahead) {
+                          if (field.input instanceof Lynx_Data_Form.TypeaheadSingle) {
                               return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(Lynx_Data_Expr.toArray(field.input.value0.options))(function (options) {
                                   return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Either.eqEither(Data_Eq.eqString)(Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))))(Halogen_Component_ChildPath.cp3)(field.key)(new Ocelot_Component_Typeahead_Base.ReplaceItems(Control_Applicative.pure(Network_RemoteData.applicativeRemoteData)(options), Data_Unit.unit));
                               });
@@ -25982,7 +25981,7 @@ var PS = {};
           };
           throw new Error("Failed pattern match at Lynx.Page.Form (line 281, column 40 - line 287, column 43): " + [ v.value1.constructor.name ]);
       };
-      if (v instanceof TypeaheadQuery) {
+      if (v instanceof TypeaheadSingleQuery) {
           if (v.value1 instanceof Ocelot_Component_Typeahead_Base.Emit) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value2)($$eval(v.value1.value0));
           };
@@ -25995,7 +25994,7 @@ var PS = {};
           if (v.value1 instanceof Ocelot_Component_Typeahead_Base.SelectionChanged) {
               return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
           };
-          throw new Error("Failed pattern match at Lynx.Page.Form (line 289, column 35 - line 293, column 44): " + [ v.value1.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Page.Form (line 289, column 41 - line 293, column 44): " + [ v.value1.constructor.name ]);
       };
       throw new Error("Failed pattern match at Lynx.Page.Form (line 237, column 8 - line 293, column 44): " + [ v.constructor.name ]);
   };
@@ -26046,7 +26045,7 @@ var PS = {};
                   return UpdateKey.create(v.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr["Boolean"].create($137)));
               })) ]);
           };
-          if (v.input instanceof Lynx_Data_Form.Typeahead) {
+          if (v.input instanceof Lynx_Data_Form.TypeaheadSingle) {
               return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(v.key)(Ocelot_Component_Typeahead_Base.single(dictMonadAff)(Lynx_Data_Expr.eqExprType))((function () {
                   var v1 = Ocelot_Component_Typeahead.syncSingle(dictMonadAff)(Lynx_Data_Expr.eqExprType)({
                       itemToObject: function (item) {
@@ -26075,9 +26074,9 @@ var PS = {};
                       async: v1.async,
                       render: v1.render
                   };
-              })())(Halogen_HTML_Events.input(TypeaheadQuery.create(v.key)));
+              })())(Halogen_HTML_Events.input(TypeaheadSingleQuery.create(v.key)));
           };
-          throw new Error("Failed pattern match at Lynx.Page.Form (line 167, column 25 - line 234, column 46): " + [ v.input.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Page.Form (line 167, column 25 - line 234, column 52): " + [ v.input.constructor.name ]);
       };
       var renderField = function (v) {
           return Ocelot_Block_FormField.field_({
@@ -26140,7 +26139,7 @@ var PS = {};
   exports["UpdateKey"] = UpdateKey;
   exports["DropdownQuery"] = DropdownQuery;
   exports["DateTimePickerQuery"] = DateTimePickerQuery;
-  exports["TypeaheadQuery"] = TypeaheadQuery;
+  exports["TypeaheadSingleQuery"] = TypeaheadSingleQuery;
   exports["component"] = component;
   exports["eqRoute"] = eqRoute;
   exports["genericRoute"] = genericRoute;
