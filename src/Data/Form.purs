@@ -13,8 +13,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, cents_, evalExpr, if_, lookup_, string_)
-import Lynx.Data.Expr as Lynx.Data.Expr
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, string_, val_)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -298,17 +297,17 @@ setValue key val page = page { contents = map setSection page.contents}
   setField field
     | key == field.key = case field.input of
       Currency input ->
-        field { input = Currency input { value = map Val val } }
+        field { input = Currency input { value = map val_ val } }
       DateTime input ->
-        field { input = DateTime input { value = map Val val } }
+        field { input = DateTime input { value = map val_ val } }
       Dropdown input ->
-        field { input = Dropdown input { value = map Val val } }
+        field { input = Dropdown input { value = map val_ val } }
       Text input ->
-        field { input = Text input { value = map Val val } }
+        field { input = Text input { value = map val_ val } }
       Toggle input ->
-        field { input = Toggle input { value = map Val val } }
+        field { input = Toggle input { value = map val_ val } }
       Typeahead input ->
-        field { input = Typeahead input { value = map Val val } }
+        field { input = Typeahead input { value = map val_ val } }
     | otherwise = field
 
 -- MVP
@@ -333,22 +332,22 @@ mvpPage =
 
 mvpEnd :: Field Expr
 mvpEnd =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     DateTime
       { default: Nothing
-      , placeholder: string_ "Choose a end date for the campaign"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose a end date for the campaign")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "end"
-  , name: string_ "End"
-  , visibility: boolean_ true
+  , name: val_ (string_ "End")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpFacebookTwitterPage :: Field Expr
 mvpFacebookTwitterPage =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Typeahead
       { default: Nothing
@@ -356,146 +355,104 @@ mvpFacebookTwitterPage =
       , value: NotSet
       }
   , key: "facebook-twitter-page"
-  , name: string_ "Facebook / Twitter Page"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Facebook / Twitter Page")
+  , visibility: val_ (boolean_ true)
   }
   where
   options :: Expr
   options =
-    Val
-    ( Lynx.Data.Expr.Array
-      [ Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "ABC News"
-        , value: Lynx.Data.Expr.String "ABC News"
-        }
-      ,  Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "CBS New York"
-        , value: Lynx.Data.Expr.String "CBS New York"
-        }
-      ,  Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "NBC News"
-        , value: Lynx.Data.Expr.String "NBC News"
-        }
+    val_
+    ( array_
+      [ pair_ { name: string_ "ABC News", value: string_ "ABC News"}
+      , pair_ { name: string_ "CBS New York", value: string_ "CBS New York"}
+      , pair_ { name: string_ "NBC News", value: string_ "NBC News"}
       ]
     )
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Currency
       { default: Nothing
-      , placeholder: cents_ (wrap zero)
-      , required: boolean_ true
+      , placeholder: val_ (cents_ (wrap zero))
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "media-budget"
-  , name: string_ "Media Budget"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Media Budget")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpName :: Field Expr
 mvpName =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Text
       { default: Nothing
       , maxLength: Nothing
       , minLength: Nothing
-      , placeholder: string_ ""
-      , required: boolean_ true
+      , placeholder: val_ (string_ "")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "name"
-  , name: string_ "Name"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Name")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpObjective :: Field Expr
 mvpObjective =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Dropdown
       { default: Nothing
       , options
-      , placeholder: string_ "Choose an objective"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose an objective")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "objective"
-  , name: string_ "Objective"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Objective")
+  , visibility: val_ (boolean_ true)
   }
   where
   options :: Expr
   options =
-    Val
-    ( Lynx.Data.Expr.Array
-      [ Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "App Installs"
-        , value: Lynx.Data.Expr.String "App Installs"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Brand Awareness"
-        , value: Lynx.Data.Expr.String "Brand Awareness"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Conversions"
-        , value: Lynx.Data.Expr.String "Conversions"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Event Responses"
-        , value: Lynx.Data.Expr.String "Event Responses"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Lead Generation"
-        , value: Lynx.Data.Expr.String "Lead Generation"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Link Clicks"
-        , value: Lynx.Data.Expr.String "Link Clicks"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Offer Claims"
-        , value: Lynx.Data.Expr.String "Offer Claims"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Page Likes"
-        , value: Lynx.Data.Expr.String "Page Likes"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Post Engagement"
-        , value: Lynx.Data.Expr.String "Post Engagement"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Reach"
-        , value: Lynx.Data.Expr.String "Reach"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "VideoViews"
-        , value: Lynx.Data.Expr.String "VideoViews"
-        }
+    val_
+    ( array_
+      [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
+      , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
+      , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
+      , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
+      , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
+      , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
+      , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
+      , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
+      , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
+      , pair_ { name: string_ "Reach", value: string_ "Reach" }
+      , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
       ]
     )
 
 mvpStart :: Field Expr
 mvpStart =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     DateTime
       { default: Nothing
-      , placeholder: string_ "Choose a start date for the campaign"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose a start date for the campaign")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "start"
-  , name: string_ "Start"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Start")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpTargetableInterest :: Field Expr
 mvpTargetableInterest =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Typeahead
       { default: Nothing
@@ -503,26 +460,17 @@ mvpTargetableInterest =
       , value: NotSet
       }
   , key: "targetable-interest"
-  , name: string_ "Targetable Interest"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Targetable Interest")
+  , visibility: val_ (boolean_ true)
   }
   where
   options :: Expr
   options =
-    Val
-    ( Lynx.Data.Expr.Array
-      [ Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "ABC"
-        , value: Lynx.Data.Expr.String "ABC"
-        }
-      ,  Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "CBS"
-        , value: Lynx.Data.Expr.String "CBS"
-        }
-      ,  Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "NBC"
-        , value: Lynx.Data.Expr.String "NBC"
-        }
+    val_
+    ( array_
+      [ pair_ { name: string_ "ABC", value: string_ "ABC" }
+      , pair_ { name: string_ "CBS", value: string_ "CBS" }
+      , pair_ { name: string_ "NBC", value: string_ "NBC" }
       ]
     )
 
@@ -550,105 +498,90 @@ testSection =
 
 firstName :: Field Expr
 firstName =
-  { name: string_ "First Name"
-  , visibility: boolean_ true
-  , description: string_ "Enter your first name"
+  { name: val_ (string_ "First Name")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "Enter your first name")
   , key: "firstName"
   , input: Text
-    { default: Just (string_ "John")
+    { default: Just (val_ (string_ "John"))
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
 
 lastName :: Field Expr
 lastName =
-  { name: string_ "Last Name"
-  , visibility: boolean_ true
-  , description: string_ "Enter your last name"
+  { name: val_ (string_ "Last Name")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "Enter your last name")
   , key: "lastName"
   , input: Text
-    { default: Just (string_ "Smith")
+    { default: Just (val_ (string_ "Smith"))
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
 
 active :: Field Expr
 active =
-  { name: string_ "Active"
-  , visibility: boolean_ true
+  { name: val_ (string_ "Active")
+  , visibility: val_ (boolean_ true)
   , description
   , key: "active"
   , input: Toggle
-    { default: Just (boolean_ true)
+    { default: Just (val_ (boolean_ true))
     , value: NotSet
     }
   }
   where
-  description = if_ (lookup_ "active" $ boolean_ true)
-    (string_ "User's account is active!")
-    (string_ "User's account is not active")
+  description = if_ (lookup_ "active" $ val_ (boolean_ true))
+    (val_ (string_ "User's account is active!"))
+    (val_ (string_ "User's account is not active"))
 
 food :: Field Expr
 food =
-  { name: string_ "Favorite Food"
-  , visibility: boolean_ true
-  , description: string_ "What is your favorite food?"
+  { name: val_ (string_ "Favorite Food")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "What is your favorite food?")
   , key: "food"
   , input: Dropdown
     { default: Nothing
     , options:
-      If
-        do Lookup "active" (Val $ Lynx.Data.Expr.Boolean false)
-        do Val $
-          Lynx.Data.Expr.Array
-            [ Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Strawberry"
-              , value: Lynx.Data.Expr.String "Strawberry"
-              }
-            , Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Blueberry"
-              , value: Lynx.Data.Expr.String "Blueberry"
-              }
+      if_
+        do lookup_ "active" (val_ $ boolean_ false)
+        do val_ $
+          array_
+            [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
+            , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
             ]
-        do Val $
-          Lynx.Data.Expr.Array
-            [ Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Apple"
-              , value: Lynx.Data.Expr.String "Apple"
-              }
-            , Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Banana"
-              , value: Lynx.Data.Expr.String "Banana"
-              }
-            , Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Cherry"
-              , value: Lynx.Data.Expr.String "Cherry"
-              }
+        do val_ $
+          array_
+            [ pair_ { name: string_ "Apple", value: string_ "Apple" }
+            , pair_ { name: string_ "Banana", value: string_ "Banana" }
+            , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
             ]
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
 
 money :: Field Expr
 money =
-  { name: string_ "money"
-  , visibility: boolean_ true
-  , description: string_ ""
+  { name: val_ (string_ "money")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "")
   , key: "money"
   , input: Currency
     { default: Nothing
-    , placeholder: cents_ (wrap zero)
-    , required: boolean_ true
+    , placeholder: val_ (cents_ (wrap zero))
+    , required: val_ (boolean_ true)
     , value: NotSet
     }
   }
