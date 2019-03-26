@@ -13,8 +13,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, boolean_, cents_, evalExpr, if_, lookup_, string_, val_)
-import Lynx.Data.Expr as Lynx.Data.Expr
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, string_, val_)
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -379,51 +378,18 @@ mvpObjective =
   options :: Expr
   options =
     val_
-    ( Lynx.Data.Expr.Array
-      [ Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "App Installs"
-        , value: Lynx.Data.Expr.String "App Installs"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Brand Awareness"
-        , value: Lynx.Data.Expr.String "Brand Awareness"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Conversions"
-        , value: Lynx.Data.Expr.String "Conversions"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Event Responses"
-        , value: Lynx.Data.Expr.String "Event Responses"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Lead Generation"
-        , value: Lynx.Data.Expr.String "Lead Generation"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Link Clicks"
-        , value: Lynx.Data.Expr.String "Link Clicks"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Offer Claims"
-        , value: Lynx.Data.Expr.String "Offer Claims"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Page Likes"
-        , value: Lynx.Data.Expr.String "Page Likes"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Post Engagement"
-        , value: Lynx.Data.Expr.String "Post Engagement"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "Reach"
-        , value: Lynx.Data.Expr.String "Reach"
-        }
-      , Lynx.Data.Expr.Pair
-        { name: Lynx.Data.Expr.String "VideoViews"
-        , value: Lynx.Data.Expr.String "VideoViews"
-        }
+    ( array_
+      [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
+      , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
+      , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
+      , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
+      , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
+      , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
+      , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
+      , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
+      , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
+      , pair_ { name: string_ "Reach", value: string_ "Reach" }
+      , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
       ]
     )
 
@@ -521,33 +487,18 @@ food =
   , input: Dropdown
     { default: Nothing
     , options:
-      If
-        do Lookup "active" (val_ $ Lynx.Data.Expr.Boolean false)
+      if_
+        do lookup_ "active" (val_ $ boolean_ false)
         do val_ $
-          Lynx.Data.Expr.Array
-            [ Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Strawberry"
-              , value: Lynx.Data.Expr.String "Strawberry"
-              }
-            , Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Blueberry"
-              , value: Lynx.Data.Expr.String "Blueberry"
-              }
+          array_
+            [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
+            , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
             ]
         do val_ $
-          Lynx.Data.Expr.Array
-            [ Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Apple"
-              , value: Lynx.Data.Expr.String "Apple"
-              }
-            , Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Banana"
-              , value: Lynx.Data.Expr.String "Banana"
-              }
-            , Lynx.Data.Expr.Pair
-              { name: Lynx.Data.Expr.String "Cherry"
-              , value: Lynx.Data.Expr.String "Cherry"
-              }
+          array_
+            [ pair_ { name: string_ "Apple", value: string_ "Apple" }
+            , pair_ { name: string_ "Banana", value: string_ "Banana" }
+            , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
             ]
     , placeholder: val_ (string_ "")
     , required: val_ (boolean_ true)

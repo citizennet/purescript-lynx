@@ -287,6 +287,9 @@ evalExpr get = case _ of
   Print x' -> map (String <<< print) (evalExpr get x')
   Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
+array_ :: Array ExprType -> ExprType
+array_ = Array
+
 boolean_ :: Boolean -> ExprType
 boolean_ = Boolean
 
@@ -298,6 +301,9 @@ datetime_ = DateTime
 
 int_ :: Int -> ExprType
 int_ = Int
+
+pair_ :: { name :: ExprType, value :: ExprType } -> ExprType
+pair_ = Pair
 
 string_ :: String -> ExprType
 string_ = String

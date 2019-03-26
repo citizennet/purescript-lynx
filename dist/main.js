@@ -18464,6 +18464,7 @@ var PS = {};
       };
       throw new Error("Failed pattern match at Lynx.Data.Expr (line 118, column 9 - line 125, column 16): " + [ v.constructor.name ]);
   };
+  var pair_ = Pair.create;
   var lookup_ = Lookup.create;
   var if_ = If.create;
   var evalExpr = function (get) {
@@ -18543,13 +18544,12 @@ var PS = {};
   var datetime_ = DateTime.create;
   var cents_ = Cents.create;
   var boolean_ = $$Boolean.create;
-  exports["Array"] = $$Array;
+  var array_ = $$Array.create;
   exports["Boolean"] = $$Boolean;
   exports["Cents"] = Cents;
   exports["DateTime"] = DateTime;
   exports["Int"] = Int;
   exports["Pair"] = Pair;
-  exports["String"] = $$String;
   exports["reflectType"] = reflectType;
   exports["print"] = print;
   exports["toArray"] = toArray;
@@ -18566,9 +18566,11 @@ var PS = {};
   exports["IfCondition"] = IfCondition;
   exports["EqualMismatch"] = EqualMismatch;
   exports["evalExpr"] = evalExpr;
+  exports["array_"] = array_;
   exports["boolean_"] = boolean_;
   exports["cents_"] = cents_;
   exports["datetime_"] = datetime_;
+  exports["pair_"] = pair_;
   exports["string_"] = string_;
   exports["if_"] = if_;
   exports["lookup_"] = lookup_;
@@ -18710,39 +18712,39 @@ var PS = {};
       visibility: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true))
   };
   var mvpObjective = (function () {
-      var options = Lynx_Data_Expr.val_(new Lynx_Data_Expr["Array"]([ new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("App Installs"),
-          value: new Lynx_Data_Expr["String"]("App Installs")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Brand Awareness"),
-          value: new Lynx_Data_Expr["String"]("Brand Awareness")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Conversions"),
-          value: new Lynx_Data_Expr["String"]("Conversions")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Event Responses"),
-          value: new Lynx_Data_Expr["String"]("Event Responses")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Lead Generation"),
-          value: new Lynx_Data_Expr["String"]("Lead Generation")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Link Clicks"),
-          value: new Lynx_Data_Expr["String"]("Link Clicks")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Offer Claims"),
-          value: new Lynx_Data_Expr["String"]("Offer Claims")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Page Likes"),
-          value: new Lynx_Data_Expr["String"]("Page Likes")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Post Engagement"),
-          value: new Lynx_Data_Expr["String"]("Post Engagement")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("Reach"),
-          value: new Lynx_Data_Expr["String"]("Reach")
-      }), new Lynx_Data_Expr.Pair({
-          name: new Lynx_Data_Expr["String"]("VideoViews"),
-          value: new Lynx_Data_Expr["String"]("VideoViews")
+      var options = Lynx_Data_Expr.val_(Lynx_Data_Expr.array_([ Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("App Installs"),
+          value: Lynx_Data_Expr.string_("App Installs")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Brand Awareness"),
+          value: Lynx_Data_Expr.string_("Brand Awareness")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Conversions"),
+          value: Lynx_Data_Expr.string_("Conversions")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Event Responses"),
+          value: Lynx_Data_Expr.string_("Event Responses")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Lead Generation"),
+          value: Lynx_Data_Expr.string_("Lead Generation")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Link Clicks"),
+          value: Lynx_Data_Expr.string_("Link Clicks")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Offer Claims"),
+          value: Lynx_Data_Expr.string_("Offer Claims")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Page Likes"),
+          value: Lynx_Data_Expr.string_("Page Likes")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Post Engagement"),
+          value: Lynx_Data_Expr.string_("Post Engagement")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("Reach"),
+          value: Lynx_Data_Expr.string_("Reach")
+      }), Lynx_Data_Expr.pair_({
+          name: Lynx_Data_Expr.string_("VideoViews"),
+          value: Lynx_Data_Expr.string_("VideoViews")
       }) ]));
       return {
           description: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
@@ -18852,7 +18854,7 @@ var PS = {};
               if (field.input instanceof Toggle) {
                   return getValue(field.input.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 264, column 13 - line 269, column 39): " + [ field.input.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 263, column 13 - line 268, column 39): " + [ field.input.constructor.name ]);
           })();
           if (value instanceof Data_Maybe.Just) {
               var v = Lynx_Data_Expr.evalExpr(Data_Function["const"](Data_Maybe.Nothing.value))(value.value0);
@@ -18862,12 +18864,12 @@ var PS = {};
               if (v instanceof Data_Either.Right) {
                   return Data_Map_Internal.singleton(field.key)(v.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 259, column 18 - line 261, column 48): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 258, column 18 - line 260, column 48): " + [ v.constructor.name ]);
           };
           if (value instanceof Data_Maybe.Nothing) {
               return Data_Monoid.mempty(Data_Map_Internal.monoidMap(Data_Ord.ordString));
           };
-          throw new Error("Failed pattern match at Lynx.Data.Form (line 258, column 21 - line 262, column 22): " + [ value.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Form (line 257, column 21 - line 261, column 22): " + [ value.constructor.name ]);
       };
       var keysSection = function (section) {
           return Data_Foldable.foldMap(Data_Foldable.foldableArray)(Data_Map_Internal.monoidMap(Data_Ord.ordString))(keysField)(section.contents);
@@ -18888,7 +18890,7 @@ var PS = {};
           if (m instanceof UserCleared) {
               return UserCleared.value;
           };
-          throw new Error("Failed pattern match at Lynx.Data.Form (line 119, column 8 - line 119, column 58): " + [ m.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Data.Form (line 118, column 8 - line 118, column 58): " + [ m.constructor.name ]);
       };
   });
   var setValue = function (key) {
@@ -18967,12 +18969,12 @@ var PS = {};
                               })
                           };
                       };
-                      throw new Error("Failed pattern match at Lynx.Data.Form (line 285, column 26 - line 295, column 64): " + [ field.input.constructor.name ]);
+                      throw new Error("Failed pattern match at Lynx.Data.Form (line 284, column 26 - line 294, column 64): " + [ field.input.constructor.name ]);
                   };
                   if (Data_Boolean.otherwise) {
                       return field;
                   };
-                  throw new Error("Failed pattern match at Lynx.Data.Form (line 283, column 3 - line 283, column 39): " + [ field.constructor.name ]);
+                  throw new Error("Failed pattern match at Lynx.Data.Form (line 282, column 3 - line 282, column 39): " + [ field.constructor.name ]);
               };
               var setSection = function (section) {
                   return {
@@ -18994,21 +18996,21 @@ var PS = {};
       key: "food",
       input: new Dropdown({
           "default": Data_Maybe.Nothing.value,
-          options: new Lynx_Data_Expr.If(new Lynx_Data_Expr.Lookup("active", Lynx_Data_Expr.val_(new Lynx_Data_Expr["Boolean"](false))), Lynx_Data_Expr.val_(new Lynx_Data_Expr["Array"]([ new Lynx_Data_Expr.Pair({
-              name: new Lynx_Data_Expr["String"]("Strawberry"),
-              value: new Lynx_Data_Expr["String"]("Strawberry")
-          }), new Lynx_Data_Expr.Pair({
-              name: new Lynx_Data_Expr["String"]("Blueberry"),
-              value: new Lynx_Data_Expr["String"]("Blueberry")
-          }) ])), Lynx_Data_Expr.val_(new Lynx_Data_Expr["Array"]([ new Lynx_Data_Expr.Pair({
-              name: new Lynx_Data_Expr["String"]("Apple"),
-              value: new Lynx_Data_Expr["String"]("Apple")
-          }), new Lynx_Data_Expr.Pair({
-              name: new Lynx_Data_Expr["String"]("Banana"),
-              value: new Lynx_Data_Expr["String"]("Banana")
-          }), new Lynx_Data_Expr.Pair({
-              name: new Lynx_Data_Expr["String"]("Cherry"),
-              value: new Lynx_Data_Expr["String"]("Cherry")
+          options: Lynx_Data_Expr.if_(Lynx_Data_Expr.lookup_("active")(Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(false))))(Lynx_Data_Expr.val_(Lynx_Data_Expr.array_([ Lynx_Data_Expr.pair_({
+              name: Lynx_Data_Expr.string_("Strawberry"),
+              value: Lynx_Data_Expr.string_("Strawberry")
+          }), Lynx_Data_Expr.pair_({
+              name: Lynx_Data_Expr.string_("Blueberry"),
+              value: Lynx_Data_Expr.string_("Blueberry")
+          }) ])))(Lynx_Data_Expr.val_(Lynx_Data_Expr.array_([ Lynx_Data_Expr.pair_({
+              name: Lynx_Data_Expr.string_("Apple"),
+              value: Lynx_Data_Expr.string_("Apple")
+          }), Lynx_Data_Expr.pair_({
+              name: Lynx_Data_Expr.string_("Banana"),
+              value: Lynx_Data_Expr.string_("Banana")
+          }), Lynx_Data_Expr.pair_({
+              name: Lynx_Data_Expr.string_("Cherry"),
+              value: Lynx_Data_Expr.string_("Cherry")
           }) ]))),
           placeholder: Lynx_Data_Expr.val_(Lynx_Data_Expr.string_("")),
           required: Lynx_Data_Expr.val_(Lynx_Data_Expr.boolean_(true)),
@@ -19030,7 +19032,7 @@ var PS = {};
               if (v instanceof UserCleared) {
                   return Data_Monoid.mempty(dictMonoid);
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 124, column 15 - line 128, column 26): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 123, column 15 - line 127, column 26): " + [ v.constructor.name ]);
           };
       };
   }, function (f) {
@@ -19059,7 +19061,7 @@ var PS = {};
               if (v instanceof UserCleared) {
                   return Control_Applicative.pure(dictApplicative)(UserCleared.value);
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 134, column 16 - line 138, column 36): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 133, column 16 - line 137, column 36): " + [ v.constructor.name ]);
           };
       };
   });
@@ -19163,7 +19165,7 @@ var PS = {};
                       });
                   });
               };
-              throw new Error("Failed pattern match at Lynx.Data.Form (line 187, column 15 - line 249, column 39): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Data.Form (line 186, column 15 - line 248, column 39): " + [ v.constructor.name ]);
           };
           var evalField = function (field) {
               return Control_Bind.bind(Data_Either.bindEither)(Lynx_Data_Expr.evalExpr(get)(field.description))(function (v) {
