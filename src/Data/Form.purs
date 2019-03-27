@@ -3,7 +3,7 @@ module Lynx.Data.Form where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
@@ -75,6 +75,8 @@ type DropdownRows f r =
 
 type TypeaheadSingleRows f r =
   ( options :: f
+  , resultValue :: f
+  , results :: f
   | r
   )
 
@@ -257,8 +259,10 @@ eval get page = do
     TypeaheadSingle input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
+      resultValue <- evalExpr get input.resultValue
+      results <- evalExpr get input.results
       value <- traverse (evalExpr get) input.value
-      pure (TypeaheadSingle { default, options, value })
+      pure (TypeaheadSingle { default, options, resultValue, results, value })
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -351,23 +355,23 @@ mvpFacebookTwitterPage =
   , input:
     TypeaheadSingle
       { default: Nothing
-      , options
+      , options: val_ (array_ [])
+      , resultValue: val_ (array_ [string_ "name"])
+      , results: val_ (array_ [])
       , value: NotSet
       }
   , key: "facebook-twitter-page"
   , name: val_ (string_ "Facebook / Twitter Page")
   , visibility: val_ (boolean_ true)
   }
-  where
-  options :: Expr
-  options =
-    val_
-    ( array_
-      [ pair_ { name: string_ "ABC News", value: string_ "ABC News"}
-      , pair_ { name: string_ "CBS New York", value: string_ "CBS New York"}
-      , pair_ { name: string_ "NBC News", value: string_ "NBC News"}
-      ]
-    )
+
+mvpFacebookTwitterPageJSON :: Json
+mvpFacebookTwitterPageJSON =
+  encodeJson
+    [ { name: "ABC News" }
+    , { name: "CBS New York" }
+    , { name: "NBC News" }
+    ]
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
@@ -456,23 +460,23 @@ mvpTargetableInterest =
   , input:
     TypeaheadSingle
       { default: Nothing
-      , options
+      , options: val_ (array_ [])
+      , resultValue: val_ (array_ [string_ "name"])
+      , results: val_ (array_ [])
       , value: NotSet
       }
   , key: "targetable-interest"
   , name: val_ (string_ "Targetable Interest")
   , visibility: val_ (boolean_ true)
   }
-  where
-  options :: Expr
-  options =
-    val_
-    ( array_
-      [ pair_ { name: string_ "ABC", value: string_ "ABC" }
-      , pair_ { name: string_ "CBS", value: string_ "CBS" }
-      , pair_ { name: string_ "NBC", value: string_ "NBC" }
-      ]
-    )
+
+mvpTargetableInterestJSON :: Json
+mvpTargetableInterestJSON =
+  encodeJson
+    [ { name: "ABC" }
+    , { name: "CBS" }
+    , { name: "NBC" }
+    ]
 
 -- Test
 
