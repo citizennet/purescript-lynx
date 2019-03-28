@@ -3,9 +3,10 @@ module Lynx.Page.Form where
 import Prelude
 
 import Data.Bifoldable (bifor_)
-import Data.Either.Nested (Either1)
+import Data.Const (Const)
+import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
-import Data.Functor.Coproduct.Nested (Coproduct1)
+import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -14,25 +15,31 @@ import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
 import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
+import Foreign.Object as Foreign.Object
 import Halogen as H
-import Halogen.Component.ChildPath (cp1)
+import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, print, reflectType, toArray, toBoolean, toCents, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage)
+import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, datetime_, print, reflectType, toArray, toBoolean, toCents, toDateTime, toPair, toString)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage, userInput)
+import Lynx.Data.Expr as Lynx.Data.Expr
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
+import Network.RemoteData as Network.RemoteData
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
+import Ocelot.Block.ItemContainer (boldMatches)
 import Ocelot.Block.Layout as Layout
 import Ocelot.Block.Toggle (toggle) as Toggle
+import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.Data.Currency (parseCentsFromDollarStr)
+import Ocelot.Component.Typeahead as Typeahead
 import Ocelot.HTML.Properties (css)
 import Routing.Duplex (RouteDuplex', path)
 import Routing.Duplex.Generic (noArgs, sum)
@@ -67,14 +74,22 @@ data Query a
   | EvalForm (Page Expr) a
   | UpdateValue Key (InputSource Expr) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
+  | DateTimePickerQuery Key DateTimePicker.Message a
+  | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
 
 type ParentInput = Route
 
-type ChildQuery m = Coproduct1 (DropdownQuery m)
+type ChildQuery m
+  = Dropdown.Query Query ExprType  m
+  <\/> DateTimePicker.Query
+  <\/> Typeahead.Query Query Maybe ExprType m
+  <\/> Const Void
 
-type ChildSlot = Either1 Key
-
-type DropdownQuery m = Dropdown.Query Query ExprType m
+type ChildSlot
+  = Key
+  \/ Key
+  \/ Key
+  \/ Void
 
 type Message = Void
 
@@ -165,6 +180,15 @@ component =
           pure (print value)
         , HE.onValueChange (HE.input $ UpdateValue field.key <<< Data.Maybe.maybe UserCleared (UserInput <<< Val <<< Cents) <<< parseCentsFromDollarStr)
         ]
+    DateTime dateTime ->
+      HH.slot'
+        cp2
+        field.key
+        DateTimePicker.component
+        { selection: toDateTime =<< getValue dateTime
+        , targetDate: Nothing
+        }
+        (HE.input $ DateTimePickerQuery field.key)
     Dropdown dropdown ->
       HH.slot' cp1 field.key Dropdown.component
         { selectedItem: getValue dropdown
@@ -189,8 +213,26 @@ component =
       Toggle.toggle
         [ HP.checked $ Data.Maybe.fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateValue field.key <<< UserInput <<< Val <<< Boolean)
+        , HE.onChecked (HE.input $ UpdateValue field.key <<< UserInput <<< Lynx.Data.Expr.Boolean)
         ]
+    TypeaheadSingle typeahead ->
+      HH.slot'
+        cp3
+        field.key
+        Typeahead.single
+        ( Typeahead.syncSingle
+          { itemToObject: \item -> fold do
+            { name: name', value: value' } <- toPair item
+            name <- toString name'
+            value <- toString value'
+            pure (Foreign.Object.fromHomogeneous { name, value })
+          , renderFuzzy: HH.span_ <<< boldMatches "value"
+          }
+          []
+        )
+        { items = Network.RemoteData.fromMaybe (toArray typeahead.options)
+        }
+        (HE.input $ TypeaheadSingleQuery field.key)
 
   renderValidation
     :: Input ExprType
@@ -235,11 +277,15 @@ eval = case _ of
         for_ section.contents \field -> do
           case field.input of
             Currency _ -> pure unit
+            DateTime _ -> pure unit
             Dropdown dropdown ->
               for_ (toArray dropdown.options) \options ->
                 H.query' cp1 field.key (Dropdown.SetItems options unit)
             Text _ -> pure unit
             Toggle _ -> pure unit
+            TypeaheadSingle typeahead ->
+              for_ (toArray typeahead.options) \options ->
+                H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
       pure page
     H.modify_ _
       { form = map { expr, evaled: _ } (fromEither evaled)
@@ -255,5 +301,19 @@ eval = case _ of
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
-    Dropdown.Selected val -> eval (UpdateValue key (UserInput $ Val val) a)
+    Dropdown.Selected val -> eval (UpdateValue key (UserInput val) a)
     Dropdown.VisibilityChanged _ -> pure a
+
+  DateTimePickerQuery key message a -> case message of
+    DateTimePicker.DateMessage _ -> pure a
+    DateTimePicker.SelectionChanged (Just val) ->
+      eval (UpdateKey key (UserInput $ datetime_ val) a)
+    DateTimePicker.SelectionChanged Nothing ->
+      eval (UpdateKey key UserCleared a)
+    DateTimePicker.TimeMessage _ -> pure a
+
+  TypeaheadSingleQuery key message a -> case message of
+    Typeahead.Emit x -> a <$ eval x
+    Typeahead.Searched _ -> pure a
+    Typeahead.Selected val -> eval (UpdateKey key (UserInput val) a)
+    Typeahead.SelectionChanged _ _ -> pure a

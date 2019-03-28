@@ -17,7 +17,8 @@ import Data.Newtype (wrap)
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, boolean_, cents_, evalExpr, if_, lookup_, print, string_, toArray)
+import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, val_, toArray)
+import Lynx.Data.Expr as Lynx.Data.Expr
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -67,17 +68,29 @@ type CurrencyRows f r =
   | r
   )
 
+type DateTimeRows f r =
+  ( placeholder :: f
+  | r
+  )
+
 type DropdownRows f r =
   ( options :: f
   , placeholder :: f
   | r
   )
 
+type TypeaheadSingleRows f r =
+  ( options :: f
+  | r
+  )
+
 data Input f
   = Currency (Record (SharedRows f + RequiredRows f + CurrencyRows f + ()))
+  | DateTime (Record (SharedRows f + RequiredRows f + DateTimeRows f + ()))
   | Dropdown (Record (SharedRows f + RequiredRows f + DropdownRows f + ()))
   | Text (Record (SharedRows f + RequiredRows f + StringRows f ()))
   | Toggle (Record (SharedRows f ()))
+  | TypeaheadSingle (Record (SharedRows f + TypeaheadSingleRows f + ()))
 
 derive instance eqInput :: (Eq f) => Eq (Input f)
 
@@ -87,18 +100,22 @@ instance showInput :: Show (Input Expr) where show = genericShow
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
     Currency r -> "type" := "Currency" ~> encodeJson r
+    DateTime r -> "type" := "DateTime" ~> encodeJson r
     Dropdown r -> "type" := "Dropdown" ~> encodeJson r
     Text r -> "type" := "Text" ~> encodeJson r
     Toggle r -> "type" := "Toggle" ~> encodeJson r
+    TypeaheadSingle r -> "type" := "TypeaheadSingle" ~> encodeJson r
 
 instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
     x .: "type" >>= case _ of
       "Currency" -> pure <<< Currency <=< decodeJson $ json
+      "DateTime" -> pure <<< DateTime <=< decodeJson $ json
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
       "Text" -> pure <<< Text <=< decodeJson $ json
       "Toggle" -> pure <<< Toggle <=< decodeJson $ json
+      "TypeaheadSingle" -> pure <<< TypeaheadSingle <=< decodeJson $ json
       t -> Left $ "Unsupported Input type: " <> t
 
 instance arbitraryInput :: Arbitrary (Input Expr) where
@@ -261,6 +278,18 @@ eval get page = do
         , value
         , errors: mempty
         }
+    DateTime input -> do
+      default <- traverse (evalExpr get) input.default
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      value <- traverse (evalExpr get) input.value
+      pure $ validate $ DateTime
+        { default
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
@@ -302,6 +331,16 @@ eval get page = do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
       pure $ validate $ Toggle { default, value, errors: mempty }
+    TypeaheadSingle input -> do
+      default <- traverse (evalExpr get) input.default
+      options <- evalExpr get input.options
+      value <- traverse (evalExpr get) input.value
+      pure $ validate $ TypeaheadSingle
+        { default
+        , options
+        , value
+        , errors: mempty
+        }
 
   validate :: Input ExprType -> Input ExprType
   validate = case _ of
@@ -327,7 +366,7 @@ eval get page = do
      . Record (SharedRows ExprType + ( required :: ExprType | r ))
     -> Errors ValidationError
   validateRequired input =
-    if input.required == Boolean true && isEmpty (getValue input)
+    if input.required == boolean_ true && isEmpty (getValue input)
       then singletonError Required
       else mempty
 
@@ -355,9 +394,11 @@ keys page = foldMap keysSection page.contents
     where
     value = case field.input of
       Currency currency -> getValue currency
+      DateTime dateTime -> getValue dateTime
       Dropdown dropdown -> getValue dropdown
       Text text -> getValue text
       Toggle toggle -> getValue toggle
+      TypeaheadSingle typeahead -> getValue typeahead
 
 displayError
   :: ∀ r
@@ -368,14 +409,14 @@ displayError x = x.value /= NotSet
 isEmpty :: Maybe ExprType -> Boolean
 isEmpty Nothing = true
 isEmpty (Just x) = case x of
-  Array []  -> true
-  String "" -> true
-  Array _   -> false
-  Boolean _ -> false
-  Cents _   -> false
-  Int _     -> false
-  Pair _    -> false
-  String _  -> false
+  Lynx.Data.Expr.Array []  -> true
+  Lynx.Data.Expr.String "" -> true
+  Lynx.Data.Expr.Array _   -> false
+  Lynx.Data.Expr.Boolean _ -> false
+  Lynx.Data.Expr.Cents _   -> false
+  Lynx.Data.Expr.Int _     -> false
+  Lynx.Data.Expr.Pair _    -> false
+  Lynx.Data.Expr.String _  -> false
 
 getValue
   :: ∀ a r
@@ -383,7 +424,7 @@ getValue
   -> Maybe a
 getValue x = userInput x.value <|> x.default
 
-setValue :: Key -> InputSource Expr -> Page Expr -> Page Expr
+setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
 setValue key val page = page { contents = map setSection page.contents }
   where
   setSection :: Section Expr -> Section Expr
@@ -393,13 +434,17 @@ setValue key val page = page { contents = map setSection page.contents }
   setField field
     | key == field.key = case field.input of
       Currency input ->
-        field { input = Currency input { value = val } }
+        field { input = Currency input { value = map val_ val } }
+      DateTime input ->
+        field { input = DateTime input { value = map val_ val } }
       Dropdown input ->
-        field { input = Dropdown input { value = val } }
+        field { input = Dropdown input { value = map val_ val } }
       Text input ->
-        field { input = Text input { value = val } }
+        field { input = Text input { value = map val_ val } }
       Toggle input ->
-        field { input = Toggle input { value = val } }
+        field { input = Toggle input { value = map val_ val } }
+      TypeaheadSingle input ->
+        field { input = TypeaheadSingle input { value = map val_ val } }
     | otherwise = field
 
 -- MVP
@@ -411,79 +456,165 @@ mvpPage =
     [ { name: "Campaign"
       , contents:
         [ mvpName
+        , mvpTargetableInterest
+        , mvpFacebookTwitterPage
         , mvpObjective
         , mvpMediaBudget
+        , mvpStart
+        , mvpEnd
         ]
       }
     ]
   }
 
+mvpEnd :: Field Expr
+mvpEnd =
+  { description: val_ (string_ "")
+  , input:
+    DateTime
+      { default: Nothing
+      , placeholder: val_ (string_ "Choose a end date for the campaign")
+      , required: val_ (boolean_ true)
+      , value: NotSet
+      , errors: mempty
+      }
+  , key: "end"
+  , name: val_ (string_ "End")
+  , visibility: val_ (boolean_ true)
+  }
+
+mvpFacebookTwitterPage :: Field Expr
+mvpFacebookTwitterPage =
+  { description: val_ (string_ "")
+  , input:
+    TypeaheadSingle
+      { default: Nothing
+      , options
+      , value: NotSet
+      , errors: mempty
+      }
+  , key: "facebook-twitter-page"
+  , name: val_ (string_ "Facebook / Twitter Page")
+  , visibility: val_ (boolean_ true)
+  }
+  where
+  options :: Expr
+  options =
+    val_
+    ( array_
+      [ pair_ { name: string_ "ABC News", value: string_ "ABC News"}
+      , pair_ { name: string_ "CBS New York", value: string_ "CBS New York"}
+      , pair_ { name: string_ "NBC News", value: string_ "NBC News"}
+      ]
+    )
+
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Currency
       { default: Nothing
       , errors: mempty
-      , placeholder: cents_ (wrap zero)
-      , required: boolean_ true
+      , placeholder: val_ (cents_ (wrap zero))
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "media-budget"
-  , name: string_ "Media Budget"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Media Budget")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpName :: Field Expr
 mvpName =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Text
       { default: Nothing
       , errors: mempty
       , maxLength: Nothing
       , minLength: Nothing
-      , placeholder: string_ ""
-      , required: boolean_ true
+      , placeholder: val_ (string_ "")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "name"
-  , name: string_ "Name"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Name")
+  , visibility: val_ (boolean_ true)
   }
 
 mvpObjective :: Field Expr
 mvpObjective =
-  { description: string_ ""
+  { description: val_ (string_ "")
   , input:
     Dropdown
       { default: Nothing
       , errors: mempty
       , options
-      , placeholder: string_ "Choose an objective"
-      , required: boolean_ true
+      , placeholder: val_ (string_ "Choose an objective")
+      , required: val_ (boolean_ true)
       , value: NotSet
       }
   , key: "objective"
-  , name: string_ "Objective"
-  , visibility: boolean_ true
+  , name: val_ (string_ "Objective")
+  , visibility: val_ (boolean_ true)
   }
   where
   options :: Expr
   options =
-    Val
-    ( Array
-      [ Pair { name: String "App Installs", value: String "App Installs" }
-      , Pair { name: String "Brand Awareness", value: String "Brand Awareness" }
-      , Pair { name: String "Conversions", value: String "Conversions" }
-      , Pair { name: String "Event Responses", value: String "Event Responses" }
-      , Pair { name: String "Lead Generation", value: String "Lead Generation" }
-      , Pair { name: String "Link Clicks", value: String "Link Clicks" }
-      , Pair { name: String "Offer Claims", value: String "Offer Claims" }
-      , Pair { name: String "Page Likes", value: String "Page Likes" }
-      , Pair { name: String "Post Engagement", value: String "Post Engagement" }
-      , Pair { name: String "Reach", value: String "Reach" }
-      , Pair { name: String "VideoViews", value: String "VideoViews" }
+    val_
+    ( array_
+      [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
+      , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
+      , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
+      , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
+      , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
+      , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
+      , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
+      , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
+      , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
+      , pair_ { name: string_ "Reach", value: string_ "Reach" }
+      , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
+      ]
+    )
+
+mvpStart :: Field Expr
+mvpStart =
+  { description: val_ (string_ "")
+  , input:
+    DateTime
+      { default: Nothing
+      , placeholder: val_ (string_ "Choose a start date for the campaign")
+      , required: val_ (boolean_ true)
+      , value: NotSet
+      , errors: mempty
+      }
+  , key: "start"
+  , name: val_ (string_ "Start")
+  , visibility: val_ (boolean_ true)
+  }
+
+mvpTargetableInterest :: Field Expr
+mvpTargetableInterest =
+  { description: val_ (string_ "")
+  , input:
+    TypeaheadSingle
+      { default: Nothing
+      , options
+      , value: NotSet
+      , errors: mempty
+      }
+  , key: "targetable-interest"
+  , name: val_ (string_ "Targetable Interest")
+  , visibility: val_ (boolean_ true)
+  }
+  where
+  options :: Expr
+  options =
+    val_
+    ( array_
+      [ pair_ { name: string_ "ABC", value: string_ "ABC" }
+      , pair_ { name: string_ "CBS", value: string_ "CBS" }
+      , pair_ { name: string_ "NBC", value: string_ "NBC" }
       ]
     )
 
@@ -511,16 +642,16 @@ testSection =
 
 firstName :: Field Expr
 firstName =
-  { name: string_ "First Name"
-  , visibility: boolean_ true
-  , description: string_ "Enter your first name"
+  { name: val_ (string_ "First Name")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "Enter your first name")
   , key: "firstName"
   , input: Text
-    { default: Just (string_ "John")
+    { default: Just (val_ (string_ "John"))
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     , errors: mempty
     }
@@ -528,16 +659,16 @@ firstName =
 
 lastName :: Field Expr
 lastName =
-  { name: string_ "Last Name"
-  , visibility: boolean_ true
-  , description: string_ "Enter your last name"
+  { name: val_ (string_ "Last Name")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "Enter your last name")
   , key: "lastName"
   , input: Text
-    { default: Just (string_ "Smith")
+    { default: Just (val_ (string_ "Smith"))
     , maxLength: Nothing
     , minLength: Nothing
-    , placeholder: string_ ""
-    , required: boolean_ true
+    , placeholder: val_ (string_ "")
+    , required: val_ (boolean_ true)
     , value: NotSet
     , errors: mempty
     }
@@ -545,45 +676,45 @@ lastName =
 
 active :: Field Expr
 active =
-  { name: string_ "Active"
-  , visibility: boolean_ true
+  { name: val_ (string_ "Active")
+  , visibility: val_ (boolean_ true)
   , description
   , key: "active"
   , input: Toggle
-    { default: Just (boolean_ true)
+    { default: Just (val_ (boolean_ true))
     , value: NotSet
     , errors: mempty
     }
   }
   where
-  description = if_ (lookup_ "active" $ boolean_ true)
-    (string_ "User's account is active!")
-    (string_ "User's account is not active")
+  description = if_ (lookup_ "active" $ val_ (boolean_ true))
+    (val_ (string_ "User's account is active!"))
+    (val_ (string_ "User's account is not active"))
 
 food :: Field Expr
 food =
-  { name: string_ "Favorite Food"
-  , visibility: boolean_ true
-  , description: string_ "What is your favorite food?"
+  { name: val_ (string_ "Favorite Food")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "What is your favorite food?")
   , key: "food"
   , input: Dropdown
     { default: Nothing
     , options:
-      If
-        do Lookup "active" (Val $ Boolean false)
-        do Val $
-          Array
-            [ Pair { name: String "Strawberry", value: String "Strawberry" }
-            , Pair { name: String "Blueberry", value: String "Blueberry" }
+      if_
+        do lookup_ "active" (val_ $ boolean_ false)
+        do val_ $
+          array_
+            [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
+            , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
             ]
-        do Val $
-          Array
-            [ Pair { name: String "Apple", value: String "Apple" }
-            , Pair { name: String "Banana", value: String "Banana" }
-            , Pair { name: String "Cherry", value: String "Cherry" }
+        do val_ $
+          array_
+            [ pair_ { name: string_ "Apple", value: string_ "Apple" }
+            , pair_ { name: string_ "Banana", value: string_ "Banana" }
+            , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
             ]
-    , placeholder: string_ "Choose a food"
-    , required: boolean_ true
+    , placeholder: val_ (string_ "Choose a food")
+    , required: val_ (boolean_ true)
     , value: NotSet
     , errors: mempty
     }
@@ -591,14 +722,14 @@ food =
 
 money :: Field Expr
 money =
-  { name: string_ "Money"
-  , visibility: boolean_ true
-  , description: string_ ""
+  { name: val_ (string_ "Money")
+  , visibility: val_ (boolean_ true)
+  , description: val_ (string_ "")
   , key: "money"
   , input: Currency
     { default: Nothing
-    , placeholder: cents_ (wrap zero)
-    , required: boolean_ true
+    , placeholder: val_ (cents_ (wrap zero))
+    , required: val_ (boolean_ true)
     , value: NotSet
     , errors: mempty
     }
