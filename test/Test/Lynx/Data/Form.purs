@@ -8,7 +8,7 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType(..), Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
 import Lynx.Data.Form as Lynx.Data.Form
 import Test.QuickCheck (Result(..), (===))
