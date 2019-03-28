@@ -20,17 +20,17 @@ jobs:
 
       - restore_cache:
           keys:
-            - v0.1-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
-            - v0.1-bower-cache-{{ .Branch }}
-            - v0.1-bower-cache-master-{{ checksum "bower.json" }}
-            - v0.1-bower-cache-master
+            - v0.2-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+            - v0.2-bower-cache-{{ .Branch }}
+            - v0.2-bower-cache-master-{{ checksum "bower.json" }}
+            - v0.2-bower-cache-master
 
       - restore_cache:
           keys:
-            - v0.1-output-cache-{{ .Branch }}-{{ checksum "dist/main.js" }}
-            - v0.1-output-cache-{{ .Branch }}
-            - v0.1-output-cache-master-{{ checksum "dist/main.js" }}
-            - v0.1-output-cache-master
+            - v0.2-output-cache-{{ .Branch }}-{{ checksum "dist/main.js" }}
+            - v0.2-output-cache-{{ .Branch }}
+            - v0.2-output-cache-master-{{ checksum "dist/main.js" }}
+            - v0.2-output-cache-master
 
       - run:
           name: Verify the project builds and tests run successfully
@@ -46,12 +46,12 @@ jobs:
             - ~/lynx/node_modules
 
       - save_cache:
-          key: v0.1-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+          key: v0.2-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
           paths:
             - ~/lynx/bower_components
 
       - save_cache:
-          key: v0.1-output-cache-{{ .Branch }}-{{ checksum "dist/main.js" }}
+          key: v0.2-output-cache-{{ .Branch }}-{{ checksum "dist/main.js" }}
           paths:
             - ~/lynx/output
 

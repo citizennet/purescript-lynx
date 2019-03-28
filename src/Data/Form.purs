@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
+import Data.Array as Data.Array
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
@@ -11,9 +12,13 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
+import Data.Maybe as Data.Maybe
 import Data.Newtype (wrap)
+import Data.Set (Set, toUnfoldable)
+import Data.Set as Data.Set
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, string_, val_)
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, toArray, val_)
+import Lynx.Data.Expr as Lynx.Data.Expr
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -42,6 +47,7 @@ type Field f = Record (FieldRows f ())
 type SharedRows f r =
   ( default :: Maybe f
   , value :: InputSource f
+  , errors :: Errors ValidationError
   | r
   )
 
@@ -118,8 +124,8 @@ instance arbitraryInput :: Arbitrary (Input Expr) where
 data InputSource a
   = UserInput a
   | Invalid a
-  | NotSet
   | UserCleared
+  | NotSet
 
 derive instance eqInputSource :: (Eq a) => Eq (InputSource a)
 
@@ -131,8 +137,8 @@ instance foldableInputSource :: Foldable InputSource where
   foldMap f = case _ of
     UserInput x -> f x
     Invalid x -> f x
-    NotSet -> mempty
     UserCleared -> mempty
+    NotSet -> mempty
   foldl f = foldlDefault f
   foldr f = foldrDefault f
 
@@ -141,8 +147,8 @@ instance traversableInputSource :: Traversable InputSource where
   traverse f = case _ of
     UserInput x -> map UserInput (f x)
     Invalid x -> map Invalid (f x)
-    NotSet -> pure NotSet
     UserCleared -> pure UserCleared
+    NotSet -> pure NotSet
 
 instance showInputSource :: (Show a) => Show (InputSource a) where
   show = genericShow
@@ -151,8 +157,8 @@ instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
   encodeJson = case _ of
     UserInput x -> "type" := "UserInput" ~> "value" := x ~> jsonEmptyObject
     Invalid x -> "type" := "Invalid" ~> "value" := x ~> jsonEmptyObject
-    NotSet -> "type" := "NotSet" ~> jsonEmptyObject
     UserCleared -> "type" := "UserCleared" ~> jsonEmptyObject
+    NotSet -> "type" := "NotSet" ~> jsonEmptyObject
 
 instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
   decodeJson json = do
@@ -160,8 +166,8 @@ instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
     x' .: "type" >>= case _ of
       "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
       "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
-      "NotSet" -> pure NotSet
       "UserCleared" -> pure UserCleared
+      "NotSet" -> pure NotSet
       x -> Left $ x <> " is not a valid InputSource"
 
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
@@ -171,6 +177,74 @@ userInput :: forall a. InputSource a -> Maybe a
 userInput = case _ of
   UserInput x -> Just x
   _ -> Nothing
+
+newtype Errors e = Errors (Set e)
+
+derive instance eqErrors :: Eq e => Eq (Errors e)
+
+derive instance genericErrors :: Generic (Errors e) _
+
+instance showErrors :: Show e => Show (Errors e) where
+  show = genericShow
+
+instance semigroupErrors :: Ord e => Semigroup (Errors e) where
+  append (Errors a) (Errors b) = Errors (a <> b)
+
+instance monoidErrors :: Ord e => Monoid (Errors e) where
+  mempty = Errors mempty
+
+instance arbitraryErrors :: (Arbitrary e, Ord e) => Arbitrary (Errors e) where
+  arbitrary = pure mempty
+
+instance encodeErrors :: (EncodeJson e, Ord e) => EncodeJson (Errors e) where
+  encodeJson (Errors e) = encodeJson e
+
+instance decodeErrors :: (DecodeJson e, Ord e) => DecodeJson (Errors e) where
+  decodeJson = map Errors <<< decodeJson
+
+singletonError :: ∀ e. Ord e => e -> Errors e
+singletonError = Errors <<< Data.Set.singleton
+
+noErrors :: ∀ e. Ord e => Errors e -> Boolean
+noErrors (Errors e) = Data.Set.isEmpty e
+
+errorsToArray :: ∀ e. Ord e => Errors e -> Array e
+errorsToArray (Errors e) = toUnfoldable e
+
+data ValidationError
+  = Required
+  | MinLength Int
+  | MaxLength Int
+  | InvalidOption String
+
+derive instance eqValidationError :: Eq ValidationError
+
+derive instance ordValidationError :: Ord ValidationError
+
+derive instance genericValidationError :: Generic ValidationError _
+
+instance showValidationError :: Show ValidationError where
+  show = genericShow
+
+instance encodeValidationError :: EncodeJson ValidationError where
+  encodeJson = case _ of
+    Required -> "type" := "Required" ~> jsonEmptyObject
+    MinLength x -> "type" := "MinLength" ~> "param" := x ~> jsonEmptyObject
+    MaxLength x -> "type" := "MaxLength" ~> "param" := x ~> jsonEmptyObject
+    InvalidOption x -> "type" := "InvalidOption" ~> "param" := x ~> jsonEmptyObject
+
+instance decodeValidationError :: DecodeJson ValidationError where
+  decodeJson json = do
+    x' <- decodeJson json
+    x' .: "type" >>= case _ of
+      "Required" -> pure Required
+      "MinLength" -> x' .: "param" >>= (pure <<< MinLength)
+      "MaxLength" -> x' .: "param" >>= (pure <<< MaxLength)
+      "InvalidOption" -> x' .: "param" >>= (pure <<< InvalidOption)
+      x -> Left $ x <> " is not a supported ValidationError"
+
+instance arbitraryValidationError :: Arbitrary ValidationError where
+  arbitrary = genericArbitrary
 
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
@@ -197,42 +271,46 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure
-        ( Currency
-          { default
-          , placeholder
-          , required
-          , value
-          }
-        )
+      pure $ validate $ Currency
+        { default
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     DateTime input -> do
       default <- traverse (evalExpr get) input.default
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure
-        ( DateTime
-          { default
-          , placeholder
-          , required
-          , value
-          }
-        )
+      pure $ validate $ DateTime
+        { default
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
-      value <- traverse (evalExpr get) input.value
-      pure
-        ( Dropdown
-          { default
-          , options
-          , placeholder
-          , required
-          , value
-          }
-        )
+      value' <- traverse (evalExpr get) input.value
+      let arrayOptions = Data.Maybe.fromMaybe [] (toArray options)
+          value = case value' of
+            UserInput x ->
+              if (not $ x `Data.Array.elem` arrayOptions)
+                then Invalid x
+                else UserInput x
+            otherwise -> otherwise
+      pure $ validate $ Dropdown
+        { default
+        , options
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Text input -> do
       default <- traverse (evalExpr get) input.default
       maxLength <- traverse (evalExpr get) input.maxLength
@@ -240,25 +318,72 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure
-        ( Text
-          { default
-          , maxLength
-          , minLength
-          , placeholder
-          , required
-          , value
-          }
-        )
+      pure $ validate $ Text
+        { default
+        , maxLength
+        , minLength
+        , placeholder
+        , required
+        , value
+        , errors: mempty
+        }
     Toggle input -> do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
-      pure (Toggle { default, value })
+      pure $ validate $ Toggle { default, value, errors: mempty }
     TypeaheadSingle input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
       value <- traverse (evalExpr get) input.value
-      pure (TypeaheadSingle { default, options, value })
+      pure $ validate $ TypeaheadSingle
+        { default
+        , options
+        , value
+        , errors: mempty
+        }
+
+  validate :: Input ExprType -> Input ExprType
+  validate = case _ of
+    Currency input ->
+      if displayError input
+        then Currency $
+          input { errors = input.errors <> validateRequired input }
+        else Currency input
+    DateTime input ->
+      if displayError input
+        then DateTime $
+          input { errors = input.errors <> validateRequired input }
+        else DateTime input
+    Dropdown input ->
+      if displayError input
+        then Dropdown $
+          input { errors = input.errors <> validateInvalid input <> validateRequired input }
+        else Dropdown input
+    Text input ->
+      if displayError input
+        then Text $
+          input { errors = input.errors <> validateRequired input }
+        else Text input
+    Toggle input -> Toggle input
+    TypeaheadSingle input -> TypeaheadSingle input
+
+  validateRequired
+    :: ∀ r
+     . Record (SharedRows ExprType + ( required :: ExprType | r ))
+    -> Errors ValidationError
+  validateRequired input =
+    if input.required == boolean_ true && isEmpty (getValue input)
+      then singletonError Required
+      else mempty
+
+  validateInvalid
+    :: ∀ r
+     . Record (SharedRows ExprType + r )
+    -> Errors ValidationError
+  validateInvalid input =
+    case input.value of
+      Invalid x -> singletonError (InvalidOption $ print x)
+      otherwise -> mempty
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysSection page.contents
@@ -281,6 +406,25 @@ keys page = foldMap keysSection page.contents
       Toggle toggle -> getValue toggle
       TypeaheadSingle typeahead -> getValue typeahead
 
+displayError
+  :: ∀ r
+   . Record (SharedRows ExprType r)
+  -> Boolean
+displayError x = x.value /= NotSet
+
+isEmpty :: Maybe ExprType -> Boolean
+isEmpty Nothing = true
+isEmpty (Just x) = case x of
+  Lynx.Data.Expr.Array []   -> true
+  Lynx.Data.Expr.String ""  -> true
+  Lynx.Data.Expr.Array _    -> false
+  Lynx.Data.Expr.Boolean _  -> false
+  Lynx.Data.Expr.Cents _    -> false
+  Lynx.Data.Expr.DateTime _ -> false
+  Lynx.Data.Expr.Int _      -> false
+  Lynx.Data.Expr.Pair _     -> false
+  Lynx.Data.Expr.String _   -> false
+
 getValue
   :: ∀ a r
    . Record (SharedRows a r)
@@ -288,10 +432,10 @@ getValue
 getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
-setValue key val page = page { contents = map setSection page.contents}
+setValue key val page = page { contents = map setSection page.contents }
   where
   setSection :: Section Expr -> Section Expr
-  setSection section = section { contents = map setField section.contents}
+  setSection section = section { contents = map setField section.contents }
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -339,6 +483,7 @@ mvpEnd =
       , placeholder: val_ (string_ "Choose a end date for the campaign")
       , required: val_ (boolean_ true)
       , value: NotSet
+      , errors: mempty
       }
   , key: "end"
   , name: val_ (string_ "End")
@@ -353,6 +498,7 @@ mvpFacebookTwitterPage =
       { default: Nothing
       , options
       , value: NotSet
+      , errors: mempty
       }
   , key: "facebook-twitter-page"
   , name: val_ (string_ "Facebook / Twitter Page")
@@ -375,6 +521,7 @@ mvpMediaBudget =
   , input:
     Currency
       { default: Nothing
+      , errors: mempty
       , placeholder: val_ (cents_ (wrap zero))
       , required: val_ (boolean_ true)
       , value: NotSet
@@ -390,6 +537,7 @@ mvpName =
   , input:
     Text
       { default: Nothing
+      , errors: mempty
       , maxLength: Nothing
       , minLength: Nothing
       , placeholder: val_ (string_ "")
@@ -407,6 +555,7 @@ mvpObjective =
   , input:
     Dropdown
       { default: Nothing
+      , errors: mempty
       , options
       , placeholder: val_ (string_ "Choose an objective")
       , required: val_ (boolean_ true)
@@ -444,6 +593,7 @@ mvpStart =
       , placeholder: val_ (string_ "Choose a start date for the campaign")
       , required: val_ (boolean_ true)
       , value: NotSet
+      , errors: mempty
       }
   , key: "start"
   , name: val_ (string_ "Start")
@@ -458,6 +608,7 @@ mvpTargetableInterest =
       { default: Nothing
       , options
       , value: NotSet
+      , errors: mempty
       }
   , key: "targetable-interest"
   , name: val_ (string_ "Targetable Interest")
@@ -509,6 +660,7 @@ firstName =
     , placeholder: val_ (string_ "")
     , required: val_ (boolean_ true)
     , value: NotSet
+    , errors: mempty
     }
   }
 
@@ -525,6 +677,7 @@ lastName =
     , placeholder: val_ (string_ "")
     , required: val_ (boolean_ true)
     , value: NotSet
+    , errors: mempty
     }
   }
 
@@ -537,6 +690,7 @@ active =
   , input: Toggle
     { default: Just (val_ (boolean_ true))
     , value: NotSet
+    , errors: mempty
     }
   }
   where
@@ -566,15 +720,16 @@ food =
             , pair_ { name: string_ "Banana", value: string_ "Banana" }
             , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
             ]
-    , placeholder: val_ (string_ "")
+    , placeholder: val_ (string_ "Choose a food")
     , required: val_ (boolean_ true)
     , value: NotSet
+    , errors: mempty
     }
   }
 
 money :: Field Expr
 money =
-  { name: val_ (string_ "money")
+  { name: val_ (string_ "Money")
   , visibility: val_ (boolean_ true)
   , description: val_ (string_ "")
   , key: "money"
@@ -583,5 +738,6 @@ money =
     , placeholder: val_ (cents_ (wrap zero))
     , required: val_ (boolean_ true)
     , value: NotSet
+    , errors: mempty
     }
   }
