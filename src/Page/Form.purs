@@ -21,9 +21,8 @@ import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr(..), ExprType(..), Key, datetime_, print, reflectType, toArray, toBoolean, toCents, toDateTime, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage, userInput)
-import Lynx.Data.Expr as Lynx.Data.Expr
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toPair, toString)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Network.RemoteData as Network.RemoteData
@@ -38,8 +37,8 @@ import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
 import Ocelot.Component.Dropdown.Render as Dropdown.Render
-import Ocelot.Data.Currency (parseCentsFromDollarStr)
 import Ocelot.Component.Typeahead as Typeahead
+import Ocelot.Data.Currency (parseCentsFromDollarStr)
 import Ocelot.HTML.Properties (css)
 import Routing.Duplex (RouteDuplex', path)
 import Routing.Duplex.Generic (noArgs, sum)
@@ -72,7 +71,7 @@ type State =
 data Query a
   = Initialize a
   | EvalForm (Page Expr) a
-  | UpdateValue Key (InputSource Expr) a
+  | UpdateValue Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
   | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
@@ -178,7 +177,7 @@ component =
           value <- getValue currency
           _ <- toCents value
           pure (print value)
-        , HE.onValueChange (HE.input $ UpdateValue field.key <<< Data.Maybe.maybe UserCleared (UserInput <<< Val <<< Cents) <<< parseCentsFromDollarStr)
+        , HE.onValueChange (HE.input $ UpdateValue field.key <<< Data.Maybe.maybe UserCleared (UserInput <<< cents_) <<< parseCentsFromDollarStr)
         ]
     DateTime dateTime ->
       HH.slot'
@@ -207,13 +206,13 @@ component =
         [ HP.value $ Data.Maybe.fromMaybe "" $ toString =<< getValue input
         , HP.placeholder $ print input.placeholder
         , HP.id_ field.key
-        , HE.onValueChange (HE.input $ UpdateValue field.key <<< UserInput <<< Val <<< String)
+        , HE.onValueChange (HE.input $ UpdateValue field.key <<< UserInput <<< string_)
         ]
     Toggle input ->
       Toggle.toggle
         [ HP.checked $ Data.Maybe.fromMaybe false $ toBoolean =<< getValue input
         , HP.id_ field.key
-        , HE.onChecked (HE.input $ UpdateValue field.key <<< UserInput <<< Lynx.Data.Expr.Boolean)
+        , HE.onChecked (HE.input $ UpdateValue field.key <<< UserInput <<< boolean_)
         ]
     TypeaheadSingle typeahead ->
       HH.slot'
@@ -239,9 +238,11 @@ component =
     -> Array (H.ParentHTML Query (ChildQuery m) ChildSlot m)
   renderValidation = case _ of
     Currency currency -> renderValidation' currency.errors
+    DateTime dateTime -> renderValidation' dateTime.errors
     Dropdown dropdown -> renderValidation' dropdown.errors
     Text text -> renderValidation' text.errors
     Toggle toggle -> renderValidation' toggle.errors
+    TypeaheadSingle typeahead -> renderValidation' typeahead.errors
     where
     renderValidation' = errorsToArray >>> case _ of
       []  -> []
@@ -307,13 +308,13 @@ eval = case _ of
   DateTimePickerQuery key message a -> case message of
     DateTimePicker.DateMessage _ -> pure a
     DateTimePicker.SelectionChanged (Just val) ->
-      eval (UpdateKey key (UserInput $ datetime_ val) a)
+      eval (UpdateValue key (UserInput $ datetime_ val) a)
     DateTimePicker.SelectionChanged Nothing ->
-      eval (UpdateKey key UserCleared a)
+      eval (UpdateValue key UserCleared a)
     DateTimePicker.TimeMessage _ -> pure a
 
   TypeaheadSingleQuery key message a -> case message of
     Typeahead.Emit x -> a <$ eval x
     Typeahead.Searched _ -> pure a
-    Typeahead.Selected val -> eval (UpdateKey key (UserInput val) a)
+    Typeahead.Selected val -> eval (UpdateValue key (UserInput val) a)
     Typeahead.SelectionChanged _ _ -> pure a

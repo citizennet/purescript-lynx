@@ -17,7 +17,7 @@ import Data.Newtype (wrap)
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr(..), ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, val_, toArray)
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, toArray, val_)
 import Lynx.Data.Expr as Lynx.Data.Expr
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
@@ -349,6 +349,11 @@ eval get page = do
         then Currency $
           input { errors = input.errors <> validateRequired input }
         else Currency input
+    DateTime input ->
+      if displayError input
+        then DateTime $
+          input { errors = input.errors <> validateRequired input }
+        else DateTime input
     Dropdown input ->
       if displayError input
         then Dropdown $
@@ -360,6 +365,7 @@ eval get page = do
           input { errors = input.errors <> validateRequired input }
         else Text input
     Toggle input -> Toggle input
+    TypeaheadSingle input -> TypeaheadSingle input
 
   validateRequired
     :: ∀ r
@@ -409,14 +415,15 @@ displayError x = x.value /= NotSet
 isEmpty :: Maybe ExprType -> Boolean
 isEmpty Nothing = true
 isEmpty (Just x) = case x of
-  Lynx.Data.Expr.Array []  -> true
-  Lynx.Data.Expr.String "" -> true
-  Lynx.Data.Expr.Array _   -> false
-  Lynx.Data.Expr.Boolean _ -> false
-  Lynx.Data.Expr.Cents _   -> false
-  Lynx.Data.Expr.Int _     -> false
-  Lynx.Data.Expr.Pair _    -> false
-  Lynx.Data.Expr.String _  -> false
+  Lynx.Data.Expr.Array []   -> true
+  Lynx.Data.Expr.String ""  -> true
+  Lynx.Data.Expr.Array _    -> false
+  Lynx.Data.Expr.Boolean _  -> false
+  Lynx.Data.Expr.Cents _    -> false
+  Lynx.Data.Expr.DateTime _ -> false
+  Lynx.Data.Expr.Int _      -> false
+  Lynx.Data.Expr.Pair _     -> false
+  Lynx.Data.Expr.String _   -> false
 
 getValue
   :: ∀ a r
