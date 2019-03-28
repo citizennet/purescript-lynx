@@ -9,7 +9,7 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
 import Lynx.Data.Form as Lynx.Data.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -39,6 +39,12 @@ suite =
     Test.Unit.suite "InputSource" do
       test "decoding and encoding roundtrips properly" do
         quickCheck inputSourceRoundTrip
+    Test.Unit.suite "Errors" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck errorsRoundTrip
+    Test.Unit.suite "ValidationError" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck validationErrorRoundTrip
 
 dropdownOptions :: TestSuite
 dropdownOptions = do
@@ -80,6 +86,7 @@ dropdownOptions = do
       , placeholder: val_ (string_ "")
       , required: val_ (boolean_ false)
       , value: NotSet
+      , errors: mempty
       }
   dropdownKey :: Key
   dropdownKey = "dropdown"
@@ -98,6 +105,7 @@ dropdownOptions = do
     Toggle
       { default: Nothing
       , value: NotSet
+      , errors: mempty
       }
   fooKey :: Key
   fooKey = "foo"
@@ -139,6 +147,12 @@ inputRoundTrip = roundTrip
 
 inputSourceRoundTrip :: InputSource Expr -> Result
 inputSourceRoundTrip = roundTrip
+
+errorsRoundTrip :: Errors ValidationError -> Result
+errorsRoundTrip = roundTrip
+
+validationErrorRoundTrip :: ValidationError -> Result
+validationErrorRoundTrip = roundTrip
 
 roundTrip :: ∀ a. DecodeJson a => EncodeJson a => Eq a => Show a => a -> Result
 roundTrip x' = case decodeJson json of
@@ -193,6 +207,7 @@ textInput v = """
   , "default": null
   , "maxLength": null
   , "minLength": null
+  , "errors": [ """ <> requiredError <> """ ]
   }
 """
 
@@ -201,6 +216,7 @@ toggleInput v = """
   { "type": "Toggle"
   , "value": """ <> v <> """
   , "default": """ <> val false "Boolean" <> """
+  , "errors": []
   }
 """
 
@@ -238,9 +254,14 @@ value = case _ of
   Invalid x -> """
       { "type": "Invalid", "value": """ <> x <> """ }
     """
-  NotSet -> """
-      { "type": "NotSet" }
-    """
   UserCleared -> """
       { "type": "UserCleared" }
     """
+  NotSet -> """
+      { "type": "NotSet" }
+    """
+
+requiredError :: String
+requiredError = """
+  { "type": "Required" }
+"""
