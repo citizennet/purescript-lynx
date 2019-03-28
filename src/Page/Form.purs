@@ -2,10 +2,12 @@ module Lynx.Page.Form where
 
 import Prelude
 
+import Data.Argonaut (Json, decodeJson, (.:))
 import Data.Bifoldable (bifor_)
 import Data.Const (Const)
+import Data.Either (Either, note)
 import Data.Either.Nested (type (\/))
-import Data.Foldable (fold, foldMap, for_)
+import Data.Foldable (fold, foldM, foldMap, for_)
 import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -13,7 +15,7 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
-import Data.Traversable (for)
+import Data.Traversable (for, traverse)
 import Effect.Aff.Class (class MonadAff)
 import Foreign.Object as Foreign.Object
 import Halogen as H
@@ -21,8 +23,8 @@ import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, pair_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toPair, toString)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpFacebookTwitterPage, mvpFacebookTwitterPageJSON, mvpPage, mvpTargetableInterest, mvpTargetableInterestJSON, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
 import Network.RemoteData (RemoteData(..), fromEither)
 import Network.RemoteData as Network.RemoteData
@@ -229,7 +231,17 @@ component =
           }
           []
         )
-        { items = Network.RemoteData.fromMaybe (toArray typeahead.options)
+        { items =
+          if field.key == mvpFacebookTwitterPage.key
+            then
+              Network.RemoteData.fromEither
+                (parseTypeaheadJSON typeahead mvpFacebookTwitterPageJSON)
+            else if field.key == mvpTargetableInterest.key
+              then
+                Network.RemoteData.fromEither
+                  (parseTypeaheadJSON typeahead mvpTargetableInterestJSON)
+              else
+                Network.RemoteData.fromMaybe (toArray typeahead.options)
         }
         (HE.input $ TypeaheadSingleQuery field.key)
 
@@ -254,6 +266,34 @@ component =
       MinLength x -> "Must contain at least " <> show x <> " characters"
       MaxLength x -> "Cannot contain more than " <> show x <> " characters"
       InvalidOption x -> x <> " is not a valid option"
+
+parseTypeaheadJSON ::
+  forall r.
+  { results :: ExprType, resultValue :: ExprType | r } ->
+  Json ->
+  Either String (Array ExprType)
+parseTypeaheadJSON { results, resultValue } json' = do
+  resultsFields' <- parseArray "`results`" results
+  resultsFields <- traverse (parseString "`results`") resultsFields'
+  valueFields' <- parseArray "`resultValue`" resultValue
+  valueFields <- traverse (parseString "`resultValue`") valueFields'
+  resultsJSON' <- foldM decodeField json' resultsFields
+  resultsJSON <- decodeJson resultsJSON'
+  for resultsJSON \result -> do
+    value' <- foldM decodeField result valueFields
+    value <- decodeJson value'
+    pure (pair_ { name: string_ value, value: string_ value })
+  where
+  decodeField :: Json -> String -> Either String Json
+  decodeField json field = do
+    obj <- decodeJson json
+    obj .: field
+
+  parseArray :: String -> ExprType -> Either String (Array ExprType)
+  parseArray field = note (field <> " not an Array") <<< toArray
+
+  parseString :: String -> ExprType -> Either String String
+  parseString field = note (field <> " not an Array of Strings") <<< toString
 
 eval
   :: ∀ m
