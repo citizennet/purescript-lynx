@@ -1,0 +1,24 @@
+{
+  "facebookTwitterPage": [
+    {
+      "name": "ABC News"
+    },
+    {
+      "name": "CBS New York"
+    },
+    {
+      "name": "NBC News"
+    }
+  ],
+  "targetableInterest": [
+    {
+      "name": "ABC"
+    },
+    {
+      "name": "CBS"
+    },
+    {
+      "name": "NBC"
+    }
+  ]
+}
