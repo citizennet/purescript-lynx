@@ -6,7 +6,7 @@ import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, enco
 import Data.BigInt as Data.BigInt
 import Data.DateTime (DateTime)
 import Data.Either (Either(..))
-import Data.Foldable (intercalate)
+import Data.Foldable (fold, intercalate)
 import Data.Formatter.DateTime (format, unformat)
 import Data.Formatter.Parser.Interval (extendedDateTimeFormatInUTC)
 import Data.Generic.Rep (class Generic)
@@ -16,6 +16,8 @@ import Data.Newtype (wrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.String.Common (replace)
 import Data.String.Pattern (Pattern(..), Replacement(..))
+import Foreign.Object (Object)
+import Foreign.Object as Foreign.Object
 import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
@@ -150,6 +152,13 @@ toInt :: ExprType -> Maybe Int
 toInt = case _ of
   Int x     -> Just x
   otherwise -> Nothing
+
+toObject :: ExprType -> Object String
+toObject item = fold do
+  { name: name', value: value' } <- toPair item
+  name <- toString name'
+  value <- toString value'
+  pure (Foreign.Object.fromHomogeneous { name, value })
 
 toPair :: ExprType -> Maybe { name :: ExprType, value :: ExprType }
 toPair = case _ of

@@ -2,13 +2,10 @@ module Lynx.Page.Form where
 
 import Prelude
 
-import Control.Monad.Error.Class (throwError)
-import Data.Argonaut (Json, decodeJson, (.:))
 import Data.Bifoldable (bifor_)
 import Data.Const (Const)
-import Data.Either (Either, note)
 import Data.Either.Nested (type (\/))
-import Data.Foldable (fold, foldM, foldMap, for_)
+import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -16,23 +13,17 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
-import Data.Traversable (for, traverse)
-import Effect.Aff (error)
-import Effect.Aff.Class (class MonadAff, liftAff)
-import Foreign.Object (Object)
-import Foreign.Object as Foreign.Object
+import Data.Traversable (for)
+import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, pair_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage)
+import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), asyncFromTypeahead, errorsToArray, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
-import Network.HTTP.Affjax as Network.HTTP.Affjax
-import Network.HTTP.Affjax.Response as Network.HTTP.Affjax.Response
 import Network.RemoteData (RemoteData(..), fromEither)
-import Network.RemoteData as Network.RemoteData
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -228,7 +219,7 @@ component =
         Typeahead.single
         ( Typeahead.asyncSingle
           { async: asyncFromTypeahead typeahead
-          , itemToObject
+          , itemToObject: toObject
           , renderFuzzy: HH.span_ <<< boldMatches "value"
           }
           []
@@ -256,56 +247,6 @@ component =
       MinLength x -> "Must contain at least " <> show x <> " characters"
       MaxLength x -> "Cannot contain more than " <> show x <> " characters"
       InvalidOption x -> x <> " is not a valid option"
-
-parseTypeaheadJSON ::
-  forall r.
-  { results :: ExprType, resultValue :: ExprType | r } ->
-  Json ->
-  Either String (Array ExprType)
-parseTypeaheadJSON { results, resultValue } json' = do
-  resultsFields' <- parseArray "`results`" results
-  resultsFields <- traverse (parseString "`results`") resultsFields'
-  valueFields' <- parseArray "`resultValue`" resultValue
-  valueFields <- traverse (parseString "`resultValue`") valueFields'
-  resultsJSON' <- foldM decodeField json' resultsFields
-  resultsJSON <- decodeJson resultsJSON'
-  for resultsJSON \result -> do
-    value' <- foldM decodeField result valueFields
-    value <- decodeJson value'
-    pure (pair_ { name: string_ value, value: string_ value })
-  where
-  decodeField :: Json -> String -> Either String Json
-  decodeField json field = do
-    obj <- decodeJson json
-    obj .: field
-
-  parseArray :: String -> ExprType -> Either String (Array ExprType)
-  parseArray field = note (field <> " not an Array") <<< toArray
-
-  parseString :: String -> ExprType -> Either String String
-  parseString field = note (field <> " not an Array of Strings") <<< toString
-
-asyncFromTypeahead ::
-  forall f r.
-  MonadAff f =>
-  { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r } ->
-  String ->
-  f (RemoteData String (Array ExprType))
-asyncFromTypeahead typeahead x = case toString typeahead.uri of
-  Just uri -> do
-    { response } <-
-      liftAff
-        (Network.HTTP.Affjax.get Network.HTTP.Affjax.Response.json $ uri <> x)
-    pure (Network.RemoteData.fromEither $ parseTypeaheadJSON typeahead response)
-  Nothing ->
-    liftAff (throwError $ error $ print typeahead.uri <> " is not a String")
-
-itemToObject :: ExprType -> Object String
-itemToObject item = fold do
-  { name: name', value: value' } <- toPair item
-  name <- toString name'
-  value <- toString value'
-  pure (Foreign.Object.fromHomogeneous { name, value })
 
 eval
   :: ∀ m
