@@ -19,6 +19,7 @@ import Data.Maybe as Data.Maybe
 import Data.Traversable (for, traverse)
 import Effect.Aff (error)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Foreign.Object (Object)
 import Foreign.Object as Foreign.Object
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
@@ -226,26 +227,8 @@ component =
         field.key
         Typeahead.single
         ( Typeahead.asyncSingle
-          { async: \search -> case toString typeahead.uri of
-            Just uri -> do
-              { response } <-
-                liftAff
-                  ( Network.HTTP.Affjax.get
-                    Network.HTTP.Affjax.Response.json
-                    (uri <> search)
-                  )
-              pure
-                ( Network.RemoteData.fromEither
-                  $ parseTypeaheadJSON typeahead response
-                )
-            Nothing ->
-              liftAff
-                (throwError $ error $ print typeahead.uri <> " is not a String")
-          , itemToObject: \item -> fold do
-            { name: name', value: value' } <- toPair item
-            name <- toString name'
-            value <- toString value'
-            pure (Foreign.Object.fromHomogeneous { name, value })
+          { async: asyncFromTypeahead typeahead
+          , itemToObject
           , renderFuzzy: HH.span_ <<< boldMatches "value"
           }
           []
@@ -301,6 +284,28 @@ parseTypeaheadJSON { results, resultValue } json' = do
 
   parseString :: String -> ExprType -> Either String String
   parseString field = note (field <> " not an Array of Strings") <<< toString
+
+asyncFromTypeahead ::
+  forall f r.
+  MonadAff f =>
+  { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r } ->
+  String ->
+  f (RemoteData String (Array ExprType))
+asyncFromTypeahead typeahead x = case toString typeahead.uri of
+  Just uri -> do
+    { response } <-
+      liftAff
+        (Network.HTTP.Affjax.get Network.HTTP.Affjax.Response.json $ uri <> x)
+    pure (Network.RemoteData.fromEither $ parseTypeaheadJSON typeahead response)
+  Nothing ->
+    liftAff (throwError $ error $ print typeahead.uri <> " is not a String")
+
+itemToObject :: ExprType -> Object String
+itemToObject item = fold do
+  { name: name', value: value' } <- toPair item
+  name <- toString name'
+  value <- toString value'
+  pure (Foreign.Object.fromHomogeneous { name, value })
 
 eval
   :: ∀ m
