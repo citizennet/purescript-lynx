@@ -3,7 +3,7 @@ module Lynx.Data.Form where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
+import Data.Argonaut (class DecodeJson, class EncodeJson, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Array as Data.Array
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
@@ -83,6 +83,7 @@ type TypeaheadSingleRows f r =
   ( options :: f
   , resultValue :: f
   , results :: f
+  , uri :: f
   | r
   )
 
@@ -338,12 +339,14 @@ eval get page = do
       options <- evalExpr get input.options
       resultValue <- evalExpr get input.resultValue
       results <- evalExpr get input.results
+      uri <- evalExpr get input.uri
       value <- traverse (evalExpr get) input.value
       pure $ validate $ TypeaheadSingle
         { default
         , options
         , resultValue
         , results
+        , uri
         , value
         , errors: mempty
         }
@@ -504,7 +507,8 @@ mvpFacebookTwitterPage =
       { default: Nothing
       , options: val_ (array_ [])
       , resultValue: val_ (array_ [string_ "name"])
-      , results: val_ (array_ [])
+      , results: val_ (array_ [string_ "facebookTwitterPage"])
+      , uri: val_ (string_ mvpURI)
       , value: NotSet
       , errors: mempty
       }
@@ -512,14 +516,6 @@ mvpFacebookTwitterPage =
   , name: val_ (string_ "Facebook / Twitter Page")
   , visibility: val_ (boolean_ true)
   }
-
-mvpFacebookTwitterPageJSON :: Json
-mvpFacebookTwitterPageJSON =
-  encodeJson
-    [ { name: "ABC News" }
-    , { name: "CBS New York" }
-    , { name: "NBC News" }
-    ]
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
@@ -614,7 +610,8 @@ mvpTargetableInterest =
       { default: Nothing
       , options: val_ (array_ [])
       , resultValue: val_ (array_ [string_ "name"])
-      , results: val_ (array_ [])
+      , results: val_ (array_ [string_ "targetableInterest"])
+      , uri: val_ (string_ mvpURI)
       , value: NotSet
       , errors: mempty
       }
@@ -623,13 +620,9 @@ mvpTargetableInterest =
   , visibility: val_ (boolean_ true)
   }
 
-mvpTargetableInterestJSON :: Json
-mvpTargetableInterestJSON =
-  encodeJson
-    [ { name: "ABC" }
-    , { name: "CBS" }
-    , { name: "NBC" }
-    ]
+mvpURI :: String
+mvpURI =
+  "https://raw.githubusercontent.com/citizennet/purescript-lynx/706ef89d4e2f4ebdf5a6fc485936fd4d3973b5e8/src/mvp.json?ignore="
 
 -- Test
 

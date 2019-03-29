@@ -2,6 +2,7 @@ module Lynx.Page.Form where
 
 import Prelude
 
+import Control.Monad.Error.Class (throwError)
 import Data.Argonaut (Json, decodeJson, (.:))
 import Data.Bifoldable (bifor_)
 import Data.Const (Const)
@@ -16,7 +17,8 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
 import Data.Traversable (for, traverse)
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff (error)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Foreign.Object as Foreign.Object
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
@@ -24,8 +26,10 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, pair_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpFacebookTwitterPage, mvpFacebookTwitterPageJSON, mvpPage, mvpTargetableInterest, mvpTargetableInterestJSON, testPage)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), errorsToArray, getValue, mvpPage, testPage)
 import Lynx.Data.Form as Lynx.Data.Form
+import Network.HTTP.Affjax as Network.HTTP.Affjax
+import Network.HTTP.Affjax.Response as Network.HTTP.Affjax.Response
 import Network.RemoteData (RemoteData(..), fromEither)
 import Network.RemoteData as Network.RemoteData
 import Ocelot.Block.Button as Button
@@ -221,8 +225,23 @@ component =
         cp3
         field.key
         Typeahead.single
-        ( Typeahead.syncSingle
-          { itemToObject: \item -> fold do
+        ( Typeahead.asyncSingle
+          { async: \search -> case toString typeahead.uri of
+            Just uri -> do
+              { response } <-
+                liftAff
+                  ( Network.HTTP.Affjax.get
+                    Network.HTTP.Affjax.Response.json
+                    (uri <> search)
+                  )
+              pure
+                ( Network.RemoteData.fromEither
+                  $ parseTypeaheadJSON typeahead response
+                )
+            Nothing ->
+              liftAff
+                (throwError $ error $ print typeahead.uri <> " is not a String")
+          , itemToObject: \item -> fold do
             { name: name', value: value' } <- toPair item
             name <- toString name'
             value <- toString value'
@@ -231,18 +250,6 @@ component =
           }
           []
         )
-        { items =
-          if field.key == mvpFacebookTwitterPage.key
-            then
-              Network.RemoteData.fromEither
-                (parseTypeaheadJSON typeahead mvpFacebookTwitterPageJSON)
-            else if field.key == mvpTargetableInterest.key
-              then
-                Network.RemoteData.fromEither
-                  (parseTypeaheadJSON typeahead mvpTargetableInterestJSON)
-              else
-                Network.RemoteData.fromMaybe (toArray typeahead.options)
-        }
         (HE.input $ TypeaheadSingleQuery field.key)
 
   renderValidation
