@@ -469,11 +469,11 @@ setValue key val page = page { contents = map setSection page.contents }
         field { input = TypeaheadSingle input { value = map val_ val } }
     | otherwise = field
 
-parseTypeaheadJSON ::
-  forall r.
-  { results :: ExprType, resultValue :: ExprType | r } ->
-  Json ->
-  Either String (Array ExprType)
+parseTypeaheadJSON
+  :: forall r
+  . { results :: ExprType, resultValue :: ExprType | r }
+  -> Json
+  -> Either String (Array ExprType)
 parseTypeaheadJSON { results, resultValue } json' = do
   resultsFields' <- parseArray "`results`" results
   resultsFields <- traverse (parseString "`results`") resultsFields'
@@ -497,12 +497,12 @@ parseTypeaheadJSON { results, resultValue } json' = do
   parseString :: String -> ExprType -> Either String String
   parseString field = note (field <> " not an Array of Strings") <<< toString
 
-asyncFromTypeahead ::
-  forall f r.
-  MonadAff f =>
-  { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r } ->
-  String ->
-  f (RemoteData String (Array ExprType))
+asyncFromTypeahead
+  :: forall f r
+  . MonadAff f
+  => { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r }
+  -> String
+  -> f (RemoteData String (Array ExprType))
 asyncFromTypeahead typeahead x = case toString typeahead.uri of
   Just uri -> do
     { response } <-
