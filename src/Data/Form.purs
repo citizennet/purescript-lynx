@@ -5,8 +5,8 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Array as Data.Array
-import Data.Either (Either(..))
-import Data.Foldable (class Foldable, foldMap, foldlDefault, foldrDefault)
+import Data.Either (Either(..), note)
+import Data.Foldable (class Foldable, foldM, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -16,9 +16,15 @@ import Data.Maybe as Data.Maybe
 import Data.Newtype (wrap)
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
-import Data.Traversable (class Traversable, sequenceDefault, traverse)
-import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, toArray, val_)
+import Data.Traversable (class Traversable, for, sequenceDefault, traverse)
+import Effect.Aff (error, throwError)
+import Effect.Aff.Class (class MonadAff, liftAff)
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, toArray, toString, val_)
 import Lynx.Data.Expr as Lynx.Data.Expr
+import Network.HTTP.Affjax as Network.HTTP.Affjax
+import Network.HTTP.Affjax.Response as Network.HTTP.Affjax.Response
+import Network.RemoteData (RemoteData)
+import Network.RemoteData as Network.RemoteData
 import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
@@ -83,6 +89,7 @@ type TypeaheadSingleRows f r =
   ( options :: f
   , resultValue :: f
   , results :: f
+  , uri :: f
   | r
   )
 
@@ -338,12 +345,14 @@ eval get page = do
       options <- evalExpr get input.options
       resultValue <- evalExpr get input.resultValue
       results <- evalExpr get input.results
+      uri <- evalExpr get input.uri
       value <- traverse (evalExpr get) input.value
       pure $ validate $ TypeaheadSingle
         { default
         , options
         , resultValue
         , results
+        , uri
         , value
         , errors: mempty
         }
@@ -460,6 +469,49 @@ setValue key val page = page { contents = map setSection page.contents }
         field { input = TypeaheadSingle input { value = map val_ val } }
     | otherwise = field
 
+parseTypeaheadJSON
+  :: forall r
+  . { results :: ExprType, resultValue :: ExprType | r }
+  -> Json
+  -> Either String (Array ExprType)
+parseTypeaheadJSON { results, resultValue } json' = do
+  resultsFields' <- parseArray "`results`" results
+  resultsFields <- traverse (parseString "`results`") resultsFields'
+  valueFields' <- parseArray "`resultValue`" resultValue
+  valueFields <- traverse (parseString "`resultValue`") valueFields'
+  resultsJSON' <- foldM decodeField json' resultsFields
+  resultsJSON <- decodeJson resultsJSON'
+  for resultsJSON \result -> do
+    value' <- foldM decodeField result valueFields
+    value <- decodeJson value'
+    pure (pair_ { name: string_ value, value: string_ value })
+  where
+  decodeField :: Json -> String -> Either String Json
+  decodeField json field = do
+    obj <- decodeJson json
+    obj .: field
+
+  parseArray :: String -> ExprType -> Either String (Array ExprType)
+  parseArray field = note (field <> " not an Array") <<< toArray
+
+  parseString :: String -> ExprType -> Either String String
+  parseString field = note (field <> " not an Array of Strings") <<< toString
+
+asyncFromTypeahead
+  :: forall f r
+  . MonadAff f
+  => { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r }
+  -> String
+  -> f (RemoteData String (Array ExprType))
+asyncFromTypeahead typeahead x = case toString typeahead.uri of
+  Just uri -> do
+    { response } <-
+      liftAff
+        (Network.HTTP.Affjax.get Network.HTTP.Affjax.Response.json $ uri <> x)
+    pure (Network.RemoteData.fromEither $ parseTypeaheadJSON typeahead response)
+  Nothing ->
+    liftAff (throwError $ error $ print typeahead.uri <> " is not a String")
+
 -- MVP
 
 mvpPage :: Page Expr
@@ -504,7 +556,8 @@ mvpFacebookTwitterPage =
       { default: Nothing
       , options: val_ (array_ [])
       , resultValue: val_ (array_ [string_ "name"])
-      , results: val_ (array_ [])
+      , results: val_ (array_ [string_ "facebookTwitterPage"])
+      , uri: val_ (string_ mvpURI)
       , value: NotSet
       , errors: mempty
       }
@@ -512,14 +565,6 @@ mvpFacebookTwitterPage =
   , name: val_ (string_ "Facebook / Twitter Page")
   , visibility: val_ (boolean_ true)
   }
-
-mvpFacebookTwitterPageJSON :: Json
-mvpFacebookTwitterPageJSON =
-  encodeJson
-    [ { name: "ABC News" }
-    , { name: "CBS New York" }
-    , { name: "NBC News" }
-    ]
 
 mvpMediaBudget :: Field Expr
 mvpMediaBudget =
@@ -614,7 +659,8 @@ mvpTargetableInterest =
       { default: Nothing
       , options: val_ (array_ [])
       , resultValue: val_ (array_ [string_ "name"])
-      , results: val_ (array_ [])
+      , results: val_ (array_ [string_ "targetableInterest"])
+      , uri: val_ (string_ mvpURI)
       , value: NotSet
       , errors: mempty
       }
@@ -623,13 +669,9 @@ mvpTargetableInterest =
   , visibility: val_ (boolean_ true)
   }
 
-mvpTargetableInterestJSON :: Json
-mvpTargetableInterestJSON =
-  encodeJson
-    [ { name: "ABC" }
-    , { name: "CBS" }
-    , { name: "NBC" }
-    ]
+mvpURI :: String
+mvpURI =
+  "https://raw.githubusercontent.com/citizennet/purescript-lynx/706ef89d4e2f4ebdf5a6fc485936fd4d3973b5e8/src/mvp.json?ignore="
 
 -- Test
 
