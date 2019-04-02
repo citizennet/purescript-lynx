@@ -19,8 +19,7 @@ import Data.Set as Data.Set
 import Data.Traversable (class Traversable, for, sequenceDefault, traverse)
 import Effect.Aff (error, throwError)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, lookup_, pair_, print, string_, toArray, toString, val_)
-import Lynx.Data.Expr as Lynx.Data.Expr
+import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, isEmpty, lookup_, pair_, print, string_, toArray, toString, val_)
 import Network.HTTP.Affjax as Network.HTTP.Affjax
 import Network.HTTP.Affjax.Response as Network.HTTP.Affjax.Response
 import Network.RemoteData (RemoteData)
@@ -426,19 +425,6 @@ displayError
    . Record (SharedRows ExprType r)
   -> Boolean
 displayError x = x.value /= NotSet
-
-isEmpty :: Maybe ExprType -> Boolean
-isEmpty Nothing = true
-isEmpty (Just x) = case x of
-  Lynx.Data.Expr.Array []   -> true
-  Lynx.Data.Expr.String ""  -> true
-  Lynx.Data.Expr.Array _    -> false
-  Lynx.Data.Expr.Boolean _  -> false
-  Lynx.Data.Expr.Cents _    -> false
-  Lynx.Data.Expr.DateTime _ -> false
-  Lynx.Data.Expr.Int _      -> false
-  Lynx.Data.Expr.Pair _     -> false
-  Lynx.Data.Expr.String _   -> false
 
 getValue
   :: ∀ a r
