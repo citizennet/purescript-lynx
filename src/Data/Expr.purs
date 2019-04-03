@@ -2,89 +2,408 @@ module Lynx.Data.Expr where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.BigInt as Data.BigInt
 import Data.DateTime (DateTime)
 import Data.Either (Either(..))
-import Data.Foldable (fold, intercalate)
+import Data.Eq (class Eq1)
+import Data.Foldable (class Foldable, fold, foldlDefault, foldrDefault)
 import Data.Formatter.DateTime (format, unformat)
 import Data.Formatter.Parser.Interval (extendedDateTimeFormatInUTC)
+import Data.Functor.Coproduct.Inject (inj, prj)
+import Data.Functor.Coproduct.Nested (type (<\/>), (<\/>))
+import Data.Functor.Mu (Mu)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe(..), maybe')
-import Data.Newtype (wrap)
+import Data.Maybe (Maybe(..), maybe, maybe')
+import Data.Newtype (class Newtype, un, wrap)
 import Data.NonEmpty (NonEmpty(..))
 import Data.String.Common (replace)
 import Data.String.Pattern (Pattern(..), Replacement(..))
+import Data.Traversable (class Traversable, traverse)
 import Foreign.Object (Object)
 import Foreign.Object as Foreign.Object
+import Matryoshka (class Corecursive, class Recursive, anaM, cata, embed, project)
 import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
 type Key = String
 
-data ExprType
-  = Array (Array ExprType)
-  | Boolean Boolean
-  | Cents Cents
-  | DateTime DateTime
-  | Int Int
-  | Pair { name :: ExprType, value :: ExprType }
-  | String String
+newtype ArrayF a
+  = Array (Array a)
+
+derive instance eqArrayF :: (Eq a) => Eq (ArrayF a)
+
+derive instance eq1ArrayF :: Eq1 ArrayF
+
+derive instance functorArrayF :: Functor ArrayF
+
+derive instance genericArrayF :: Generic (ArrayF a) _
+
+derive newtype instance foldableArrayF :: Foldable ArrayF
+
+derive newtype instance traversableArrayF :: Traversable ArrayF
+
+instance showArrayF :: (Show a) => Show (ArrayF a) where
+  show = genericShow
+
+decodeArrayF :: ExprJSON -> Either String (ArrayF ExprJSON)
+decodeArrayF { out, param } = case out of
+  "Array" -> map Array (decodeJson param)
+  _ -> Left "Expected Array"
+
+encodeArrayF :: ArrayF ExprJSON -> ExprJSON
+encodeArrayF = case _ of
+  Array x -> base "Array" x
+
+isEmptyArrayF :: forall a. ArrayF a -> Boolean
+isEmptyArrayF = case _ of
+  Array [] -> true
+  Array _ -> false
+
+printArrayF :: ArrayF String -> String
+printArrayF = case _ of
+  Array x -> show x
+
+newtype BooleanF a
+  = Boolean Boolean
+
+derive instance eqBooleanF :: Eq (BooleanF a)
+
+derive instance eq1BooleanF :: Eq1 BooleanF
+
+derive instance functorBooleanF :: Functor BooleanF
+
+derive instance genericBooleanF :: Generic (BooleanF a) _
+
+instance foldableBooleanF :: Foldable BooleanF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Boolean _ -> mempty
+
+instance showBooleanF :: Show (BooleanF a) where
+  show = genericShow
+
+instance traversableBooleanF :: Traversable BooleanF where
+  sequence = traverse identity
+  traverse f = case _ of
+    Boolean x -> pure (Boolean x)
+
+decodeBooleanF :: forall a. ExprJSON -> Either String (BooleanF a)
+decodeBooleanF { out, param } = case out of
+  "Boolean" -> map Boolean (decodeJson param)
+  _ -> Left "Expected Boolean"
+
+encodeBooleanF :: forall a. BooleanF a -> ExprJSON
+encodeBooleanF = case _ of
+  Boolean x -> base "Boolean" x
+
+isEmptyBooleanF :: forall a. BooleanF a -> Boolean
+isEmptyBooleanF = case _ of
+  Boolean x -> false
+
+printBooleanF :: forall a. BooleanF a -> String
+printBooleanF = case _ of
+  Boolean x -> show x
+
+newtype CentsF a
+  = Cents Cents
+
+derive instance eqCentsF :: Eq (CentsF a)
+
+derive instance eq1CentsF :: Eq1 CentsF
+
+derive instance functorCentsF :: Functor CentsF
+
+derive instance genericCentsF :: Generic (CentsF a) _
+
+instance foldableCentsF :: Foldable CentsF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Cents _ -> mempty
+
+instance showCentsF :: Show (CentsF a) where
+  show = genericShow
+
+instance traversableCentsF :: Traversable CentsF where
+  sequence = traverse identity
+  traverse f = case _ of
+    Cents x -> pure (Cents x)
+
+decodeCentsF :: forall a. ExprJSON -> Either String (CentsF a)
+decodeCentsF { out, param } = case out of
+  "Cents" -> map (Cents <<< wrap <<< Data.BigInt.fromInt) (decodeJson param)
+  _ -> Left "Expected Cents"
+
+encodeCentsF :: forall a. CentsF a -> ExprJSON
+encodeCentsF = case _ of
+  Cents x -> base "Cents" x
+
+isEmptyCentsF :: forall a. CentsF a -> Boolean
+isEmptyCentsF = case _ of
+  Cents x -> false
+
+printCentsF :: forall a. CentsF a -> String
+printCentsF = case _ of
+  Cents x -> replace (Pattern ".00") (Replacement "") (formatCentsToStrDollars x)
+
+newtype DateTimeF a
+  = DateTime DateTime
+
+derive instance eqDateTimeF :: Eq (DateTimeF a)
+
+derive instance eq1DateTimeF :: Eq1 DateTimeF
+
+derive instance functorDateTimeF :: Functor DateTimeF
+
+derive instance genericDateTimeF :: Generic (DateTimeF a) _
+
+instance foldableDateTimeF :: Foldable DateTimeF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    DateTime _ -> mempty
+
+instance showDateTimeF :: Show (DateTimeF a) where
+  show = genericShow
+
+instance traversableDateTimeF :: Traversable DateTimeF where
+  sequence = traverse identity
+  traverse f = case _ of
+    DateTime x -> pure (DateTime x)
+
+decodeDateTimeF :: forall a. ExprJSON -> Either String (DateTimeF a)
+decodeDateTimeF { out, param } = case out of
+  "DateTime" -> do
+    x' <- decodeJson param
+    x <- unformat extendedDateTimeFormatInUTC x'
+    pure (DateTime x)
+  _ -> Left "Expected DateTime"
+
+encodeDateTimeF :: forall a. DateTimeF a -> ExprJSON
+encodeDateTimeF = case _ of
+  DateTime x -> base "DateTime" (format extendedDateTimeFormatInUTC x)
+
+isEmptyDateTimeF :: forall a. DateTimeF a -> Boolean
+isEmptyDateTimeF = case _ of
+  DateTime x -> false
+
+printDateTimeF :: forall a. DateTimeF a -> String
+printDateTimeF = case _ of
+  DateTime x -> format extendedDateTimeFormatInUTC x
+
+newtype IntF a
+  = Int Int
+
+derive instance eqIntF :: Eq (IntF a)
+
+derive instance eq1IntF :: Eq1 IntF
+
+derive instance functorIntF :: Functor IntF
+
+derive instance genericIntF :: Generic (IntF a) _
+
+instance foldableIntF :: Foldable IntF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Int _ -> mempty
+
+instance showIntF :: Show (IntF a) where
+  show = genericShow
+
+instance traversableIntF :: Traversable IntF where
+  sequence = traverse identity
+  traverse f = case _ of
+    Int x -> pure (Int x)
+
+decodeIntF :: forall a. ExprJSON -> Either String (IntF a)
+decodeIntF { out, param } = case out of
+  "Int" -> map Int (decodeJson param)
+  _ -> Left "Expected Int"
+
+encodeIntF :: forall a. IntF a -> ExprJSON
+encodeIntF = case _ of
+  Int x -> base "Int" x
+
+isEmptyIntF :: forall a. IntF a -> Boolean
+isEmptyIntF = case _ of
+  Int x -> false
+
+printIntF :: forall a. IntF a -> String
+printIntF = case _ of
+  Int x -> show x
+
+newtype PairF a
+  = Pair { name :: a, value :: a }
+
+derive instance eqPairF :: (Eq a) => Eq (PairF a)
+
+derive instance eq1PairF :: Eq1 PairF
+
+derive instance functorPairF :: Functor PairF
+
+derive instance genericPairF :: Generic (PairF a) _
+
+instance foldablePairF :: Foldable PairF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    Pair x -> f x.name <> f x.value
+
+instance showPairF :: (Show a) => Show (PairF a) where
+  show = genericShow
+
+instance traversablePairF :: Traversable PairF where
+  sequence = traverse identity
+  traverse f = case _ of
+    Pair x -> ado
+      name <- f x.name
+      value <- f x.value
+      in Pair { name, value }
+
+decodePairF :: ExprJSON -> Either String (PairF ExprJSON)
+decodePairF { out, param } = case out of
+  "Pair" -> map Pair (decodeJson param)
+  _ -> Left "Expected Pair"
+
+encodePairF :: PairF ExprJSON -> ExprJSON
+encodePairF = case _ of
+  Pair x -> base "Pair" x
+
+isEmptyPairF :: forall a. PairF a -> Boolean
+isEmptyPairF = case _ of
+  Pair x -> false
+
+printPairF :: PairF String -> String
+printPairF = case _ of
+  Pair x -> show x
+
+newtype StringF a
+  = String String
+
+derive instance eqStringF :: Eq (StringF a)
+
+derive instance eq1StringF :: Eq1 StringF
+
+derive instance functorStringF :: Functor StringF
+
+derive instance genericStringF :: Generic (StringF a) _
+
+instance foldableStringF :: Foldable StringF where
+  foldl f z x = foldlDefault f z x
+  foldr f z x = foldrDefault f z x
+  foldMap f = case _ of
+    String _ -> mempty
+
+instance showStringF :: Show (StringF a) where
+  show = genericShow
+
+instance traversableStringF :: Traversable StringF where
+  sequence = traverse identity
+  traverse f = case _ of
+    String x -> pure (String x)
+
+decodeStringF :: forall a. ExprJSON -> Either String (StringF a)
+decodeStringF { out, param } = case out of
+  "String" -> map String (decodeJson param)
+  _ -> Left "Expected String"
+
+encodeStringF :: forall a. StringF a -> ExprJSON
+encodeStringF = case _ of
+  String x -> base "String" x
+
+isEmptyStringF :: forall a. StringF a -> Boolean
+isEmptyStringF = case _ of
+  String "" -> true
+  String _ -> false
+
+printStringF :: forall a. StringF a -> String
+printStringF = case _ of
+  String x -> x
+
+type ExprJSON
+  = { in :: String
+    , out :: String
+    , op :: String
+    , param :: Json
+    }
+
+base :: forall a. EncodeJson a => String -> a -> ExprJSON
+base out param = { in: "Void", out, op: "Val", param: encodeJson param }
+
+type ExprTypeF
+  = ArrayF
+    <\/> BooleanF
+    <\/> CentsF
+    <\/> DateTimeF
+    <\/> IntF
+    <\/> PairF
+    <\/> StringF
+
+decodeExprTypeF :: ExprJSON -> Either String (ExprTypeF ExprJSON)
+decodeExprTypeF x =
+  map inj (decodeArrayF x)
+    <|> map inj (decodeBooleanF x)
+    <|> map inj (decodeCentsF x)
+    <|> map inj (decodeDateTimeF x)
+    <|> map inj (decodeIntF x)
+    <|> map inj (decodePairF x)
+    <|> map inj (decodeStringF x)
+    <|> Left
+      ( show x { param = stringify x.param }
+        <> " unsupported."
+        <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
+      )
+
+encodeExprTypeF :: ExprTypeF ExprJSON -> ExprJSON
+encodeExprTypeF =
+  encodeArrayF
+    <\/> encodeBooleanF
+    <\/> encodeCentsF
+    <\/> encodeDateTimeF
+    <\/> encodeIntF
+    <\/> encodePairF
+    <\/> encodeStringF
+
+isEmptyExprTypeF :: forall a. ExprTypeF a -> Boolean
+isEmptyExprTypeF =
+  isEmptyArrayF
+    <\/> isEmptyBooleanF
+    <\/> isEmptyCentsF
+    <\/> isEmptyDateTimeF
+    <\/> isEmptyIntF
+    <\/> isEmptyPairF
+    <\/> isEmptyStringF
+
+printExprTypeF :: ExprTypeF String -> String
+printExprTypeF =
+  printArrayF
+    <\/> printBooleanF
+    <\/> printCentsF
+    <\/> printDateTimeF
+    <\/> printIntF
+    <\/> printPairF
+    <\/> printStringF
+
+newtype ExprType
+  = ExprType (Mu ExprTypeF)
 
 derive instance eqExprType :: Eq ExprType
 
 derive instance genericExprType :: Generic ExprType _
 
-instance showExprType :: Show ExprType where
-  show x = genericShow x
+derive instance newtypeExprType :: Newtype ExprType _
 
 instance encodeJsonExprType :: EncodeJson ExprType where
-  encodeJson x' = case x' of
-    Array x -> "param" := encodeJson x ~> base x'
-    Boolean x -> "param" := encodeJson x ~> base x'
-    Cents x -> "param" := encodeJson x ~> base x'
-    DateTime x -> "param" := format extendedDateTimeFormatInUTC x ~> base x'
-    Int x -> "param" := encodeJson x ~> base x'
-    Pair x -> "param" := encodeJson x ~> base x'
-    String x -> "param" := encodeJson x ~> base x'
-    where
-    base :: ExprType -> Json
-    base x =
-      "in" := encodeJson "Void"
-        ~> "out" := encodeJson (reflectType x)
-        ~> "op" := encodeJson "Val"
-        ~> jsonEmptyObject
+  encodeJson x = encodeJson (cata encodeExprTypeF x)
 
 instance decodeJsonExprType :: DecodeJson ExprType where
-  decodeJson json' = do
-    json <- decodeJson json'
-    out <- json .: "out"
-    param <- json .: "param"
-    case out, param of
-      "Array", x -> map Array (decodeJson x)
-      "Boolean", x -> map Boolean (decodeJson x)
-      "Cents", x -> map Cents (cents x)
-      "DateTime", x -> map DateTime (dateTime x)
-      "Int", x -> map Int (decodeJson x)
-      "Pair", x -> map Pair (decodeJson x)
-      "String", x -> map String (decodeJson x)
-      _, _ ->
-        Left
-          ( stringify json'
-            <> " unsupported."
-            <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
-          )
-    where
-    cents :: Json -> Either String Cents
-    cents json = do
-      x <- decodeJson json
-      pure (wrap $ Data.BigInt.fromInt x)
-    dateTime :: Json -> Either String DateTime
-    dateTime json = do
-      x <- decodeJson json
-      unformat extendedDateTimeFormatInUTC x
+  decodeJson json = anaM decodeExprTypeF =<< decodeJson json
 
 instance arbitraryExprType :: Arbitrary ExprType where
   arbitrary = sized go
@@ -97,61 +416,82 @@ instance arbitraryExprType :: Arbitrary ExprType where
       go size' =
         if size' < 1 then
           oneOf $ NonEmpty
-            (Boolean <$> arbitrary)
-            [ Cents <$> cents
-            , Int <$> arbitrary
-            , String <$> arbitrary
+            (boolean_ <$> arbitrary)
+            [ cents_ <$> cents
+            , int_ <$> arbitrary
+            , string_ <$> arbitrary
             ]
         else
           let size = size' / 10
           in oneOf $ NonEmpty
-             (Array <$> arrayOf (go size))
-             [ Pair <$> ({ name: _, value: _ } <$> go size <*> go size)
+             (array_ <$> arrayOf (go size))
+             [ pair_ <$> ({ name: _, value: _ } <$> go size <*> go size)
              ]
 
+instance corecursiveExprTypeExprTypeF ::
+  Corecursive
+    ExprType
+    ( ArrayF
+      <\/> BooleanF
+      <\/> CentsF
+      <\/> DateTimeF
+      <\/> IntF
+      <\/> PairF
+      <\/> StringF
+    )
+    where
+      embed x = ExprType (embed $ map (un ExprType) x)
+
+instance recursiveExprTypeExprTypeF ::
+  Recursive
+    ExprType
+    ( ArrayF
+      <\/> BooleanF
+      <\/> CentsF
+      <\/> DateTimeF
+      <\/> IntF
+      <\/> PairF
+      <\/> StringF
+    )
+    where
+      project (ExprType x) = map ExprType (project x)
+
+instance showExprType :: Show ExprType where
+  show x = genericShow x
+
+isEmpty :: Maybe ExprType -> Boolean
+isEmpty = maybe true (cata isEmptyExprTypeF)
+
 reflectType :: ExprType -> String
-reflectType (Array _) = "Array"
-reflectType (Boolean _) = "Boolean"
-reflectType (Cents _) = "Cents"
-reflectType (DateTime _) = "DateTime"
-reflectType (Int _) = "Int"
-reflectType (Pair _) = "Pair"
-reflectType (String _) = "String"
+reflectType x = (cata encodeExprTypeF x).out
 
 print :: ExprType -> String
-print = case _ of
-  Array x -> "[" <> intercalate ", " (map print x) <> "]"
-  Boolean x -> show x
-  Cents x -> replace (Pattern ".00") (Replacement "") (formatCentsToStrDollars x)
-  DateTime x -> format extendedDateTimeFormatInUTC x
-  Int x -> show x
-  Pair x -> "{name: " <> print x.name <> ", value: " <> print x.value <> "}"
-  String x -> x
+print = cata printExprTypeF
 
 toArray :: ExprType -> Maybe (Array ExprType)
-toArray = case _ of
-  Array x -> Just x
-  otherwise -> Nothing
+toArray x' = do
+  Array x <- prj (project x')
+  pure x
 
 toBoolean :: ExprType -> Maybe Boolean
-toBoolean = case _ of
-  Boolean x -> Just x
-  otherwise -> Nothing
+toBoolean x' = do
+  Boolean x <- prj (project x')
+  pure x
 
 toDateTime :: ExprType -> Maybe DateTime
-toDateTime = case _ of
-  DateTime x -> Just x
-  otherwise -> Nothing
+toDateTime x' = do
+  DateTime x <- prj (project x')
+  pure x
 
 toCents :: ExprType -> Maybe Cents
-toCents = case _ of
-  Cents x -> Just x
-  otherwise -> Nothing
+toCents x' = do
+  Cents x <- prj (project x')
+  pure x
 
 toInt :: ExprType -> Maybe Int
-toInt = case _ of
-  Int x     -> Just x
-  otherwise -> Nothing
+toInt x' = do
+  Int x <- prj (project x')
+  pure x
 
 toObject :: ExprType -> Object String
 toObject item = fold do
@@ -161,14 +501,14 @@ toObject item = fold do
   pure (Foreign.Object.fromHomogeneous { name, value })
 
 toPair :: ExprType -> Maybe { name :: ExprType, value :: ExprType }
-toPair = case _ of
-  Pair x -> Just x
-  otherwise -> Nothing
+toPair x' = do
+  Pair x <- prj (project x')
+  pure x
 
 toString :: ExprType -> Maybe String
-toString = case _ of
-  String x  -> Just x
-  otherwise -> Nothing
+toString x' = do
+  String x <- prj (project x')
+  pure x
 
 data Expr
   = Val ExprType
@@ -283,41 +623,43 @@ evalExpr get = case _ of
   Val x -> pure x
   If x' y z -> do
     x <- evalExpr get x'
-    case x of
-      Boolean false -> evalExpr get z
-      Boolean true -> evalExpr get y
+    case toBoolean x of
+      Just false -> evalExpr get z
+      Just true -> evalExpr get y
       _ -> Left (IfCondition x)
   Equal x' y' -> do
     left <- evalExpr get x'
     right <- evalExpr get y'
-    case left, right of
-      Boolean x, Boolean y -> Right (Boolean $ x == y)
-      Int x, Int y -> Right (Boolean $ x == y)
-      String x, String y -> Right (Boolean $ x == y)
-      _, _ -> Left (EqualMismatch { left, right })
-  Print x' -> map (String <<< print) (evalExpr get x')
+    case toBoolean left, toBoolean right of
+      Just x, Just y -> Right (boolean_ $ x == y)
+      _, _ -> case toInt left, toInt right of
+        Just x, Just y -> Right (boolean_ $ x == y)
+        _, _ -> case toString left, toString right of
+          Just x, Just y -> Right (boolean_ $ x == y)
+          _, _ -> Left (EqualMismatch { left, right })
+  Print x' -> map (string_ <<< print) (evalExpr get x')
   Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
 
 array_ :: Array ExprType -> ExprType
-array_ = Array
+array_ x = embed (inj $ Array x)
 
 boolean_ :: Boolean -> ExprType
-boolean_ = Boolean
+boolean_ x = embed (inj $ Boolean x)
 
 cents_ :: Cents -> ExprType
-cents_ = Cents
+cents_ x = embed (inj $ Cents x)
 
 datetime_ :: DateTime -> ExprType
-datetime_ = DateTime
+datetime_ x = embed (inj $ DateTime x)
 
 int_ :: Int -> ExprType
-int_ = Int
+int_ x = embed (inj $ Int x)
 
 pair_ :: { name :: ExprType, value :: ExprType } -> ExprType
-pair_ = Pair
+pair_ x = embed (inj $ Pair x)
 
 string_ :: String -> ExprType
-string_ = String
+string_ x = embed (inj $ String x)
 
 if_ :: Expr -> Expr -> Expr -> Expr
 if_ = If
