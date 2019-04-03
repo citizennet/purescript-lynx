@@ -40,11 +40,14 @@ derive instance eq1ArrayF :: Eq1 ArrayF
 
 derive instance functorArrayF :: Functor ArrayF
 
-derive newtype instance showArrayF :: (Show a) => Show (ArrayF a)
+derive instance genericArrayF :: Generic (ArrayF a) _
 
 derive newtype instance foldableArrayF :: Foldable ArrayF
 
 derive newtype instance traversableArrayF :: Traversable ArrayF
+
+instance showArrayF :: (Show a) => Show (ArrayF a) where
+  show = genericShow
 
 decodeArrayF :: ExprJSON -> Either String (ArrayF ExprJSON)
 decodeArrayF { out, param } = case out of
@@ -73,13 +76,16 @@ derive instance eq1BooleanF :: Eq1 BooleanF
 
 derive instance functorBooleanF :: Functor BooleanF
 
-derive newtype instance showBooleanF :: Show (BooleanF a)
+derive instance genericBooleanF :: Generic (BooleanF a) _
 
 instance foldableBooleanF :: Foldable BooleanF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     Boolean _ -> mempty
+
+instance showBooleanF :: Show (BooleanF a) where
+  show = genericShow
 
 instance traversableBooleanF :: Traversable BooleanF where
   sequence = traverse identity
@@ -112,13 +118,16 @@ derive instance eq1CentsF :: Eq1 CentsF
 
 derive instance functorCentsF :: Functor CentsF
 
-derive newtype instance showCentsF :: Show (CentsF a)
+derive instance genericCentsF :: Generic (CentsF a) _
 
 instance foldableCentsF :: Foldable CentsF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     Cents _ -> mempty
+
+instance showCentsF :: Show (CentsF a) where
+  show = genericShow
 
 instance traversableCentsF :: Traversable CentsF where
   sequence = traverse identity
@@ -151,13 +160,16 @@ derive instance eq1DateTimeF :: Eq1 DateTimeF
 
 derive instance functorDateTimeF :: Functor DateTimeF
 
-derive newtype instance showDateTimeF :: Show (DateTimeF a)
+derive instance genericDateTimeF :: Generic (DateTimeF a) _
 
 instance foldableDateTimeF :: Foldable DateTimeF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     DateTime _ -> mempty
+
+instance showDateTimeF :: Show (DateTimeF a) where
+  show = genericShow
 
 instance traversableDateTimeF :: Traversable DateTimeF where
   sequence = traverse identity
@@ -193,13 +205,16 @@ derive instance eq1IntF :: Eq1 IntF
 
 derive instance functorIntF :: Functor IntF
 
-derive newtype instance showIntF :: Show (IntF a)
+derive instance genericIntF :: Generic (IntF a) _
 
 instance foldableIntF :: Foldable IntF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     Int _ -> mempty
+
+instance showIntF :: Show (IntF a) where
+  show = genericShow
 
 instance traversableIntF :: Traversable IntF where
   sequence = traverse identity
@@ -232,13 +247,16 @@ derive instance eq1PairF :: Eq1 PairF
 
 derive instance functorPairF :: Functor PairF
 
-derive newtype instance showPairF :: (Show a) => Show (PairF a)
+derive instance genericPairF :: Generic (PairF a) _
 
 instance foldablePairF :: Foldable PairF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     Pair x -> f x.name <> f x.value
+
+instance showPairF :: (Show a) => Show (PairF a) where
+  show = genericShow
 
 instance traversablePairF :: Traversable PairF where
   sequence = traverse identity
@@ -274,13 +292,16 @@ derive instance eq1StringF :: Eq1 StringF
 
 derive instance functorStringF :: Functor StringF
 
-derive newtype instance showStringF :: Show (StringF a)
+derive instance genericStringF :: Generic (StringF a) _
 
 instance foldableStringF :: Foldable StringF where
   foldl f z x = foldlDefault f z x
   foldr f z x = foldrDefault f z x
   foldMap f = case _ of
     String _ -> mempty
+
+instance showStringF :: Show (StringF a) where
+  show = genericShow
 
 instance traversableStringF :: Traversable StringF where
   sequence = traverse identity
@@ -378,8 +399,6 @@ derive instance genericExprType :: Generic ExprType _
 
 derive instance newtypeExprType :: Newtype ExprType _
 
-derive newtype instance showExprType :: Show ExprType
-
 instance encodeJsonExprType :: EncodeJson ExprType where
   encodeJson x = encodeJson (cata encodeExprTypeF x)
 
@@ -436,6 +455,9 @@ instance recursiveExprTypeExprTypeF ::
     )
     where
       project (ExprType x) = map ExprType (project x)
+
+instance showExprType :: Show ExprType where
+  show x = genericShow x
 
 isEmpty :: Maybe ExprType -> Boolean
 isEmpty = maybe true (cata isEmptyExprTypeF)
