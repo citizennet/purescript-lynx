@@ -10,7 +10,6 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
-import Data.Traversable (for)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
@@ -220,8 +219,8 @@ eval
 eval = case _ of
   EvalForm expr a -> a <$ do
     let values = Lynx.Data.Form.keys expr
-        evaled' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
-    evaled <- for evaled' \page -> do
+        evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+    for_ evaled \page -> do
       for_ page.contents \section -> do
         for_ section.contents \field -> do
           case field.input of
@@ -235,7 +234,6 @@ eval = case _ of
             TypeaheadSingle typeahead ->
               for_ (toArray typeahead.options) \options ->
                 H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
-      pure page
     H.modify_ _
       { form = map { expr, evaled: _ } (fromEither evaled)
       , values = values
@@ -243,10 +241,9 @@ eval = case _ of
 
   UpdateValue key val a -> do
     { form } <- H.get
-    case form of
-      Success { expr } ->
-        eval $ EvalForm (Lynx.Data.Form.setValue key val expr) a
-      _ -> pure a
+    for_ form \ { expr } ->
+      eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
+    pure a
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x

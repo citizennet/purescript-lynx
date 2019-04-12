@@ -2677,33 +2677,6 @@ var PS = {};
           };
       };
   });
-  var traversableEither = new Data_Traversable.Traversable(function () {
-      return foldableEither;
-  }, function () {
-      return functorEither;
-  }, function (dictApplicative) {
-      return function (v) {
-          if (v instanceof Left) {
-              return Control_Applicative.pure(dictApplicative)(new Left(v.value0));
-          };
-          if (v instanceof Right) {
-              return Data_Functor.map((dictApplicative.Apply0()).Functor0())(Right.create)(v.value0);
-          };
-          throw new Error("Failed pattern match at Data.Either (line 211, column 1 - line 211, column 53): " + [ v.constructor.name ]);
-      };
-  }, function (dictApplicative) {
-      return function (v) {
-          return function (v1) {
-              if (v1 instanceof Left) {
-                  return Control_Applicative.pure(dictApplicative)(new Left(v1.value0));
-              };
-              if (v1 instanceof Right) {
-                  return Data_Functor.map((dictApplicative.Apply0()).Functor0())(Right.create)(v(v1.value0));
-              };
-              throw new Error("Failed pattern match at Data.Either (line 211, column 1 - line 211, column 53): " + [ v.constructor.name, v1.constructor.name ]);
-          };
-      };
-  });
   var eqEither = function (dictEq) {
       return function (dictEq1) {
           return new Data_Eq.Eq(function (x) {
@@ -2823,7 +2796,6 @@ var PS = {};
   exports["eqEither"] = eqEither;
   exports["ordEither"] = ordEither;
   exports["foldableEither"] = foldableEither;
-  exports["traversableEither"] = traversableEither;
   exports["semigroupEither"] = semigroupEither;
 })(PS["Data.Either"] = PS["Data.Either"] || {});
 (function(exports) {
@@ -21591,7 +21563,30 @@ var PS = {};
           return new Success(v.value0);
       };
       throw new Error("Failed pattern match at Network.RemoteData (line 134, column 1 - line 134, column 55): " + [ v.constructor.name ]);
-  }; 
+  };
+  var foldableRemoteData = new Data_Foldable.Foldable(function (dictMonoid) {
+      return function (v) {
+          return function (v1) {
+              if (v1 instanceof Success) {
+                  return v(v1.value0);
+              };
+              if (v1 instanceof Failure) {
+                  return Data_Monoid.mempty(dictMonoid);
+              };
+              if (v1 instanceof NotAsked) {
+                  return Data_Monoid.mempty(dictMonoid);
+              };
+              if (v1 instanceof Loading) {
+                  return Data_Monoid.mempty(dictMonoid);
+              };
+              throw new Error("Failed pattern match at Network.RemoteData (line 91, column 1 - line 91, column 55): " + [ v.constructor.name, v1.constructor.name ]);
+          };
+      };
+  }, function (f) {
+      return Data_Foldable.foldlDefault(foldableRemoteData)(f);
+  }, function (f) {
+      return Data_Foldable.foldrDefault(foldableRemoteData)(f);
+  });
   var applyRemoteData = new Control_Apply.Apply(function () {
       return functorRemoteData;
   }, function (v) {
@@ -21677,6 +21672,7 @@ var PS = {};
   exports["applyRemoteData"] = applyRemoteData;
   exports["bindRemoteData"] = bindRemoteData;
   exports["applicativeRemoteData"] = applicativeRemoteData;
+  exports["foldableRemoteData"] = foldableRemoteData;
 })(PS["Network.RemoteData"] = PS["Network.RemoteData"] || {});
 (function(exports) {
     "use strict";
@@ -27758,7 +27754,6 @@ var PS = {};
   var Data_Ord = PS["Data.Ord"];
   var Data_Semigroup = PS["Data.Semigroup"];
   var Data_Show = PS["Data.Show"];
-  var Data_Traversable = PS["Data.Traversable"];
   var Data_Unit = PS["Data.Unit"];
   var Effect_Aff_Class = PS["Effect.Aff.Class"];
   var Halogen = PS["Halogen"];
@@ -27884,11 +27879,11 @@ var PS = {};
           if (v instanceof EvalForm) {
               return Data_Functor.voidRight(Halogen_Query_HalogenM.functorHalogenM)(v.value1)((function () {
                   var values = Lynx_Data_Form.keys(v.value0);
-                  var evaled$prime = Lynx_Data_Form["eval"](function (key) {
+                  var evaled = Lynx_Data_Form["eval"](function (key) {
                       return Data_Map_Internal.lookup(Data_Ord.ordString)(key)(values);
                   })(v.value0);
-                  return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Data_Traversable["for"](Halogen_Query_HalogenM.applicativeHalogenM)(Data_Either.traversableEither)(evaled$prime)(function (page) {
-                      return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(page.contents)(function (section) {
+                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Either.foldableEither)(evaled)(function (page) {
+                      return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(page.contents)(function (section) {
                           return Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableArray)(section.contents)(function (field) {
                               if (field.input instanceof Lynx_Data_Form.Currency) {
                                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit);
@@ -27912,37 +27907,36 @@ var PS = {};
                                       return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Either.eqEither(Data_Eq.eqString)(Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))))(Halogen_Component_ChildPath.cp3)(field.key)(new Ocelot_Component_Typeahead_Base.ReplaceItems(Control_Applicative.pure(Network_RemoteData.applicativeRemoteData)(options), Data_Unit.unit));
                                   });
                               };
-                              throw new Error("Failed pattern match at Lynx (line 227, column 11 - line 237, column 84): " + [ field.input.constructor.name ]);
+                              throw new Error("Failed pattern match at Lynx (line 226, column 11 - line 236, column 84): " + [ field.input.constructor.name ]);
                           });
-                      }))(function () {
-                          return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(page);
                       });
-                  }))(function (v1) {
-                      return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
-                          var $29 = {};
-                          for (var $30 in v2) {
-                              if ({}.hasOwnProperty.call(v2, $30)) {
-                                  $29[$30] = v2[$30];
+                  }))(function () {
+                      return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
+                          var $28 = {};
+                          for (var $29 in v1) {
+                              if ({}.hasOwnProperty.call(v1, $29)) {
+                                  $28[$29] = v1[$29];
                               };
                           };
-                          $29.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v3) {
+                          $28.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v2) {
                               return {
                                   expr: v.value0,
-                                  evaled: v3
+                                  evaled: v2
                               };
-                          })(Network_RemoteData.fromEither(v1));
-                          $29.values = values;
-                          return $29;
+                          })(Network_RemoteData.fromEither(evaled));
+                          $28.values = values;
+                          return $28;
                       });
                   });
               })());
           };
           if (v instanceof UpdateValue) {
               return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
-                  if (v1.form instanceof Network_RemoteData.Success) {
-                      return $$eval(dictMonadAff)(new EvalForm(Lynx_Data_Form.setValue(v.value0)(v.value1)(v1.form.value0.expr), v.value2));
-                  };
-                  return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
+                  return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Network_RemoteData.foldableRemoteData)(v1.form)(function (v2) {
+                      return $$eval(dictMonadAff)(new EvalForm(Lynx_Data_Form.setValue(v.value0)(v.value1)(v2.expr), v.value2));
+                  }))(function () {
+                      return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
+                  });
               });
           };
           if (v instanceof DropdownQuery) {
@@ -27955,7 +27949,7 @@ var PS = {};
               if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
               };
-              throw new Error("Failed pattern match at Lynx (line 251, column 34 - line 254, column 43): " + [ v.value1.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 248, column 34 - line 251, column 43): " + [ v.value1.constructor.name ]);
           };
           if (v instanceof DateTimePickerQuery) {
               if (v.value1 instanceof Ocelot_Component_DateTimePicker.DateMessage) {
@@ -27970,7 +27964,7 @@ var PS = {};
               if (v.value1 instanceof Ocelot_Component_DateTimePicker.TimeMessage) {
                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
               };
-              throw new Error("Failed pattern match at Lynx (line 256, column 40 - line 262, column 43): " + [ v.value1.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 253, column 40 - line 259, column 43): " + [ v.value1.constructor.name ]);
           };
           if (v instanceof TypeaheadSingleQuery) {
               if (v.value1 instanceof Ocelot_Component_Typeahead_Base.Emit) {
@@ -27985,9 +27979,9 @@ var PS = {};
               if (v.value1 instanceof Ocelot_Component_Typeahead_Base.SelectionChanged) {
                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
               };
-              throw new Error("Failed pattern match at Lynx (line 264, column 41 - line 268, column 45): " + [ v.value1.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 261, column 41 - line 265, column 45): " + [ v.value1.constructor.name ]);
           };
-          throw new Error("Failed pattern match at Lynx (line 220, column 8 - line 268, column 45): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx (line 219, column 8 - line 265, column 45): " + [ v.constructor.name ]);
       };
   };
   var component = function (dictMonadAff) {
@@ -28005,9 +27999,9 @@ var PS = {};
               if (v instanceof Lynx_Data_Form.InvalidOption) {
                   return v.value0 + " is not a valid option";
               };
-              throw new Error("Failed pattern match at Lynx (line 209, column 29 - line 215, column 1): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 208, column 29 - line 214, column 1): " + [ v.constructor.name ]);
           };
-          var renderValidation$prime = function ($97) {
+          var renderValidation$prime = function ($95) {
               return (function (v) {
                   if (v.length === 0) {
                       return [  ];
@@ -28015,10 +28009,10 @@ var PS = {};
                   if (v.length === 1) {
                       return [ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text(renderValidationError(v[0])) ]) ];
                   };
-                  return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($98) {
-                      return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($98))));
+                  return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($96) {
+                      return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($96))));
                   })(v)) ];
-              })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($97));
+              })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($95));
           };
           return function (v) {
               if (v instanceof Lynx_Data_Form.Currency) {
@@ -28039,7 +28033,7 @@ var PS = {};
               if (v instanceof Lynx_Data_Form.TypeaheadSingle) {
                   return renderValidation$prime(v.value0.errors);
               };
-              throw new Error("Failed pattern match at Lynx (line 196, column 22 - line 202, column 68): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 195, column 22 - line 201, column 68): " + [ v.constructor.name ]);
           };
       })();
       var renderInput = function (field) {
@@ -28048,10 +28042,10 @@ var PS = {};
                   return Control_Bind.bind(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toCents(v))(function (v1) {
                       return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(Lynx_Data_Expr.print(v));
                   });
-              }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($99) {
-                  return UpdateValue.create(field.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($100) {
-                      return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.cents_($100));
-                  })(Ocelot_Data_Currency.parseCentsFromDollarStr($99)));
+              }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($97) {
+                  return UpdateValue.create(field.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($98) {
+                      return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.cents_($98));
+                  })(Ocelot_Data_Currency.parseCentsFromDollarStr($97)));
               })) ]);
           };
           if (field.input instanceof Lynx_Data_Form.DateTime) {
@@ -28064,35 +28058,35 @@ var PS = {};
               return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(field.key)(Ocelot_Component_Dropdown.component(dictMonadAff))({
                   selectedItem: Lynx_Data_Form.getValue(field.input.value0),
                   items: Data_Foldable.fold(Data_Foldable.foldableMaybe)(Data_Monoid.monoidArray)(Lynx_Data_Expr.toArray(field.input.value0.options)),
-                  render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($101) {
-                      return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($102) {
+                  render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($99) {
+                      return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($100) {
                           return Lynx_Data_Expr.print((function (v) {
                               return v.name;
-                          })($102));
-                      })(Lynx_Data_Expr.toPair($101));
+                          })($100));
+                      })(Lynx_Data_Expr.toPair($99));
                   })(Lynx_Data_Expr.print(field.input.value0.placeholder)))
               })(Halogen_HTML_Events.input(DropdownQuery.create(field.key)));
           };
           if (field.input instanceof Lynx_Data_Form.Text) {
-              return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(field.input.value0.placeholder)), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($103) {
-                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.string_($103)));
+              return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(field.input.value0.placeholder)), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($101) {
+                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.string_($101)));
               })) ]);
           };
           if (field.input instanceof Lynx_Data_Form.Toggle) {
-              return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($104) {
-                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.boolean_($104)));
+              return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($102) {
+                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.boolean_($102)));
               })) ]);
           };
           if (field.input instanceof Lynx_Data_Form.TypeaheadSingle) {
               return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(field.key)(Ocelot_Component_Typeahead_Base.single(dictMonadAff)(Lynx_Data_Expr.eqExprType))(Ocelot_Component_Typeahead.asyncSingle(dictMonadAff)(Lynx_Data_Expr.eqExprType)({
                   async: Lynx_Data_Form.asyncFromTypeahead(dictMonadAff)(field.input.value0),
                   itemToObject: Lynx_Data_Expr.toObject,
-                  renderFuzzy: function ($105) {
-                      return Halogen_HTML_Elements.span_(Ocelot_Block_ItemContainer.boldMatches("value")($105));
+                  renderFuzzy: function ($103) {
+                      return Halogen_HTML_Elements.span_(Ocelot_Block_ItemContainer.boldMatches("value")($103));
                   }
               })([  ]))(Halogen_HTML_Events.input(TypeaheadSingleQuery.create(field.key)));
           };
-          throw new Error("Failed pattern match at Lynx (line 133, column 23 - line 191, column 52): " + [ field.input.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx (line 132, column 23 - line 190, column 52): " + [ field.input.constructor.name ]);
       };
       var renderField = function (field) {
           return Ocelot_Block_FormField.field_({
@@ -28112,7 +28106,7 @@ var PS = {};
           if (v instanceof Lynx_Data_Expr.EqualMismatch) {
               return Halogen_HTML_Core.text("Expected both sides of equal to have the same type," + (" but they are different." + (" left: " + (Lynx_Data_Expr.reflectType(v.value0.left) + (" right: " + Lynx_Data_Expr.reflectType(v.value0.right))))));
           };
-          throw new Error("Failed pattern match at Lynx (line 101, column 21 - line 113, column 33): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx (line 100, column 21 - line 112, column 33): " + [ v.constructor.name ]);
       };
       var render = function (v) {
           return Halogen_HTML_Elements.div_([ Ocelot_Block_Layout.section_((function () {
@@ -28128,7 +28122,7 @@ var PS = {};
               if (v.form instanceof Network_RemoteData.Success) {
                   return Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Ocelot_Block_Format.heading_([ Halogen_HTML_Core.text(v.form.value0.evaled.name) ]) ])(Data_Functor.map(Data_Functor.functorArray)(renderSection)(v.form.value0.evaled.contents));
               };
-              throw new Error("Failed pattern match at Lynx (line 84, column 9 - line 96, column 53): " + [ v.form.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 83, column 9 - line 95, column 53): " + [ v.form.constructor.name ]);
           })()), Halogen_HTML_Elements.pre_([ Halogen_HTML_Core.text(Data_Show.show(Data_Map_Internal.showMap(Data_Show.showString)(Lynx_Data_Expr.showExprType))(v.values)) ]) ]);
       };
       return Halogen_Component.parentComponent(Data_Either.ordEither(Data_Ord.ordString)(Data_Either.ordEither(Data_Ord.ordString)(Data_Either.ordEither(Data_Ord.ordString)(Data_Ord.ordVoid))))({
