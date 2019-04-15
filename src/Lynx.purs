@@ -3,6 +3,7 @@ module Lynx where
 import Prelude
 
 import Data.Const (Const)
+import Data.Either (Either)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (type (<\/>))
@@ -265,11 +266,12 @@ eval = case _ of
     Typeahead.SelectionChanged _ _ -> pure a
 
 initialState :: ParentInput -> State
-initialState = case _ of
-  expr ->
-    { form: do
-      let evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
-          values = Lynx.Data.Form.keys expr
-      fromEither (map { evaled: _, expr } evaled)
-    , values: mempty
-    }
+initialState expr =
+  { form: fromEither (map { evaled: _, expr } evaled)
+  , values
+  }
+  where
+  evaled :: Either EvalError (Page ExprType)
+  evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+  values :: Map String ExprType
+  values = Lynx.Data.Form.keys expr

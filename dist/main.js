@@ -27837,21 +27837,19 @@ var PS = {};
       };
       return TypeaheadSingleQuery;
   })();
-  var initialState = function (v) {
+  var initialState = function (expr) {
+      var values = Lynx_Data_Form.keys(expr);
+      var evaled = Lynx_Data_Form["eval"](function (key) {
+          return Data_Map_Internal.lookup(Data_Ord.ordString)(key)(values);
+      })(expr);
       return {
-          form: (function () {
-              var values = Lynx_Data_Form.keys(v);
-              var evaled = Lynx_Data_Form["eval"](function (key) {
-                  return Data_Map_Internal.lookup(Data_Ord.ordString)(key)(values);
-              })(v);
-              return Network_RemoteData.fromEither(Data_Functor.map(Data_Either.functorEither)(function (v1) {
-                  return {
-                      evaled: v1,
-                      expr: v
-                  };
-              })(evaled));
-          })(),
-          values: Data_Monoid.mempty(Data_Map_Internal.monoidMap(Data_Ord.ordString))
+          form: Network_RemoteData.fromEither(Data_Functor.map(Data_Either.functorEither)(function (v) {
+              return {
+                  evaled: v,
+                  expr: expr
+              };
+          })(evaled)),
+          values: values
       };
   };
   var $$eval = function (dictMonadAff) {
@@ -27887,25 +27885,25 @@ var PS = {};
                                       return Halogen_Query["query'"](Data_Either.eqEither(Data_Eq.eqString)(Data_Either.eqEither(Data_Eq.eqString)(Data_Either.eqEither(Data_Eq.eqString)(Data_Eq.eqVoid))))(Halogen_Component_ChildPath.cp3)(field.key)(new Ocelot_Component_Typeahead_Base.ReplaceItems(Control_Applicative.pure(Network_RemoteData.applicativeRemoteData)(options), Data_Unit.unit));
                                   });
                               };
-                              throw new Error("Failed pattern match at Lynx (line 226, column 11 - line 236, column 84): " + [ field.input.constructor.name ]);
+                              throw new Error("Failed pattern match at Lynx (line 227, column 11 - line 237, column 84): " + [ field.input.constructor.name ]);
                           });
                       });
                   }))(function () {
                       return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                          var $26 = {};
-                          for (var $27 in v1) {
-                              if ({}.hasOwnProperty.call(v1, $27)) {
-                                  $26[$27] = v1[$27];
+                          var $24 = {};
+                          for (var $25 in v1) {
+                              if ({}.hasOwnProperty.call(v1, $25)) {
+                                  $24[$25] = v1[$25];
                               };
                           };
-                          $26.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v2) {
+                          $24.form = Data_Functor.map(Network_RemoteData.functorRemoteData)(function (v2) {
                               return {
                                   expr: v.value0,
                                   evaled: v2
                               };
                           })(Network_RemoteData.fromEither(evaled));
-                          $26.values = values;
-                          return $26;
+                          $24.values = values;
+                          return $24;
                       });
                   });
               })());
@@ -27929,7 +27927,7 @@ var PS = {};
               if (v.value1 instanceof Ocelot_Component_Dropdown.VisibilityChanged) {
                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
               };
-              throw new Error("Failed pattern match at Lynx (line 248, column 34 - line 251, column 43): " + [ v.value1.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 249, column 34 - line 252, column 43): " + [ v.value1.constructor.name ]);
           };
           if (v instanceof DateTimePickerQuery) {
               if (v.value1 instanceof Ocelot_Component_DateTimePicker.DateMessage) {
@@ -27944,7 +27942,7 @@ var PS = {};
               if (v.value1 instanceof Ocelot_Component_DateTimePicker.TimeMessage) {
                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
               };
-              throw new Error("Failed pattern match at Lynx (line 253, column 40 - line 259, column 43): " + [ v.value1.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 254, column 40 - line 260, column 43): " + [ v.value1.constructor.name ]);
           };
           if (v instanceof TypeaheadSingleQuery) {
               if (v.value1 instanceof Ocelot_Component_Typeahead_Base.Emit) {
@@ -27959,9 +27957,9 @@ var PS = {};
               if (v.value1 instanceof Ocelot_Component_Typeahead_Base.SelectionChanged) {
                   return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value2);
               };
-              throw new Error("Failed pattern match at Lynx (line 261, column 41 - line 265, column 45): " + [ v.value1.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 262, column 41 - line 266, column 45): " + [ v.value1.constructor.name ]);
           };
-          throw new Error("Failed pattern match at Lynx (line 219, column 8 - line 265, column 45): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx (line 220, column 8 - line 266, column 45): " + [ v.constructor.name ]);
       };
   };
   var component = function (dictMonadAff) {
@@ -27979,9 +27977,9 @@ var PS = {};
               if (v instanceof Lynx_Data_Form.InvalidOption) {
                   return v.value0 + " is not a valid option";
               };
-              throw new Error("Failed pattern match at Lynx (line 208, column 29 - line 214, column 1): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 209, column 29 - line 215, column 1): " + [ v.constructor.name ]);
           };
-          var renderValidation$prime = function ($93) {
+          var renderValidation$prime = function ($91) {
               return (function (v) {
                   if (v.length === 0) {
                       return [  ];
@@ -27989,10 +27987,10 @@ var PS = {};
                   if (v.length === 1) {
                       return [ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text(renderValidationError(v[0])) ]) ];
                   };
-                  return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($94) {
-                      return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($94))));
+                  return [ Halogen_HTML_Elements.ul_(Data_Functor.map(Data_Functor.functorArray)(function ($92) {
+                      return Halogen_HTML_Elements.li_(Control_Applicative.pure(Control_Applicative.applicativeArray)(Halogen_HTML_Core.text(renderValidationError($92))));
                   })(v)) ];
-              })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($93));
+              })(Lynx_Data_Form.errorsToArray(Lynx_Data_Form.ordValidationError)($91));
           };
           return function (v) {
               if (v instanceof Lynx_Data_Form.Currency) {
@@ -28013,7 +28011,7 @@ var PS = {};
               if (v instanceof Lynx_Data_Form.TypeaheadSingle) {
                   return renderValidation$prime(v.value0.errors);
               };
-              throw new Error("Failed pattern match at Lynx (line 195, column 22 - line 201, column 68): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 196, column 22 - line 202, column 68): " + [ v.constructor.name ]);
           };
       })();
       var renderInput = function (field) {
@@ -28022,10 +28020,10 @@ var PS = {};
                   return Control_Bind.bind(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toCents(v))(function (v1) {
                       return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(Lynx_Data_Expr.print(v));
                   });
-              }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($95) {
-                  return UpdateValue.create(field.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($96) {
-                      return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.cents_($96));
-                  })(Ocelot_Data_Currency.parseCentsFromDollarStr($95)));
+              }))), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($93) {
+                  return UpdateValue.create(field.key)(Data_Maybe.maybe(Lynx_Data_Form.UserCleared.value)(function ($94) {
+                      return Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.cents_($94));
+                  })(Ocelot_Data_Currency.parseCentsFromDollarStr($93)));
               })) ]);
           };
           if (field.input instanceof Lynx_Data_Form.DateTime) {
@@ -28038,35 +28036,35 @@ var PS = {};
               return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(field.key)(Ocelot_Component_Dropdown.component(dictMonadAff))({
                   selectedItem: Lynx_Data_Form.getValue(field.input.value0),
                   items: Data_Foldable.fold(Data_Foldable.foldableMaybe)(Data_Monoid.monoidArray)(Lynx_Data_Expr.toArray(field.input.value0.options)),
-                  render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($97) {
-                      return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($98) {
+                  render: Ocelot_Component_Dropdown_Render.render(dictMonadAff)(Ocelot_Component_Dropdown_Render.defDropdown(Lynx_Data_Expr.eqExprType)(Ocelot_Block_Button.button)([  ])(function ($95) {
+                      return Data_Foldable.foldMap(Data_Foldable.foldableMaybe)(Data_Monoid.monoidString)(function ($96) {
                           return Lynx_Data_Expr.print((function (v) {
                               return v.name;
-                          })($98));
-                      })(Lynx_Data_Expr.toPair($97));
+                          })($96));
+                      })(Lynx_Data_Expr.toPair($95));
                   })(Lynx_Data_Expr.print(field.input.value0.placeholder)))
               })(Halogen_HTML_Events.input(DropdownQuery.create(field.key)));
           };
           if (field.input instanceof Lynx_Data_Form.Text) {
-              return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(field.input.value0.placeholder)), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($99) {
-                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.string_($99)));
+              return Ocelot_Block_Input.input([ Halogen_HTML_Properties.value(Data_Maybe.fromMaybe("")(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toString)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.placeholder(Lynx_Data_Expr.print(field.input.value0.placeholder)), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(function ($97) {
+                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.string_($97)));
               })) ]);
           };
           if (field.input instanceof Lynx_Data_Form.Toggle) {
-              return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($100) {
-                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.boolean_($100)));
+              return Ocelot_Block_Toggle.toggle([ Halogen_HTML_Properties.checked(Data_Maybe.fromMaybe(false)(Control_Bind.bindFlipped(Data_Maybe.bindMaybe)(Lynx_Data_Expr.toBoolean)(Lynx_Data_Form.getValue(field.input.value0)))), Halogen_HTML_Properties.id_(field.key), Halogen_HTML_Events.onChecked(Halogen_HTML_Events.input(function ($98) {
+                  return UpdateValue.create(field.key)(Lynx_Data_Form.UserInput.create(Lynx_Data_Expr.boolean_($98)));
               })) ]);
           };
           if (field.input instanceof Lynx_Data_Form.TypeaheadSingle) {
               return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(field.key)(Ocelot_Component_Typeahead_Base.single(dictMonadAff)(Lynx_Data_Expr.eqExprType))(Ocelot_Component_Typeahead.asyncSingle(dictMonadAff)(Lynx_Data_Expr.eqExprType)({
                   async: Lynx_Data_Form.asyncFromTypeahead(dictMonadAff)(field.input.value0),
                   itemToObject: Lynx_Data_Expr.toObject,
-                  renderFuzzy: function ($101) {
-                      return Halogen_HTML_Elements.span_(Ocelot_Block_ItemContainer.boldMatches("value")($101));
+                  renderFuzzy: function ($99) {
+                      return Halogen_HTML_Elements.span_(Ocelot_Block_ItemContainer.boldMatches("value")($99));
                   }
               })([  ]))(Halogen_HTML_Events.input(TypeaheadSingleQuery.create(field.key)));
           };
-          throw new Error("Failed pattern match at Lynx (line 132, column 23 - line 190, column 52): " + [ field.input.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx (line 133, column 23 - line 191, column 52): " + [ field.input.constructor.name ]);
       };
       var renderField = function (field) {
           return Ocelot_Block_FormField.field_({
@@ -28086,7 +28084,7 @@ var PS = {};
           if (v instanceof Lynx_Data_Expr.EqualMismatch) {
               return Halogen_HTML_Core.text("Expected both sides of equal to have the same type," + (" but they are different." + (" left: " + (Lynx_Data_Expr.reflectType(v.value0.left) + (" right: " + Lynx_Data_Expr.reflectType(v.value0.right))))));
           };
-          throw new Error("Failed pattern match at Lynx (line 100, column 21 - line 112, column 33): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx (line 101, column 21 - line 113, column 33): " + [ v.constructor.name ]);
       };
       var render = function (v) {
           return Halogen_HTML_Elements.div_([ Ocelot_Block_Layout.section_((function () {
@@ -28102,7 +28100,7 @@ var PS = {};
               if (v.form instanceof Network_RemoteData.Success) {
                   return Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Ocelot_Block_Format.heading_([ Halogen_HTML_Core.text(v.form.value0.evaled.name) ]) ])(Data_Functor.map(Data_Functor.functorArray)(renderSection)(v.form.value0.evaled.contents));
               };
-              throw new Error("Failed pattern match at Lynx (line 83, column 9 - line 95, column 53): " + [ v.form.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx (line 84, column 9 - line 96, column 53): " + [ v.form.constructor.name ]);
           })()), Halogen_HTML_Elements.pre_([ Halogen_HTML_Core.text(Data_Show.show(Data_Map_Internal.showMap(Data_Show.showString)(Lynx_Data_Expr.showExprType))(v.values)) ]) ]);
       };
       return Halogen_Component.parentComponent(Data_Either.ordEither(Data_Ord.ordString)(Data_Either.ordEither(Data_Ord.ordString)(Data_Either.ordEither(Data_Ord.ordString)(Data_Ord.ordVoid))))({
@@ -28884,7 +28882,8 @@ var PS = {};
   exports["gRouteAll"] = gRouteAll;
 })(PS["Routing.Duplex.Generic"] = PS["Routing.Duplex.Generic"] || {});
 (function(exports) {
-    "use strict";
+  // Generated by purs version 0.12.3
+  "use strict";
   var Control_Applicative = PS["Control.Applicative"];
   var Control_Bind = PS["Control.Bind"];
   var Control_Monad_State_Class = PS["Control.Monad.State.Class"];
