@@ -36,7 +36,8 @@ import Ocelot.Data.Currency (parseCentsFromDollarStr)
 import Ocelot.HTML.Properties (css)
 
 type State =
-  { form :: Either EvalError { expr :: Page Expr, evaled :: Page ExprType }
+  { evaled :: Either EvalError (Page ExprType)
+  , expr :: Page Expr
   , values :: Map Key ExprType
   }
 
@@ -77,18 +78,18 @@ component =
   where
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  render { form, values } =
+  render { evaled, values } =
     HH.div_
       [ Layout.section_
-        case form of
+        case evaled of
           Left e ->
             [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
           Right page ->
             append
             [ Format.heading_
-              [ HH.text page.evaled.name ]
+              [ HH.text page.name ]
             ]
-            $ renderSection <$> page.evaled.contents
+            $ renderSection <$> page.contents
       , HH.pre_ [ HH.text $ show values ]
       ]
 
@@ -231,15 +232,14 @@ eval = case _ of
               for_ (toArray typeahead.options) \options ->
                 H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
     H.modify_ _
-      { form = map { expr, evaled: _ } evaled
+      { evaled = evaled
+      , expr = expr
       , values = values
       }
 
   UpdateValue key val a -> do
-    { form } <- H.get
-    for_ form \ { expr } ->
-      eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
-    pure a
+    { expr } <- H.get
+    eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
@@ -262,7 +262,8 @@ eval = case _ of
 
 initialState :: ParentInput -> State
 initialState expr =
-  { form: map { evaled: _, expr } evaled
+  { evaled
+  , expr
   , values
   }
   where
