@@ -78,7 +78,7 @@ component =
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
   render { route } =
-    HH.slot' cp1 unit Lynx.component (pure page) (HE.input LynxQuery)
+    HH.slot' cp1 unit Lynx.component page (HE.input LynxQuery)
     where
     page :: Page Expr
     page = case route of

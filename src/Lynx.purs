@@ -47,7 +47,7 @@ data Query a
   | DateTimePickerQuery Key DateTimePicker.Message a
   | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
 
-type ParentInput = RemoteData EvalError (Page Expr)
+type ParentInput = Page Expr
 
 type ChildQuery m
   = Dropdown.Query Query ExprType  m
@@ -266,9 +266,8 @@ eval = case _ of
 
 initialState :: ParentInput -> State
 initialState = case _ of
-  input ->
+  expr ->
     { form: do
-      expr <- input
       let evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
           values = Lynx.Data.Form.keys expr
       fromEither (map { evaled: _, expr } evaled)
