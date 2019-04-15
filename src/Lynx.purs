@@ -3,7 +3,7 @@ module Lynx where
 import Prelude
 
 import Data.Const (Const)
-import Data.Either (Either)
+import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Foldable (fold, foldMap, for_)
 import Data.Functor.Coproduct.Nested (type (<\/>))
@@ -20,7 +20,6 @@ import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), asyncFromTypeahead, errorsToArray, getValue)
 import Lynx.Data.Form as Lynx.Data.Form
-import Network.RemoteData (RemoteData(..), fromEither)
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -37,7 +36,7 @@ import Ocelot.Data.Currency (parseCentsFromDollarStr)
 import Ocelot.HTML.Properties (css)
 
 type State =
-  { form :: RemoteData EvalError { expr :: Page Expr, evaled :: Page ExprType }
+  { form :: Either EvalError { expr :: Page Expr, evaled :: Page ExprType }
   , values :: Map Key ExprType
   }
 
@@ -82,13 +81,9 @@ component =
     HH.div_
       [ Layout.section_
         case form of
-          NotAsked ->
-            []
-          Loading ->
-            [ Card.card_ [ Format.p [ css "text-red" ] [ HH.text "Loading..." ] ] ]
-          Failure e ->
+          Left e ->
             [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
-          Success page ->
+          Right page ->
             append
             [ Format.heading_
               [ HH.text page.evaled.name ]
@@ -236,7 +231,7 @@ eval = case _ of
               for_ (toArray typeahead.options) \options ->
                 H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
     H.modify_ _
-      { form = map { expr, evaled: _ } (fromEither evaled)
+      { form = map { expr, evaled: _ } evaled
       , values = values
       }
 
@@ -267,7 +262,7 @@ eval = case _ of
 
 initialState :: ParentInput -> State
 initialState expr =
-  { form: fromEither (map { evaled: _, expr } evaled)
+  { form: map { evaled: _, expr } evaled
   , values
   }
   where
