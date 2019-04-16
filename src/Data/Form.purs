@@ -14,6 +14,8 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
 import Data.Newtype (wrap)
+import Data.NonEmpty (NonEmpty)
+import Data.NonEmpty as Data.NonEmpty
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Traversable (class Traversable, for, sequenceDefault, traverse)
@@ -30,7 +32,7 @@ import Type.Row (type (+))
 
 type LayoutRows c r =
   ( name :: String
-  , contents :: Array c
+  , contents :: NonEmpty Array c
   | r
   )
 
@@ -517,22 +519,23 @@ mvpPage :: Page Expr
 mvpPage =
   { name: "New Campaign Request"
   , contents:
-    [ { name: "Details"
+    Data.NonEmpty.singleton
+      { name: "Details"
       , contents:
-        [ { name: "Campaign"
+        Data.NonEmpty.singleton
+          { name: "Campaign"
           , contents:
-            [ mvpName
-            , mvpTargetableInterest
-            , mvpFacebookTwitterPage
-            , mvpObjective
-            , mvpMediaBudget
-            , mvpStart
-            , mvpEnd
-            ]
+            Data.NonEmpty.NonEmpty
+              mvpName
+              [ mvpTargetableInterest
+              , mvpFacebookTwitterPage
+              , mvpObjective
+              , mvpMediaBudget
+              , mvpStart
+              , mvpEnd
+              ]
           }
-        ]
       }
-    ]
   }
 
 mvpEnd :: Field Expr
@@ -682,24 +685,24 @@ testPage :: Page Expr
 testPage =
   { name: "Profile"
   , contents:
-    [ { name: "User"
+    Data.NonEmpty.singleton
+      { name: "User"
       , contents:
-        [ testSection
-        ]
+        Data.NonEmpty.singleton testSection
       }
-    ]
   }
 
 testSection :: Section Expr
 testSection =
   { name: "Name"
   , contents:
-    [ firstName
-    , lastName
-    , active
-    , food
-    , money
-    ]
+    Data.NonEmpty.NonEmpty
+      firstName
+      [ lastName
+      , active
+      , food
+      , money
+      ]
   }
 
 firstName :: Field Expr

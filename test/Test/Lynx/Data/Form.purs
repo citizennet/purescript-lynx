@@ -8,6 +8,7 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
+import Data.NonEmpty as Data.NonEmpty
 import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
 import Lynx.Data.Form as Lynx.Data.Form
@@ -114,27 +115,28 @@ dropdownOptions = do
   page' =
     { name: ""
     , contents:
-      [ { name: ""
+      Data.NonEmpty.singleton
+        { name: ""
         , contents:
-          [ { name: ""
+          Data.NonEmpty.singleton
+            { name: ""
             , contents:
-              [ { name: val_ (string_ "")
+              Data.NonEmpty.NonEmpty
+                { name: val_ (string_ "")
                 , visibility: val_ (boolean_ false)
                 , description: val_ (string_ "")
                 , key: fooKey
                 , input: foo
                 }
-              , { name: val_ (string_ "")
-                , visibility: val_ (boolean_ false)
-                , description: val_ (string_ "")
-                , key: dropdownKey
-                , input: dropdown
-                }
-              ]
+                [ { name: val_ (string_ "")
+                  , visibility: val_ (boolean_ false)
+                  , description: val_ (string_ "")
+                  , key: dropdownKey
+                  , input: dropdown
+                  }
+                ]
             }
-          ]
         }
-      ]
     }
 
 pageRoundTrip :: Page Expr -> Result
