@@ -92,14 +92,15 @@ dropdownOptions = do
   dropdownKey = "dropdown"
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
-    flip findMap evaluatedPage.contents \section ->
-      flip findMap section.contents \field ->
-        if field.key == dropdownKey then
-          case field.input of
-            Dropdown x -> Just x.options
-            _ -> Nothing
-        else
-          Nothing
+    flip findMap evaluatedPage.contents \tab ->
+      flip findMap tab.contents \section ->
+        flip findMap section.contents \field ->
+          if field.key == dropdownKey then
+            case field.input of
+              Dropdown x -> Just x.options
+              _ -> Nothing
+          else
+            Nothing
   foo :: Input Expr
   foo =
     Toggle
@@ -115,23 +116,26 @@ dropdownOptions = do
     , contents:
       [ { name: ""
         , contents:
-          [ { name: val_ (string_ "")
-            , visibility: val_ (boolean_ false)
-            , description: val_ (string_ "")
-            , key: fooKey
-            , input: foo
-            }
-          , { name: val_ (string_ "")
-            , visibility: val_ (boolean_ false)
-            , description: val_ (string_ "")
-            , key: dropdownKey
-            , input: dropdown
+          [ { name: ""
+            , contents:
+              [ { name: val_ (string_ "")
+                , visibility: val_ (boolean_ false)
+                , description: val_ (string_ "")
+                , key: fooKey
+                , input: foo
+                }
+              , { name: val_ (string_ "")
+                , visibility: val_ (boolean_ false)
+                , description: val_ (string_ "")
+                , key: dropdownKey
+                , input: dropdown
+                }
+              ]
             }
           ]
         }
       ]
     }
-
 
 pageRoundTrip :: Page Expr -> Result
 pageRoundTrip = roundTrip
@@ -171,6 +175,15 @@ testPageEither = decodeJson =<< jsonParser testPageJson
 testPageJson :: String
 testPageJson = """
   { "name": "Profile"
+  , "contents":
+    [ """ <> testUser <> """
+    ]
+  }
+"""
+
+testUser :: String
+testUser = """
+  { "name": "User"
   , "contents":
     [ """ <> testSection <> """
     ]
