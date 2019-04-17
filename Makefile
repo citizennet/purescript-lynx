@@ -74,7 +74,7 @@ RTS_ARGS ?=
 .DEFAULT_GOAL := dist/main.js
 
 $(BOWER_COMPONENTS): bower.json $(NODE_MODULES)
-	npx bower install
+	npx bower install --allow-root
 	touch $@
 
 $(BUILD):
@@ -129,3 +129,7 @@ test: dist/main.js $(BUILD)/test.out
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
 	npx watch-exec --command 'make dist/main.js' --watch $(SRC)
+
+.PHONY: serve
+serve:
+	http-server ./dist -p 80
