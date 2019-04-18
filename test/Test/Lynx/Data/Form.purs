@@ -8,6 +8,7 @@ import Data.Foldable (findMap)
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
+import Data.NonEmpty as Data.NonEmpty
 import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
 import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
 import Lynx.Data.Form as Lynx.Data.Form
@@ -92,14 +93,15 @@ dropdownOptions = do
   dropdownKey = "dropdown"
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
-    flip findMap evaluatedPage.contents \section ->
-      flip findMap section.contents \field ->
-        if field.key == dropdownKey then
-          case field.input of
-            Dropdown x -> Just x.options
-            _ -> Nothing
-        else
-          Nothing
+    flip findMap evaluatedPage.contents \tab ->
+      flip findMap tab.contents \section ->
+        flip findMap section.contents \field ->
+          if field.key == dropdownKey then
+            case field.input of
+              Dropdown x -> Just x.options
+              _ -> Nothing
+          else
+            Nothing
   foo :: Input Expr
   foo =
     Toggle
@@ -113,25 +115,29 @@ dropdownOptions = do
   page' =
     { name: ""
     , contents:
-      [ { name: ""
+      Data.NonEmpty.singleton
+        { name: ""
         , contents:
-          [ { name: val_ (string_ "")
-            , visibility: val_ (boolean_ false)
-            , description: val_ (string_ "")
-            , key: fooKey
-            , input: foo
+          Data.NonEmpty.singleton
+            { name: ""
+            , contents:
+              Data.NonEmpty.NonEmpty
+                { name: val_ (string_ "")
+                , visibility: val_ (boolean_ false)
+                , description: val_ (string_ "")
+                , key: fooKey
+                , input: foo
+                }
+                [ { name: val_ (string_ "")
+                  , visibility: val_ (boolean_ false)
+                  , description: val_ (string_ "")
+                  , key: dropdownKey
+                  , input: dropdown
+                  }
+                ]
             }
-          , { name: val_ (string_ "")
-            , visibility: val_ (boolean_ false)
-            , description: val_ (string_ "")
-            , key: dropdownKey
-            , input: dropdown
-            }
-          ]
         }
-      ]
     }
-
 
 pageRoundTrip :: Page Expr -> Result
 pageRoundTrip = roundTrip
@@ -171,6 +177,15 @@ testPageEither = decodeJson =<< jsonParser testPageJson
 testPageJson :: String
 testPageJson = """
   { "name": "Profile"
+  , "contents":
+    [ """ <> testUser <> """
+    ]
+  }
+"""
+
+testUser :: String
+testUser = """
+  { "name": "User"
   , "contents":
     [ """ <> testSection <> """
     ]

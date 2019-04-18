@@ -14,6 +14,8 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
 import Data.Newtype (wrap)
+import Data.NonEmpty (NonEmpty)
+import Data.NonEmpty as Data.NonEmpty
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Traversable (class Traversable, for, sequenceDefault, traverse)
@@ -30,11 +32,13 @@ import Type.Row (type (+))
 
 type LayoutRows c r =
   ( name :: String
-  , contents :: Array c
+  , contents :: NonEmpty Array c
   | r
   )
 
-type Page f = Record (LayoutRows (Section f) ())
+type Page f = Record (LayoutRows (Tab f) ())
+
+type Tab f = Record (LayoutRows (Section f) ())
 
 type Section f = Record (LayoutRows (Field f) ())
 
@@ -256,9 +260,14 @@ instance arbitraryValidationError :: Arbitrary ValidationError where
 
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
-  contents <- traverse evalSection page.contents
+  contents <- traverse evalTab page.contents
   pure page { contents = contents }
   where
+  evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
+  evalTab tab = do
+    contents <- traverse evalSection tab.contents
+    pure tab { contents = contents }
+
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
   evalSection section = do
     contents <- traverse evalField section.contents
@@ -400,8 +409,11 @@ eval get page = do
       otherwise -> mempty
 
 keys :: Page Expr -> Map Key ExprType
-keys page = foldMap keysSection page.contents
+keys page = foldMap keysTab page.contents
   where
+  keysTab :: Tab Expr -> Map Key ExprType
+  keysTab tab = foldMap keysSection tab.contents
+
   keysSection :: Section Expr -> Map Key ExprType
   keysSection section = foldMap keysField section.contents
 
@@ -433,8 +445,11 @@ getValue
 getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
-setValue key val page = page { contents = map setSection page.contents }
+setValue key val page = page { contents = map setTab page.contents }
   where
+  setTab :: Tab Expr -> Tab Expr
+  setTab tab = tab { contents = map setSection tab.contents }
+
   setSection :: Section Expr -> Section Expr
   setSection section = section { contents = map setField section.contents }
 
@@ -504,18 +519,23 @@ mvpPage :: Page Expr
 mvpPage =
   { name: "New Campaign Request"
   , contents:
-    [ { name: "Campaign"
+    Data.NonEmpty.singleton
+      { name: "Details"
       , contents:
-        [ mvpName
-        , mvpTargetableInterest
-        , mvpFacebookTwitterPage
-        , mvpObjective
-        , mvpMediaBudget
-        , mvpStart
-        , mvpEnd
-        ]
+        Data.NonEmpty.singleton
+          { name: "Campaign"
+          , contents:
+            Data.NonEmpty.NonEmpty
+              mvpName
+              [ mvpTargetableInterest
+              , mvpFacebookTwitterPage
+              , mvpObjective
+              , mvpMediaBudget
+              , mvpStart
+              , mvpEnd
+              ]
+          }
       }
-    ]
   }
 
 mvpEnd :: Field Expr
@@ -665,20 +685,24 @@ testPage :: Page Expr
 testPage =
   { name: "Profile"
   , contents:
-    [ testSection
-    ]
+    Data.NonEmpty.singleton
+      { name: "User"
+      , contents:
+        Data.NonEmpty.singleton testSection
+      }
   }
 
 testSection :: Section Expr
 testSection =
   { name: "Name"
   , contents:
-    [ firstName
-    , lastName
-    , active
-    , food
-    , money
-    ]
+    Data.NonEmpty.NonEmpty
+      firstName
+      [ lastName
+      , active
+      , food
+      , money
+      ]
   }
 
 firstName :: Field Expr

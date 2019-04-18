@@ -2,6 +2,7 @@ module Lynx where
 
 import Prelude
 
+import Data.Array as Data.Array
 import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
@@ -11,6 +12,7 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.Maybe as Data.Maybe
+import Data.NonEmpty as Data.NonEmpty
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
@@ -18,7 +20,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), asyncFromTypeahead, errorsToArray, getValue)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), Tab, asyncFromTypeahead, errorsToArray, getValue)
 import Lynx.Data.Form as Lynx.Data.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -85,11 +87,10 @@ component =
           Left e ->
             [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
           Right page ->
-            append
             [ Format.heading_
               [ HH.text page.name ]
+            , renderTab (Data.NonEmpty.head page.contents)
             ]
-            $ renderSection <$> page.contents
       , HH.pre_ [ HH.text $ show values ]
       ]
 
@@ -108,12 +109,16 @@ component =
           <> " right: "
           <> reflectType x.right
 
+  renderTab :: Tab ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
+  renderTab tab =
+    HH.div_ (Data.Array.fromFoldable $ map renderSection tab.contents)
+
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection section =
     Card.card_ $
       append
       [ Format.subHeading_ [ HH.text section.name ] ]
-      $ renderField <$> section.contents
+      $ Data.Array.fromFoldable $ renderField <$> section.contents
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -218,19 +223,20 @@ eval = case _ of
     let values = Lynx.Data.Form.keys expr
         evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
     for_ evaled \page -> do
-      for_ page.contents \section -> do
-        for_ section.contents \field -> do
-          case field.input of
-            Currency _ -> pure unit
-            DateTime _ -> pure unit
-            Dropdown dropdown ->
-              for_ (toArray dropdown.options) \options ->
-                H.query' cp1 field.key (Dropdown.SetItems options unit)
-            Text _ -> pure unit
-            Toggle _ -> pure unit
-            TypeaheadSingle typeahead ->
-              for_ (toArray typeahead.options) \options ->
-                H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
+      for_ page.contents \tab -> do
+        for_ tab.contents \section -> do
+          for_ section.contents \field -> do
+            case field.input of
+              Currency _ -> pure unit
+              DateTime _ -> pure unit
+              Dropdown dropdown ->
+                for_ (toArray dropdown.options) \options ->
+                  H.query' cp1 field.key (Dropdown.SetItems options unit)
+              Text _ -> pure unit
+              Toggle _ -> pure unit
+              TypeaheadSingle typeahead ->
+                for_ (toArray typeahead.options) \options ->
+                  H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
     H.modify_ _
       { evaled = evaled
       , expr = expr
