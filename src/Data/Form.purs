@@ -223,6 +223,15 @@ noErrors (Errors e) = Data.Set.isEmpty e
 errorsToArray :: ∀ e. Ord e => Errors e -> Array e
 errorsToArray (Errors e) = toUnfoldable e
 
+errors :: forall a. Field a -> Errors ValidationError
+errors { input } = case input of
+  Currency currency -> currency.errors
+  DateTime dateTime -> dateTime.errors
+  Dropdown dropdown -> dropdown.errors
+  Text text -> text.errors
+  Toggle toggle -> toggle.errors
+  TypeaheadSingle typeaheadSingle -> typeaheadSingle.errors
+
 data ValidationError
   = Required
   | MinLength Int
@@ -519,7 +528,7 @@ mvpPage :: Page Expr
 mvpPage =
   { name: "New Campaign Request"
   , contents:
-    Data.NonEmpty.singleton
+    Data.NonEmpty.NonEmpty
       { name: "Details"
       , link: "details"
       , contents:
@@ -537,6 +546,19 @@ mvpPage =
               ]
           }
       }
+      [ { name: "Creative"
+        , link: "creative"
+        , contents:
+          Data.NonEmpty.singleton
+          { name: "Creative"
+          , contents:
+            Data.NonEmpty.NonEmpty
+            mvpSocialAccount
+            [
+            ]
+          }
+        }
+      ]
   }
 
 mvpEnd :: Field Expr
@@ -641,6 +663,19 @@ mvpObjective =
       , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
       ]
     )
+
+mvpSocialAccount :: Field Expr
+mvpSocialAccount =
+  { description: val_ (string_ "")
+  , input: Toggle
+    { default: Nothing
+    , value: NotSet
+    , errors: mempty
+    }
+  , key: "social-account"
+  , name: val_ (string_ "Social Account")
+  , visibility: val_ (boolean_ true)
+  }
 
 mvpStart :: Field Expr
 mvpStart =

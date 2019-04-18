@@ -20,7 +20,8 @@
     "purescript-heterogeneous": "^0.3.0",
     "purescript-remotedata": "^4.1.0",
     "purescript-affjax": "6.0.0",
-    "purescript-matryoshka": "^0.4.0"
+    "purescript-matryoshka": "^0.4.0",
+    "purescript-uri": "^6.1.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
