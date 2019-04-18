@@ -11,7 +11,8 @@ import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Lynx.Page.Form as Form
 import Lynx.Page.Home as Home
-import Lynx.Route (Route(..))
+import Lynx.Route (Route(..), form)
+import URI.Fragment as URI.Fragment
 
 type State = Route
 
@@ -48,4 +49,12 @@ component =
   render :: State -> H.ParentHTML Query ChildQueries ChildSlots m
   render = case _ of
     Home -> HH.slot' CP.cp1 unit Home.component unit absurd
-    Form s -> HH.slot' CP.cp2 unit Form.component s absurd
+    Form s ->
+      HH.slot'
+        CP.cp2
+        unit
+        Form.component
+        { fragment: URI.Fragment.fromString ("/" <> URI.Fragment.toString form)
+        , route: s
+        }
+        absurd
