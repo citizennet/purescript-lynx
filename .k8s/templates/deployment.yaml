@@ -51,6 +51,14 @@ spec:
             initialDelaySeconds: 30
             timeoutSeconds: 10
           resources: {}
+        - name: {{ .Chart.Name }}-watch
+          image: "lynx-local:latest"
+          command: ["make", "watch"]
+          volumeMounts:
+            - name: src
+              mountPath: /usr/src/app
+          imagePullPolicy: IfNotPresent
+          env: []
       volumes:
         - name: src
           hostPath:
