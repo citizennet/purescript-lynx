@@ -25,3 +25,7 @@ There are a few options you can pass to `helm` via the `--set` flag when deployi
 - `ingress.host` **required**: the hostname for your local deployment, e.g. `dude.dev.citizennet.com`
 - `persistence.path` **required**: the local path to your Lynx repository, e.g. `/home/dude/src/purescript-lynx`
 - `watch` _optional (default: `false`)_: whether you'd like to deploy an additional container that runs `make watch` for you
+
+## Caveats
+
+There are some downsides to having a container run `make watch` on your behalf. Container processes are all initiated by `root`, so all files and folders produced from the `watch` builds will have `root` ownership, e.g. `bower_components/`, `node_modules/`, and `output/`. This might cause issues if you then wish to manually trigger a build or install a dependency without `exec`ing into your container to do so as root, or running those commands via `sudo`.
