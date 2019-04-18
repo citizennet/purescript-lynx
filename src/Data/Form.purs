@@ -38,7 +38,7 @@ type LayoutRows c r =
 
 type Page f = Record (LayoutRows (Tab f) ())
 
-type Tab f = Record (LayoutRows (Section f) ())
+type Tab f = Record (LayoutRows (Section f) (link :: String))
 
 type Section f = Record (LayoutRows (Field f) ())
 
@@ -521,6 +521,7 @@ mvpPage =
   , contents:
     Data.NonEmpty.singleton
       { name: "Details"
+      , link: "details"
       , contents:
         Data.NonEmpty.singleton
           { name: "Campaign"
@@ -687,6 +688,7 @@ testPage =
   , contents:
     Data.NonEmpty.singleton
       { name: "User"
+      , link: "user"
       , contents:
         Data.NonEmpty.singleton testSection
       }
