@@ -1,25 +1,28 @@
 module Lynx.Page.Form where
 
-import Prelude
+import Prelude hiding ((/))
 
 import Data.Const (Const)
 import Data.Either.Nested (type (\/))
 import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.NonEmpty as Data.NonEmpty
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Lynx as Lynx
-import Lynx.Data.Expr (Expr)
-import Lynx.Data.Form (Page, mvpPage, testPage)
-import Routing.Duplex (RouteDuplex', path)
+import Lynx.Data.Form (mvpPage, testPage)
+import Routing.Duplex (RouteDuplex', segment, string)
 import Routing.Duplex.Generic (noArgs, sum)
+import Routing.Duplex.Generic.Syntax ((/))
+import URI (Fragment)
+import URI.Fragment as URI.Fragment
 
 data Route
-  = MVP
+  = MVP String
   | Profile1
 
 derive instance eqRoute :: Eq Route
@@ -33,19 +36,29 @@ instance showRoute :: Show Route where
 
 routeCodec :: RouteDuplex' Route
 routeCodec = sum
-  { "MVP": path "mvp" noArgs
-  , "Profile1": path "profile-1" noArgs
+  { "MVP": URI.Fragment.toString mvp / string segment
+  , "Profile1": URI.Fragment.toString profile1 / noArgs
   }
 
+mvp :: Fragment
+mvp = URI.Fragment.fromString "mvp"
+
+profile1 :: Fragment
+profile1 = URI.Fragment.fromString "profile-1"
+
 type State =
-  { route :: Route
+  { fragment :: Fragment
+  , route :: Route
   }
 
 data Query a
-  = Initialize Route a
+  = Initialize ParentInput a
   | LynxQuery Lynx.Message a
 
-type ParentInput = Route
+type ParentInput
+  = { fragment :: Fragment
+    , route :: Route
+    }
 
 type ChildQuery
   = Lynx.Query
@@ -71,19 +84,29 @@ component =
   where
 
   initialState :: ParentInput -> State
-  initialState = case _ of
-    route ->
-      { route
-      }
+  initialState = identity
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render { route } =
-    HH.slot' cp1 unit Lynx.component page (HE.input LynxQuery)
+  render { fragment, route } =
+    HH.slot' cp1 unit Lynx.component input (HE.input LynxQuery)
     where
-    page :: Page Expr
-    page = case route of
-      MVP -> mvpPage
-      Profile1 -> testPage
+    appendFragment :: Fragment -> Fragment
+    appendFragment segment =
+      URI.Fragment.fromString
+        (URI.Fragment.toString fragment <> "/" <> URI.Fragment.toString segment)
+
+    input :: Lynx.ParentInput
+    input = case route of
+      MVP activeTab ->
+        { activeTab
+        , expr: mvpPage
+        , fragment: appendFragment mvp
+        }
+      Profile1 ->
+        { activeTab: (Data.NonEmpty.head testPage.contents).link
+        , expr: testPage
+        , fragment: appendFragment profile1
+        }
 
 eval
   :: ∀ m
@@ -91,7 +114,7 @@ eval
   => Query
   ~> H.ParentDSL State Query ChildQuery ChildSlot Message m
 eval = case _ of
-  Initialize route a -> do
-    H.modify_ _ { route = route }
+  Initialize { fragment, route } a -> do
+    H.modify_ _ { fragment = fragment, route = route }
     pure a
   LynxQuery message _ -> absurd message

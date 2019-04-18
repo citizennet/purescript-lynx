@@ -6,12 +6,13 @@ import Data.Array as Data.Array
 import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
-import Data.Foldable (fold, foldMap, for_)
+import Data.Foldable (find, fold, foldMap, for_, length, sum)
 import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Map (Map)
 import Data.Map as Data.Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Maybe as Data.Maybe
+import Data.NonEmpty (NonEmpty)
 import Data.NonEmpty as Data.NonEmpty
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
@@ -20,7 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, ValidationError(..), Tab, asyncFromTypeahead, errorsToArray, getValue)
+import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue)
 import Lynx.Data.Form as Lynx.Data.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -29,6 +30,7 @@ import Ocelot.Block.Format as Format
 import Ocelot.Block.Input as Input
 import Ocelot.Block.ItemContainer (boldMatches)
 import Ocelot.Block.Layout as Layout
+import Ocelot.Block.NavigationTab as NavigationTab
 import Ocelot.Block.Toggle (toggle) as Toggle
 import Ocelot.Component.DateTimePicker as DateTimePicker
 import Ocelot.Component.Dropdown as Dropdown
@@ -36,21 +38,30 @@ import Ocelot.Component.Dropdown.Render as Dropdown.Render
 import Ocelot.Component.Typeahead as Typeahead
 import Ocelot.Data.Currency (parseCentsFromDollarStr)
 import Ocelot.HTML.Properties (css)
+import URI (Fragment)
+import URI.Fragment as URI.Fragment
 
 type State =
-  { evaled :: Either EvalError (Page ExprType)
+  { activeTab :: String
+  , evaled :: Either EvalError (Page ExprType)
   , expr :: Page Expr
+  , fragment :: Fragment
   , values :: Map Key ExprType
   }
 
 data Query a
   = EvalForm (Page Expr) a
+  | HandleInput ParentInput a
   | UpdateValue Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
   | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
 
-type ParentInput = Page Expr
+type ParentInput
+  = { activeTab :: String
+    , expr :: Page Expr
+    , fragment :: Fragment
+    }
 
 type ChildQuery m
   = Dropdown.Query Query ExprType  m
@@ -75,12 +86,12 @@ component =
     { initialState
     , eval
     , render
-    , receiver: const Nothing
+    , receiver: HE.input HandleInput
     }
   where
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  render { evaled, values } =
+  render { activeTab, evaled, fragment, values } =
     HH.div_
       [ Layout.section_
         case evaled of
@@ -89,7 +100,12 @@ component =
           Right page ->
             [ Format.heading_
               [ HH.text page.name ]
-            , renderTab (Data.NonEmpty.head page.contents)
+            , NavigationTab.navigationTabs_
+              { activePage: activeTab
+              , tabs:
+                Data.Array.fromFoldable (map (fromTab fragment) page.contents)
+              }
+            , renderTab activeTab page.contents
             ]
       , HH.pre_ [ HH.text $ show values ]
       ]
@@ -109,9 +125,15 @@ component =
           <> " right: "
           <> reflectType x.right
 
-  renderTab :: Tab ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  renderTab tab =
+  renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
+  renderTab activeTab tabs =
     HH.div_ (Data.Array.fromFoldable $ map renderSection tab.contents)
+    where
+    byLink :: Tab ExprType -> Boolean
+    byLink { link } = activeTab == link
+
+    tab :: Tab ExprType
+    tab = fromMaybe (Data.NonEmpty.head tabs) (find byLink tabs)
 
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection section =
@@ -243,6 +265,10 @@ eval = case _ of
       , values = values
       }
 
+  HandleInput { activeTab, expr, fragment } a -> do
+    H.modify_ _ { activeTab = activeTab, fragment = fragment }
+    eval (EvalForm expr a)
+
   UpdateValue key val a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
@@ -266,10 +292,23 @@ eval = case _ of
     Typeahead.Selected val -> eval (UpdateValue key (UserInput val) a)
     Typeahead.SelectionChanged _ _ -> pure a
 
+fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
+fromTab fragment { contents, name, link } =
+  { errors: sum do
+    section <- Data.Array.fromFoldable contents
+    field <- Data.Array.fromFoldable section.contents
+    pure (length $ errorsToArray $ errors field)
+  , name
+  , link: URI.Fragment.print fragment <> "/" <> link
+  , page: link
+  }
+
 initialState :: ParentInput -> State
-initialState expr =
-  { evaled
+initialState { activeTab, expr, fragment } =
+  { activeTab
+  , evaled
   , expr
+  , fragment
   , values
   }
   where

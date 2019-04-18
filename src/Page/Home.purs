@@ -3,8 +3,10 @@ module Lynx.Page.Home where
 import Prelude
 
 import Data.Maybe (Maybe(..))
+import Data.NonEmpty as Data.NonEmpty
 import Halogen as H
 import Halogen.HTML as HH
+import Lynx.Data.Form (mvpPage)
 import Lynx.Page.Form as Lynx.Page.Form
 import Lynx.Route (Route(..))
 import Lynx.Util.HTML (safeHref)
@@ -25,7 +27,7 @@ type Form = { name :: String, id :: Lynx.Page.Form.Route }
 forms :: Array Form
 forms =
   [ { name: "Profile", id: Lynx.Page.Form.Profile1 }
-  , { name: "MVP", id: Lynx.Page.Form.MVP }
+  , { name: "MVP", id: Lynx.Page.Form.MVP (Data.NonEmpty.head mvpPage.contents).link}
   ]
 
 component

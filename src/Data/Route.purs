@@ -8,6 +8,8 @@ import Lynx.Page.Form as Lynx.Page.Form
 import Routing.Duplex (RouteDuplex', root)
 import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Duplex.Generic.Syntax ((/))
+import URI (Fragment)
+import URI.Fragment as URI.Fragment
 
 data Route
   = Home
@@ -22,5 +24,8 @@ instance showRoute :: Show Route where show = genericShow
 routeCodec :: RouteDuplex' Route
 routeCodec = root $ sum
   { "Home": noArgs
-  , "Form": "form" / Lynx.Page.Form.routeCodec
+  , "Form": URI.Fragment.toString form / Lynx.Page.Form.routeCodec
   }
+
+form :: Fragment
+form = URI.Fragment.fromString "form"
