@@ -1,0 +1,5 @@
+ingress:
+  host: dev.aws.citizennet.com
+
+persistence:
+  path: ./
