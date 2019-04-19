@@ -69,12 +69,13 @@ TESTS := $(shell find test -name '*.purs' -type f)
 
 # Allow RTS args to be passed in to override the default behavior.
 # We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
+BOWER_ARGS ?=
 RTS_ARGS ?=
 
 .DEFAULT_GOAL := dist/main.js
 
 $(BOWER_COMPONENTS): bower.json $(NODE_MODULES)
-	npx bower install --allow-root
+	npx bower install $(BOWER_ARGS)
 	touch $@
 
 $(BUILD):

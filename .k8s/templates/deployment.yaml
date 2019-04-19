@@ -54,7 +54,7 @@ spec:
         {{- if .Values.watch }}
         - name: {{ .Chart.Name }}-watch
           image: "lynx-local:latest"
-          command: ["make", "watch"]
+          command: ["make", "watch", "BOWER_ARGS=--allow-root"]
           volumeMounts:
             - name: src
               mountPath: /usr/src/app
