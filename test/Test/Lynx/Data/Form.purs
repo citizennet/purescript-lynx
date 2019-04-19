@@ -117,6 +117,7 @@ dropdownOptions = do
     , contents:
       Data.NonEmpty.singleton
         { name: ""
+        , link: ""
         , contents:
           Data.NonEmpty.singleton
             { name: ""
@@ -186,6 +187,7 @@ testPageJson = """
 testUser :: String
 testUser = """
   { "name": "User"
+  , "link": "user"
   , "contents":
     [ """ <> testSection <> """
     ]
