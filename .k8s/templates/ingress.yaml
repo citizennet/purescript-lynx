@@ -1,7 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ .Release.Name }}
   labels:
     app: {{ .Chart.Name }}
     chart: {{ template "chart" . }}
@@ -18,5 +18,5 @@ spec:
         paths:
           - path: /lynx
             backend:
-              serviceName: {{ template "fullname" . }}
+              serviceName: {{ .Release.Name }}
               servicePort: http
