@@ -16,7 +16,7 @@ import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
 import Test.Unit.Assert (equal)
-import Test.Unit.QuickCheck (quickCheck)
+import Test.Unit.QuickCheck (quickCheck, quickCheck')
 
 suite :: TestSuite
 suite =
@@ -25,15 +25,19 @@ suite =
       test "JSON parses to an Expr" do
         assertRight testPageEither
       test "decoding and encoding roundtrips properly" do
-        quickCheck pageRoundTrip
+        -- We don't need a large landscape of examples,
+        -- most of the important logic is tested in other places.
+        -- If we use the default 100 examples, it takes far too long.
+        -- Generate a handful as a sanity check.
+        quickCheck' 3 pageRoundTrip
       Test.Unit.suite "dropdown options can be dynamic" do
         dropdownOptions
     Test.Unit.suite "Section" do
       test "decoding and encoding roundtrips properly" do
-        quickCheck sectionRoundTrip
+        quickCheck' 3 sectionRoundTrip
     Test.Unit.suite "Field" do
       test "decoding and encoding roundtrips properly" do
-        quickCheck fieldRoundTrip
+        quickCheck' 3 fieldRoundTrip
     Test.Unit.suite "Input" do
       test "decoding and encoding roundtrips properly" do
         quickCheck inputRoundTrip
