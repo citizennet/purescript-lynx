@@ -1,10 +1,10 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: {{ template "standard-web.fullname" . }}
+  name: {{ template "fullname" . }}
   labels:
-    app: {{ template "standard-web.name" . }}
-    chart: {{ template "standard-web.chart" . }}
+    app: {{ .Chart.Name }}
+    chart: {{ template "chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -12,12 +12,12 @@ spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: {{ template "standard-web.name" . }}
+      app: {{ .Chart.Name }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ template "standard-web.name" . }}
+        app: {{ .Chart.Name }}
         release: {{ .Release.Name }}
         repository: {{ .Release.Name }}-local
         imageTag: latest

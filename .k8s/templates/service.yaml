@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "standard-web.fullname" . }}
+  name: {{ template "fullname" . }}
   labels:
-    app: {{ template "standard-web.name" . }}
-    chart: {{ template "standard-web.chart" . }}
+    app: {{ .Chart.Name }}
+    chart: {{ template "chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -19,5 +19,5 @@ spec:
       protocol: TCP
       name: althttp
   selector:
-    app: {{ template "standard-web.name" . }}
+    app: {{ .Chart.Name }}
     release: {{ .Release.Name }}
