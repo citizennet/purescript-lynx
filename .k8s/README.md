@@ -16,7 +16,7 @@ helm install --name lynx .k8s/ --set ingress.host=$(hostname),persistence.path=/
 
 If you don't have `hostname` configured or your project repo is not set up in `~/src`, then you'll have to manually substitute the value for `ingress.host` with your hostname, and the value for `persistence.path` with your actual project location.
 
-And that's it! You can verify your deployment by running `kubectl get pods` and looking for `lynx-standard-web-...`. To view the logs for either, run `kubectl logs <pod name> <container name>` where `<container name>` is either `standard-web` for the http server logs, or `standard-web-watch` for the watch logs.
+And that's it! You can verify your deployment by running `kubectl get pods` and looking for `lynx-...`. To view the logs for either, run `kubectl logs <pod name> <container name>` where `<container name>` is either `lynx` for the http server logs, or `lynx-watch` for the watch logs.
 
 ## Helm config options
 

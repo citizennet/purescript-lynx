@@ -69,8 +69,9 @@ TESTS := $(shell find test -name '*.purs' -type f)
 
 # Allow RTS args to be passed in to override the default behavior.
 # We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
-BOWER_ARGS ?=
 RTS_ARGS ?=
+BOWER_ARGS ?=
+PORT ?= 8080
 
 .DEFAULT_GOAL := dist/main.js
 
@@ -132,5 +133,5 @@ watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
 	npx watch-exec --command 'make dist/main.js' --watch $(SRC)
 
 .PHONY: serve
-serve:
-	http-server ./dist -p 80
+serve: dist/main.js
+	http-server ./dist -p $(PORT)
