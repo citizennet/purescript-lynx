@@ -23,6 +23,8 @@ hostname dude.dev.citizennet.com
 hostname > /etc/hostname
 ```
 
+If you don't want to mess with your system's `hostname` settings, just hardcode that part in the `helm install` command.
+
 And that's it! You can verify your deployment by running `kubectl get pods` and looking for `lynx-...`. To view the logs for either, run `kubectl logs <pod name> <container name>` where `<container name>` is either `lynx` for the http server logs, or `lynx-watch` for the watch logs.
 
 ## Helm config options
