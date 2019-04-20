@@ -14,4 +14,4 @@ COPY . /usr/src/app
 
 WORKDIR /usr/src/app
 
-ENTRYPOINT make serve PORT=80
+ENTRYPOINT make && http-server ./dist -p 80
