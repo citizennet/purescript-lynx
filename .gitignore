@@ -4,6 +4,7 @@
 /.pulp-cache/
 /output/
 /generated-docs/
+/package-lock.json
 /.psc-package/
 /.psc*
 /.purs*
