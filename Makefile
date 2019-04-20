@@ -71,7 +71,6 @@ TESTS := $(shell find test -name '*.purs' -type f)
 # We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
 RTS_ARGS ?=
 BOWER_ARGS ?=
-PORT ?= 8080
 
 .DEFAULT_GOAL := dist/main.js
 
@@ -131,7 +130,3 @@ test: dist/main.js $(BUILD)/test.out
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
 	npx watch-exec --command 'make dist/main.js' --watch $(SRC)
-
-.PHONY: serve
-serve: dist/main.js
-	http-server ./dist -p $(PORT)
