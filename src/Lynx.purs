@@ -27,6 +27,7 @@ import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
+import Ocelot.Block.Header as Header
 import Ocelot.Block.Input as Input
 import Ocelot.Block.ItemContainer (boldMatches)
 import Ocelot.Block.Layout as Layout
@@ -93,20 +94,32 @@ component =
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render { activeTab, evaled, fragment, values } =
     HH.div_
-      [ Layout.section_
-        case evaled of
+      [ case evaled of
           Left e ->
-            [ Card.card_ [ Format.p [ css "text-red" ] [ renderEvalError e ] ] ]
+            Layout.section_
+              [ Card.card_
+                [ Format.p
+                  [ css "text-red" ]
+                  [ renderEvalError e ]
+                ]
+              ]
           Right page ->
-            [ Format.heading_
-              [ HH.text page.name ]
-            , NavigationTab.navigationTabs_
-              { activePage: activeTab
-              , tabs:
-                Data.Array.fromFoldable (map (fromTab fragment) page.contents)
-              }
-            , renderTab activeTab page.contents
-            ]
+            HH.div_
+              [ Header.header_
+                [ Format.headingDark_ [ HH.text page.name ]
+                ]
+              , Header.header_
+                [ NavigationTab.navigationTabs_
+                  { activePage: activeTab
+                  , tabs:
+                    Data.Array.fromFoldable (map (fromTab fragment) page.contents)
+                  }
+                ]
+              , Layout.grid_
+                [ renderTab activeTab page.contents
+                , Layout.side_ []
+                ]
+              ]
       , HH.pre_ [ HH.text $ show values ]
       ]
 
@@ -127,7 +140,7 @@ component =
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderTab activeTab tabs =
-    HH.div_ (Data.Array.fromFoldable $ map renderSection tab.contents)
+    Layout.main_ (Data.Array.fromFoldable $ map renderSection tab.contents)
     where
     byLink :: Tab ExprType -> Boolean
     byLink { link } = activeTab == link
