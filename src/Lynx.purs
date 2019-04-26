@@ -279,8 +279,11 @@ eval = case _ of
       }
 
   HandleInput { activeTab, expr, fragment } a -> do
+    { fragment: oldFragment } <- H.get
     H.modify_ _ { activeTab = activeTab, fragment = fragment }
-    eval (EvalForm expr a)
+    if fragment == oldFragment
+      then pure a
+      else eval (EvalForm expr a)
 
   UpdateValue key val a -> do
     { expr } <- H.get
