@@ -3662,11 +3662,65 @@ var PS = {};
   var NonEmptyList = function (x) {
       return x;
   };
+  var listMap = function (f) {
+      var chunkedRevMap = function ($copy_chunksAcc) {
+          return function ($copy_v) {
+              var $tco_var_chunksAcc = $copy_chunksAcc;
+              var $tco_done = false;
+              var $tco_result;
+              function $tco_loop(chunksAcc, v) {
+                  if (v instanceof Cons && (v.value1 instanceof Cons && v.value1.value1 instanceof Cons)) {
+                      $tco_var_chunksAcc = new Cons(v, chunksAcc);
+                      $copy_v = v.value1.value1.value1;
+                      return;
+                  };
+                  var unrolledMap = function (v1) {
+                      if (v1 instanceof Cons && (v1.value1 instanceof Cons && v1.value1.value1 instanceof Nil)) {
+                          return new Cons(f(v1.value0), new Cons(f(v1.value1.value0), Nil.value));
+                      };
+                      if (v1 instanceof Cons && v1.value1 instanceof Nil) {
+                          return new Cons(f(v1.value0), Nil.value);
+                      };
+                      return Nil.value;
+                  };
+                  var reverseUnrolledMap = function ($copy_v1) {
+                      return function ($copy_acc) {
+                          var $tco_var_v1 = $copy_v1;
+                          var $tco_done = false;
+                          var $tco_result;
+                          function $tco_loop(v1, acc) {
+                              if (v1 instanceof Cons && (v1.value0 instanceof Cons && (v1.value0.value1 instanceof Cons && v1.value0.value1.value1 instanceof Cons))) {
+                                  $tco_var_v1 = v1.value1;
+                                  $copy_acc = new Cons(f(v1.value0.value0), new Cons(f(v1.value0.value1.value0), new Cons(f(v1.value0.value1.value1.value0), acc)));
+                                  return;
+                              };
+                              $tco_done = true;
+                              return acc;
+                          };
+                          while (!$tco_done) {
+                              $tco_result = $tco_loop($tco_var_v1, $copy_acc);
+                          };
+                          return $tco_result;
+                      };
+                  };
+                  $tco_done = true;
+                  return reverseUnrolledMap(chunksAcc)(unrolledMap(v));
+              };
+              while (!$tco_done) {
+                  $tco_result = $tco_loop($tco_var_chunksAcc, $copy_v);
+              };
+              return $tco_result;
+          };
+      };
+      return chunkedRevMap(Nil.value);
+  };
+  var functorList = new Data_Functor.Functor(listMap);
+  var functorNonEmptyList = Data_NonEmpty.functorNonEmpty(functorList);
   var foldableList = new Data_Foldable.Foldable(function (dictMonoid) {
       return function (f) {
           return Data_Foldable.foldl(foldableList)(function (acc) {
-              return function ($174) {
-                  return Data_Semigroup.append(dictMonoid.Semigroup0())(acc)(f($174));
+              return function ($202) {
+                  return Data_Semigroup.append(dictMonoid.Semigroup0())(acc)(f($202));
               };
           })(Data_Monoid.mempty(dictMonoid));
       };
@@ -3686,7 +3740,7 @@ var PS = {};
                       $copy_v = v.value1;
                       return;
                   };
-                  throw new Error("Failed pattern match at Data.List.Types (line 81, column 12 - line 83, column 30): " + [ v.constructor.name ]);
+                  throw new Error("Failed pattern match at Data.List.Types (line 109, column 12 - line 111, column 30): " + [ v.constructor.name ]);
               };
               while (!$tco_done) {
                   $tco_result = $tco_loop($tco_var_b, $copy_v);
@@ -3698,20 +3752,12 @@ var PS = {};
   }, function (f) {
       return function (b) {
           var rev = Data_Foldable.foldl(foldableList)(Data_Function.flip(Cons.create))(Nil.value);
-          return function ($175) {
-              return Data_Foldable.foldl(foldableList)(Data_Function.flip(f))(b)(rev($175));
+          return function ($203) {
+              return Data_Foldable.foldl(foldableList)(Data_Function.flip(f))(b)(rev($203));
           };
       };
   });
   var foldableNonEmptyList = Data_NonEmpty.foldableNonEmpty(foldableList);
-  var functorList = new Data_Functor.Functor(function (f) {
-      return Data_Foldable.foldr(foldableList)(function (x) {
-          return function (acc) {
-              return new Cons(f(x), acc);
-          };
-      })(Nil.value);
-  });
-  var functorNonEmptyList = Data_NonEmpty.functorNonEmpty(functorList);
   var semigroupList = new Data_Semigroup.Semigroup(function (xs) {
       return function (ys) {
           return Data_Foldable.foldr(foldableList)(Cons.create)(ys)(xs);
@@ -3735,7 +3781,7 @@ var PS = {};
                           $tco_done = true;
                           return Data_Foldable.foldl(foldableList)(Data_Function.flip(Cons.create))(Nil.value)(new Cons(v.value0, memo));
                       };
-                      throw new Error("Failed pattern match at Data.List.Types (line 105, column 22 - line 107, column 61): " + [ v.constructor.name ]);
+                      throw new Error("Failed pattern match at Data.List.Types (line 133, column 22 - line 135, column 61): " + [ v.constructor.name ]);
                   };
                   while (!$tco_done) {
                       $tco_result = $tco_loop($tco_var_source, $copy_memo);
@@ -3766,7 +3812,7 @@ var PS = {};
                           $copy_memo = new Cons(v.value0.value0, memo);
                           return;
                       };
-                      throw new Error("Failed pattern match at Data.List.Types (line 112, column 22 - line 114, column 52): " + [ v.constructor.name ]);
+                      throw new Error("Failed pattern match at Data.List.Types (line 140, column 22 - line 142, column 52): " + [ v.constructor.name ]);
                   };
                   while (!$tco_done) {
                       $tco_result = $tco_loop($tco_var_source, $copy_memo);
@@ -3787,7 +3833,7 @@ var PS = {};
           if (v instanceof Cons) {
               return Data_Semigroup.append(semigroupList)(Data_Functor.map(functorList)(v.value0)(v1))(Control_Apply.apply(applyList)(v.value1)(v1));
           };
-          throw new Error("Failed pattern match at Data.List.Types (line 127, column 1 - line 127, column 33): " + [ v.constructor.name, v1.constructor.name ]);
+          throw new Error("Failed pattern match at Data.List.Types (line 155, column 1 - line 155, column 33): " + [ v.constructor.name, v1.constructor.name ]);
       };
   });
   var applyNonEmptyList = new Control_Apply.Apply(function () {
@@ -3810,8 +3856,8 @@ var PS = {};
   }, Nil.value);
   var applicativeNonEmptyList = new Control_Applicative.Applicative(function () {
       return applyNonEmptyList;
-  }, function ($188) {
-      return NonEmptyList(Data_NonEmpty.singleton(plusList)($188));
+  }, function ($216) {
+      return NonEmptyList(Data_NonEmpty.singleton(plusList)($216));
   });
   exports["Nil"] = Nil;
   exports["Cons"] = Cons;
@@ -28122,7 +28168,8 @@ var PS = {};
   exports["eqFragment"] = eqFragment;
 })(PS["URI.Fragment"] = PS["URI.Fragment"] || {});
 (function(exports) {
-    "use strict";
+  // Generated by purs version 0.12.3
+  "use strict";
   var Control_Applicative = PS["Control.Applicative"];
   var Control_Bind = PS["Control.Bind"];
   var Control_Monad_State_Class = PS["Control.Monad.State.Class"];

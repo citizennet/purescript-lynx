@@ -15,8 +15,8 @@
     "purescript-routing-duplex": "^0.2.0",
     "purescript-routing": "^8.0.0",
     "purescript-halogen": "^4.0.0",
-    "purescript-ocelot": "^0.16.2",
-    "purescript-remotedata": "^4.1.0",
+    "purescript-ocelot": "^0.16.3",
+    "purescript-remotedata": "4.1.0",
     "purescript-affjax": "6.0.0",
     "purescript-matryoshka": "^0.4.0",
     "purescript-uri": "^6.1.0"
