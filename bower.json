@@ -11,13 +11,11 @@
     "purescript-console": "^4.2.0",
     "purescript-effect": "^2.0.0",
     "purescript-argonaut": "^5.0.0",
-    "purescript-leibniz": "^5.0.0",
     "purescript-generics-rep": "^6.1.0",
     "purescript-routing-duplex": "^0.2.0",
     "purescript-routing": "^8.0.0",
     "purescript-halogen": "^4.0.0",
     "purescript-ocelot": "^0.16.2",
-    "purescript-heterogeneous": "^0.3.0",
     "purescript-remotedata": "^4.1.0",
     "purescript-affjax": "6.0.0",
     "purescript-matryoshka": "^0.4.0",
@@ -25,8 +23,7 @@
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
-    "purescript-test-unit": "^14.0.0",
-    "purescript-debug": "^4.0.0"
+    "purescript-test-unit": "^14.0.0"
   },
   "resolutions": {
     "purescript-profunctor-lenses": "^5.0.0"
