@@ -1,5 +1,5 @@
 {
-  "name": "purescript-formal",
+  "name": "purescript-lynx",
   "ignore": [
     "**/.*",
     "node_modules",
