@@ -1,4 +1,4 @@
-module Lynx.Data.Expr where
+module Lynx.Expr where
 
 import Prelude
 

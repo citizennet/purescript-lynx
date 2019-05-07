@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Halogen as H
 import Halogen.HTML as HH
-import Lynx.Data.Form (mvpPage)
+import Lynx.Form (mvpPage)
 import Lynx.Page.Form as Lynx.Page.Form
 import Lynx.Route (Route(..))
 import Lynx.Util.HTML (safeHref)

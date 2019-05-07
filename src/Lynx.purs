@@ -20,9 +20,9 @@ import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Lynx.Data.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue)
-import Lynx.Data.Form as Lynx.Data.Form
+import Lynx.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue)
+import Lynx.Form as Lynx.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
@@ -255,8 +255,8 @@ eval
   ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
   EvalForm expr a -> a <$ do
-    let values = Lynx.Data.Form.keys expr
-        evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+    let values = Lynx.Form.keys expr
+        evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
     for_ evaled \page -> do
       for_ page.contents \tab -> do
         for_ tab.contents \section -> do
@@ -287,7 +287,7 @@ eval = case _ of
 
   UpdateValue key val a -> do
     { expr } <- H.get
-    eval (EvalForm (Lynx.Data.Form.setValue key val expr) a)
+    eval (EvalForm (Lynx.Form.setValue key val expr) a)
 
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
@@ -329,6 +329,6 @@ initialState { activeTab, expr, fragment } =
   }
   where
   evaled :: Either EvalError (Page ExprType)
-  evaled = Lynx.Data.Form.eval (\key -> Data.Map.lookup key values) expr
+  evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
   values :: Map String ExprType
-  values = Lynx.Data.Form.keys expr
+  values = Lynx.Form.keys expr
