@@ -20,10 +20,10 @@ jobs:
 
       - restore_cache:
           keys:
-            - v0.2-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
-            - v0.2-bower-cache-{{ .Branch }}
-            - v0.2-bower-cache-master-{{ checksum "bower.json" }}
-            - v0.2-bower-cache-master
+            - v0.3-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+            - v0.3-bower-cache-{{ .Branch }}
+            - v0.3-bower-cache-master-{{ checksum "bower.json" }}
+            - v0.3-bower-cache-master
 
       - restore_cache:
           keys:
