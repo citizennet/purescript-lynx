@@ -60,6 +60,8 @@
 BOWER_COMPONENTS := bower_components/.stamp
 BUILD := .build
 DEPS := 'bower_components/purescript-*/src/**/*.purs'
+EXAMPLE := example
+EXAMPLES := $(shell find $(EXAMPLE) -name '*.purs' -type f)
 NODE_MODULES := node_modules/.stamp
 OUTPUT := output
 PSA_ARGS := --censor-lib --stash=$(BUILD)/.psa_stash --strict
@@ -107,11 +109,11 @@ $(NODE_MODULES): package.json
 	npm install
 	touch $@
 
-$(OUTPUT)/Main/index.js: $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
-	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(SRCS)
+$(OUTPUT)/Main/index.js: $(EXAMPLES) $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS)
 
-$(OUTPUT)/Test.Main/index.js: $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
-	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(SRCS) $(TESTS)
+$(OUTPUT)/Test.Main/index.js: $(EXAMPLES) $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS) $(TESTS)
 
 .PHONY: clean
 clean:
@@ -129,4 +131,4 @@ test: dist/main.js $(BUILD)/test.out
 
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
-	npx watch-exec --command 'make dist/main.js' --watch $(SRC)
+	npx watch-exec --command 'make dist/main.js' --watch $(EXAMPLE) --watch $(SRC)

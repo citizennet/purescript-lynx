@@ -14,7 +14,7 @@ import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Lynx as Lynx
-import Lynx.Data.Form (mvpPage, testPage)
+import Lynx.Form (mvpPage, testPage)
 import Routing.Duplex (RouteDuplex', segment, string)
 import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Duplex.Generic.Syntax ((/))

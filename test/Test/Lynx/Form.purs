@@ -1,4 +1,4 @@
-module Test.Lynx.Data.Form (suite) where
+module Test.Lynx.Form (suite) where
 
 import Prelude
 
@@ -9,9 +9,9 @@ import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
-import Lynx.Data.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Data.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
-import Lynx.Data.Form as Lynx.Data.Form
+import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
+import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
@@ -20,7 +20,7 @@ import Test.Unit.QuickCheck (quickCheck, quickCheck')
 
 suite :: TestSuite
 suite =
-  Test.Unit.suite "Test.Lynx.Data.Form" do
+  Test.Unit.suite "Test.Lynx.Form" do
     Test.Unit.suite "Page" do
       test "JSON parses to an Expr" do
         assertRight testPageEither
@@ -54,9 +54,9 @@ suite =
 dropdownOptions :: TestSuite
 dropdownOptions = do
   let evaluated' :: Either EvalError (Page ExprType)
-      evaluated' = Lynx.Data.Form.eval (\key -> Data.Map.lookup key keys') page'
+      evaluated' = Lynx.Form.eval (\key -> Data.Map.lookup key keys') page'
       keys' :: Map Key ExprType
-      keys' = Lynx.Data.Form.keys page'
+      keys' = Lynx.Form.keys page'
 
   test "initial lookup" do
     let actual :: Maybe ExprType
@@ -66,11 +66,11 @@ dropdownOptions = do
     equal (Just expected) actual
 
   let evaluated :: Either EvalError (Page ExprType)
-      evaluated = Lynx.Data.Form.eval (\key -> Data.Map.lookup key keys) page
+      evaluated = Lynx.Form.eval (\key -> Data.Map.lookup key keys) page
       keys :: Map Key ExprType
-      keys = Lynx.Data.Form.keys page
+      keys = Lynx.Form.keys page
       page :: Page Expr
-      page = Lynx.Data.Form.setValue fooKey (UserInput $ boolean_ true) page'
+      page = Lynx.Form.setValue fooKey (UserInput $ boolean_ true) page'
 
   test "after altering the toggle" do
     let actual :: Maybe ExprType

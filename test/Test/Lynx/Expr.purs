@@ -1,18 +1,18 @@
-module Test.Data.Expr (suite) where
+module Test.Lynx.Expr (suite) where
 
 import Prelude
 
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
 import Data.String (trim)
-import Lynx.Data.Expr (Expr, ExprType)
+import Lynx.Expr (Expr, ExprType)
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
 import Test.Unit as Test.Unit
 import Test.Unit.QuickCheck (quickCheck)
 
 suite :: TestSuite
-suite = Test.Unit.suite "Test.Data.Expr" do
+suite = Test.Unit.suite "Test.Lynx.Expr" do
   Test.Unit.suite "ExprType" do
     test "decoding and encoding roundtrips properly" do
       quickCheck exprTypeRoundTrip
