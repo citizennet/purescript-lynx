@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
+import Data.Array as Data.Array
 import Data.BigInt as Data.BigInt
 import Data.DateTime (DateTime)
 import Data.Either (Either(..))
@@ -516,6 +517,7 @@ data Expr
   | Equal Expr Expr
   | Print Expr
   | Lookup Key Expr
+  | Collection (Array Expr)
 
 derive instance eqExpr :: Eq Expr
 
@@ -571,6 +573,7 @@ data ExprA
   | EqualA ExprA ExprA String String
   | PrintA ExprA String String
   | LookupA Key ExprA String
+  | CollectionA (Array ExprA) String String
 
 instance encodeJsonExprA :: EncodeJson ExprA where
   encodeJson =
@@ -584,6 +587,8 @@ instance encodeJsonExprA :: EncodeJson ExprA where
         "params" := [ x ] ~> encodeHelper "Print" i o
       LookupA x y o ->
         "params" := [ encodeJson x, encodeJson y ] ~> encodeHelper "Lookup" "Void" o
+      CollectionA x i o ->
+        "params" := encodeJson x ~> encodeHelper "Collection" i o
 
 toExprA :: Expr -> ExprA
 toExprA = case _ of
@@ -592,6 +597,11 @@ toExprA = case _ of
   Equal x y -> EqualA (toExprA x) (toExprA y) (reflectIn x) (reflectOut x)
   Print x -> PrintA (toExprA x) (reflectIn x) "String"
   Lookup x y -> LookupA x (toExprA y) (reflectOut y)
+  Collection x ->
+    CollectionA
+      (map toExprA x)
+      (maybe "TODO" reflectIn $ Data.Array.head x)
+      (maybe "TODO" reflectOut $ Data.Array.head x)
   where
   reflectIn :: Expr -> String
   reflectIn = case _ of
@@ -600,6 +610,7 @@ toExprA = case _ of
     Equal x _ -> reflectIn x
     Print x -> reflectIn x
     Lookup _ _ -> "Void"
+    Collection _ -> "TODO"
   reflectOut :: Expr -> String
   reflectOut = case _ of
     Val x -> reflectType x
@@ -607,6 +618,7 @@ toExprA = case _ of
     Equal _ _ -> "Boolean"
     Print x -> "String"
     Lookup _ x -> reflectOut x
+    Collection _ -> "TODO"
 
 encodeHelper :: String -> String -> String -> Json
 encodeHelper op i o =
@@ -639,6 +651,9 @@ evalExpr get = case _ of
           _, _ -> Left (EqualMismatch { left, right })
   Print x' -> map (string_ <<< print) (evalExpr get x')
   Lookup x y -> maybe' (\_ -> evalExpr get y) Right (get x)
+  Collection x' -> do
+    x <- traverse (evalExpr get) x'
+    pure (array_ x)
 
 array_ :: Array ExprType -> ExprType
 array_ x = embed (inj $ Array x)

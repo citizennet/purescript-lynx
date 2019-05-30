@@ -20393,6 +20393,7 @@ var PS = {};
   var Data_Argonaut_Decode_Combinators = PS["Data.Argonaut.Decode.Combinators"];
   var Data_Argonaut_Encode_Class = PS["Data.Argonaut.Encode.Class"];
   var Data_Argonaut_Encode_Combinators = PS["Data.Argonaut.Encode.Combinators"];
+  var Data_Array = PS["Data.Array"];
   var Data_BigInt = PS["Data.BigInt"];
   var Data_DateTime = PS["Data.DateTime"];
   var Data_Either = PS["Data.Either"];
@@ -20512,6 +20513,15 @@ var PS = {};
           };
       };
       return Lookup;
+  })();
+  var Collection = (function () {
+      function Collection(value0) {
+          this.value0 = value0;
+      };
+      Collection.create = function (value0) {
+          return new Collection(value0);
+      };
+      return Collection;
   })();
   var val_ = Val.create;    
   var printStringF = function (v) {
@@ -20824,61 +20834,6 @@ var PS = {};
   var boolean_ = function (x) {
       return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectRight(Data_Functor_Coproduct_Inject.injectLeft))(x));
   };
-  var evalExpr = function (get) {
-      return function (v) {
-          if (v instanceof Val) {
-              return Control_Applicative.pure(Data_Either.applicativeEither)(v.value0);
-          };
-          if (v instanceof If) {
-              return Control_Bind.bind(Data_Either.bindEither)(evalExpr(get)(v.value0))(function (v1) {
-                  var v2 = toBoolean(v1);
-                  if (v2 instanceof Data_Maybe.Just && !v2.value0) {
-                      return evalExpr(get)(v.value2);
-                  };
-                  if (v2 instanceof Data_Maybe.Just && v2.value0) {
-                      return evalExpr(get)(v.value1);
-                  };
-                  return new Data_Either.Left(new IfCondition(v1));
-              });
-          };
-          if (v instanceof Equal) {
-              return Control_Bind.bind(Data_Either.bindEither)(evalExpr(get)(v.value0))(function (v1) {
-                  return Control_Bind.bind(Data_Either.bindEither)(evalExpr(get)(v.value1))(function (v2) {
-                      var v3 = toBoolean(v2);
-                      var v4 = toBoolean(v1);
-                      if (v4 instanceof Data_Maybe.Just && v3 instanceof Data_Maybe.Just) {
-                          return new Data_Either.Right(boolean_(v4.value0 === v3.value0));
-                      };
-                      var v5 = toInt(v2);
-                      var v6 = toInt(v1);
-                      if (v6 instanceof Data_Maybe.Just && v5 instanceof Data_Maybe.Just) {
-                          return new Data_Either.Right(boolean_(v6.value0 === v5.value0));
-                      };
-                      var v7 = toString(v2);
-                      var v8 = toString(v1);
-                      if (v8 instanceof Data_Maybe.Just && v7 instanceof Data_Maybe.Just) {
-                          return new Data_Either.Right(boolean_(v8.value0 === v7.value0));
-                      };
-                      return new Data_Either.Left(new EqualMismatch({
-                          left: v1,
-                          right: v2
-                      }));
-                  });
-              });
-          };
-          if (v instanceof Print) {
-              return Data_Functor.map(Data_Either.functorEither)(function ($493) {
-                  return string_(print($493));
-              })(evalExpr(get)(v.value0));
-          };
-          if (v instanceof Lookup) {
-              return Data_Maybe["maybe'"](function (v1) {
-                  return evalExpr(get)(v.value1);
-              })(Data_Either.Right.create)(get(v.value0));
-          };
-          throw new Error("Failed pattern match at Lynx.Expr (line 622, column 16 - line 641, column 60): " + [ v.constructor.name ]);
-      };
-  };
   var base = function (dictEncodeJson) {
       return function (out) {
           return function (param) {
@@ -20947,6 +20902,66 @@ var PS = {};
   var array_ = function (x) {
       return Matryoshka_Class_Corecursive.embed(corecursiveExprTypeExprTypeF)(Data_Functor_Coproduct_Inject.inj(Data_Functor_Coproduct_Inject.injectLeft)(x));
   };
+  var evalExpr = function (get) {
+      return function (v) {
+          if (v instanceof Val) {
+              return Control_Applicative.pure(Data_Either.applicativeEither)(v.value0);
+          };
+          if (v instanceof If) {
+              return Control_Bind.bind(Data_Either.bindEither)(evalExpr(get)(v.value0))(function (v1) {
+                  var v2 = toBoolean(v1);
+                  if (v2 instanceof Data_Maybe.Just && !v2.value0) {
+                      return evalExpr(get)(v.value2);
+                  };
+                  if (v2 instanceof Data_Maybe.Just && v2.value0) {
+                      return evalExpr(get)(v.value1);
+                  };
+                  return new Data_Either.Left(new IfCondition(v1));
+              });
+          };
+          if (v instanceof Equal) {
+              return Control_Bind.bind(Data_Either.bindEither)(evalExpr(get)(v.value0))(function (v1) {
+                  return Control_Bind.bind(Data_Either.bindEither)(evalExpr(get)(v.value1))(function (v2) {
+                      var v3 = toBoolean(v2);
+                      var v4 = toBoolean(v1);
+                      if (v4 instanceof Data_Maybe.Just && v3 instanceof Data_Maybe.Just) {
+                          return new Data_Either.Right(boolean_(v4.value0 === v3.value0));
+                      };
+                      var v5 = toInt(v2);
+                      var v6 = toInt(v1);
+                      if (v6 instanceof Data_Maybe.Just && v5 instanceof Data_Maybe.Just) {
+                          return new Data_Either.Right(boolean_(v6.value0 === v5.value0));
+                      };
+                      var v7 = toString(v2);
+                      var v8 = toString(v1);
+                      if (v8 instanceof Data_Maybe.Just && v7 instanceof Data_Maybe.Just) {
+                          return new Data_Either.Right(boolean_(v8.value0 === v7.value0));
+                      };
+                      return new Data_Either.Left(new EqualMismatch({
+                          left: v1,
+                          right: v2
+                      }));
+                  });
+              });
+          };
+          if (v instanceof Print) {
+              return Data_Functor.map(Data_Either.functorEither)(function ($515) {
+                  return string_(print($515));
+              })(evalExpr(get)(v.value0));
+          };
+          if (v instanceof Lookup) {
+              return Data_Maybe["maybe'"](function (v1) {
+                  return evalExpr(get)(v.value1);
+              })(Data_Either.Right.create)(get(v.value0));
+          };
+          if (v instanceof Collection) {
+              return Control_Bind.bind(Data_Either.bindEither)(Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(evalExpr(get))(v.value0))(function (v1) {
+                  return Control_Applicative.pure(Data_Either.applicativeEither)(array_(v1));
+              });
+          };
+          throw new Error("Failed pattern match at Lynx.Expr (line 634, column 16 - line 656, column 20): " + [ v.constructor.name ]);
+      };
+  };
   exports["encodeArrayF"] = encodeArrayF;
   exports["isEmptyArrayF"] = isEmptyArrayF;
   exports["printArrayF"] = printArrayF;
@@ -20989,6 +21004,7 @@ var PS = {};
   exports["Equal"] = Equal;
   exports["Print"] = Print;
   exports["Lookup"] = Lookup;
+  exports["Collection"] = Collection;
   exports["IfCondition"] = IfCondition;
   exports["EqualMismatch"] = EqualMismatch;
   exports["evalExpr"] = evalExpr;
