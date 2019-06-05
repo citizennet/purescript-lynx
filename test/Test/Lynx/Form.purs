@@ -10,7 +10,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section(..), ValidationError, section)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -98,8 +98,8 @@ dropdownOptions = do
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
     flip findMap evaluatedPage.contents \tab ->
-      flip findMap tab.contents \section ->
-        flip findMap section.contents \field ->
+      flip findMap tab.contents \section' ->
+        flip findMap (section _.contents section') \field ->
           if field.key == dropdownKey then
             case field.input of
               Dropdown x -> Just x.options
@@ -123,7 +123,7 @@ dropdownOptions = do
         { name: ""
         , link: ""
         , contents:
-          Data.NonEmpty.singleton
+          Data.NonEmpty.singleton $ Single
             { name: ""
             , contents:
               Data.NonEmpty.NonEmpty
@@ -201,6 +201,7 @@ testUser = """
 testSection :: String
 testSection = """
   { "name": "Name"
+  , "type": "Single"
   , "contents":
     [ """ <> firstName <> """
     , """ <> lastName <> """

@@ -40,7 +40,38 @@ type Page f = Record (LayoutRows (Tab f) ())
 
 type Tab f = Record (LayoutRows (Section f) (link :: String))
 
-type Section f = Record (LayoutRows (Field f) ())
+type SectionRecord f r = Record (LayoutRows (Field f) r)
+
+-- TODO: Naming is hard
+data Section f
+  = Single (SectionRecord f ())
+  | Collection (SectionRecord f (key :: String))
+
+section :: forall f a. (forall r. SectionRecord f r -> a) -> Section f -> a
+section f = case _ of
+  Single r -> f r
+  Collection r -> f r
+
+derive instance eqSection :: (Eq f) => Eq (Section f)
+
+derive instance genericSection :: Generic (Section f) _
+instance showSection :: Show (Section Expr) where show = genericShow
+
+instance encodeSection :: EncodeJson (Section Expr) where
+  encodeJson = case _ of
+    Single r -> "type" := "Single" ~> encodeJson r
+    Collection r -> "type" := "Collection" ~> encodeJson r
+
+instance decodeSection :: DecodeJson (Section Expr) where
+  decodeJson json = do
+    x <- decodeJson json
+    x .: "type" >>= case _ of
+      "Single" -> pure <<< Single <=< decodeJson $ json
+      "Collection" -> pure <<< Collection <=< decodeJson $ json
+      t -> Left $ "Unsupported Section type: " <> t
+
+instance arbitrarySection :: Arbitrary (Section Expr) where
+  arbitrary = genericArbitrary
 
 type FieldRows f r =
   ( name :: f
@@ -278,9 +309,11 @@ eval get page = do
     pure tab { contents = contents }
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
-  evalSection section = do
-    contents <- traverse evalField section.contents
-    pure section { contents = contents }
+  evalSection section' = do
+    contents <- traverse evalField (section _.contents section')
+    pure $ case section' of
+      Single r -> Single (r { contents = contents })
+      Collection r -> Collection (r { contents = contents })
 
   evalField :: Field Expr -> Either EvalError (Field ExprType)
   evalField field = do
@@ -424,7 +457,7 @@ keys page = foldMap keysTab page.contents
   keysTab tab = foldMap keysSection tab.contents
 
   keysSection :: Section Expr -> Map Key ExprType
-  keysSection section = foldMap keysField section.contents
+  keysSection section' = foldMap keysField (section _.contents section')
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -460,7 +493,10 @@ setValue key val page = page { contents = map setTab page.contents }
   setTab tab = tab { contents = map setSection tab.contents }
 
   setSection :: Section Expr -> Section Expr
-  setSection section = section { contents = map setField section.contents }
+  setSection =
+    case _ of
+    Single section' -> Single section' { contents = map setField section'.contents }
+    Collection section' -> Collection section' { contents = map setField section'.contents }
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -532,7 +568,7 @@ mvpPage =
       { name: "Details"
       , link: "details"
       , contents:
-        Data.NonEmpty.singleton
+        Data.NonEmpty.singleton $ Single
           { name: "Campaign"
           , contents:
             Data.NonEmpty.NonEmpty
@@ -549,8 +585,9 @@ mvpPage =
       [ { name: "Creative"
         , link: "creative"
         , contents:
-          Data.NonEmpty.singleton
+          Data.NonEmpty.singleton $ Collection
           { name: "Creative"
+          , key: "creative"
           , contents:
             Data.NonEmpty.NonEmpty
             mvpSocialAccount
@@ -731,16 +768,16 @@ testPage =
 
 testSection :: Section Expr
 testSection =
-  { name: "Name"
-  , contents:
-    Data.NonEmpty.NonEmpty
-      firstName
-      [ lastName
-      , active
-      , food
-      , money
-      ]
-  }
+  Single { name: "Name"
+         , contents:
+           Data.NonEmpty.NonEmpty
+           firstName
+           [ lastName
+           , active
+           , food
+           , money
+           ]
+         }
 
 firstName :: Field Expr
 firstName =

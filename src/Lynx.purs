@@ -21,7 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue, section)
 import Lynx.Form as Lynx.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -149,11 +149,11 @@ component =
     tab = fromMaybe (Data.NonEmpty.head tabs) (find byLink tabs)
 
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  renderSection section =
+  renderSection section' =
     Card.card_ $
       append
-      [ Format.subHeading_ [ HH.text section.name ] ]
-      $ Data.Array.fromFoldable $ renderField <$> section.contents
+      [ Format.subHeading_ [ HH.text (section _.name section') ] ]
+      $ Data.Array.fromFoldable $ renderField <$> (section _.contents section')
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -259,8 +259,8 @@ eval = case _ of
         evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
     for_ evaled \page -> do
       for_ page.contents \tab -> do
-        for_ tab.contents \section -> do
-          for_ section.contents \field -> do
+        for_ tab.contents \section' -> do
+          for_ (section _.contents section') \field -> do
             case field.input of
               Currency _ -> pure unit
               DateTime _ -> pure unit
@@ -311,8 +311,8 @@ eval = case _ of
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
 fromTab fragment { contents, name, link } =
   { errors: sum do
-    section <- Data.Array.fromFoldable contents
-    field <- Data.Array.fromFoldable section.contents
+    section' <- Data.Array.fromFoldable contents
+    field <- Data.Array.fromFoldable $ section _.contents section'
     pure (length $ errorsToArray $ errors field)
   , name
   , link: URI.Fragment.print fragment <> "/" <> link
