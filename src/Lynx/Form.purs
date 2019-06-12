@@ -30,17 +30,19 @@ import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
 
-type LayoutRows c r =
-  ( name :: String
-  , contents :: NonEmpty Array c
-  | r
-  )
 
-type Page f = Record (LayoutRows (Tab f) ())
+type Page f = { name :: String
+              , tabs :: NonEmpty Array (Tab f)
+              }
 
-type Tab f = Record (LayoutRows (Section f) (link :: String))
+type Tab f = { name :: String
+             , link :: String
+             , sections :: NonEmpty Array (Section f)
+             }
 
-type Section f = Record (LayoutRows (Field f) ())
+type Section f = { name :: String
+                 , fields :: NonEmpty Array (Field f)
+                 }
 
 type FieldRows f r =
   ( name :: f
@@ -269,18 +271,18 @@ instance arbitraryValidationError :: Arbitrary ValidationError where
 
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
-  contents <- traverse evalTab page.contents
-  pure page { contents = contents }
+  tabs <- traverse evalTab page.tabs
+  pure page { tabs = tabs }
   where
   evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
   evalTab tab = do
-    contents <- traverse evalSection tab.contents
-    pure tab { contents = contents }
+    sections <- traverse evalSection tab.sections
+    pure tab { sections = sections }
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
   evalSection section = do
-    contents <- traverse evalField section.contents
-    pure section { contents = contents }
+    fields <- traverse evalField section.fields
+    pure section { fields = fields }
 
   evalField :: Field Expr -> Either EvalError (Field ExprType)
   evalField field = do
@@ -418,13 +420,13 @@ eval get page = do
       otherwise -> mempty
 
 keys :: Page Expr -> Map Key ExprType
-keys page = foldMap keysTab page.contents
+keys page = foldMap keysTab page.tabs
   where
   keysTab :: Tab Expr -> Map Key ExprType
-  keysTab tab = foldMap keysSection tab.contents
+  keysTab tab = foldMap keysSection tab.sections
 
   keysSection :: Section Expr -> Map Key ExprType
-  keysSection section = foldMap keysField section.contents
+  keysSection section = foldMap keysField section.fields
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -454,13 +456,13 @@ getValue
 getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
-setValue key val page = page { contents = map setTab page.contents }
+setValue key val page = page { tabs = map setTab page.tabs }
   where
   setTab :: Tab Expr -> Tab Expr
-  setTab tab = tab { contents = map setSection tab.contents }
+  setTab tab = tab { sections = map setSection tab.sections }
 
   setSection :: Section Expr -> Section Expr
-  setSection section = section { contents = map setField section.contents }
+  setSection section = section { fields = map setField section.fields }
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -527,14 +529,14 @@ asyncFromTypeahead typeahead x = case toString typeahead.uri of
 mvpPage :: Page Expr
 mvpPage =
   { name: "New Campaign Request"
-  , contents:
+  , tabs:
     Data.NonEmpty.NonEmpty
       { name: "Details"
       , link: "details"
-      , contents:
+      , sections:
         Data.NonEmpty.singleton
           { name: "Campaign"
-          , contents:
+          , fields:
             Data.NonEmpty.NonEmpty
               mvpName
               [ mvpTargetableInterest
@@ -548,10 +550,10 @@ mvpPage =
       }
       [ { name: "Creative"
         , link: "creative"
-        , contents:
+        , sections:
           Data.NonEmpty.singleton
           { name: "Creative"
-          , contents:
+          , fields:
             Data.NonEmpty.NonEmpty
             mvpSocialAccount
             [
@@ -720,11 +722,11 @@ mvpURI =
 testPage :: Page Expr
 testPage =
   { name: "Profile"
-  , contents:
+  , tabs:
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , contents:
+      , sections:
         Data.NonEmpty.singleton testSection
       }
   }
@@ -732,7 +734,7 @@ testPage =
 testSection :: Section Expr
 testSection =
   { name: "Name"
-  , contents:
+  , fields:
     Data.NonEmpty.NonEmpty
       firstName
       [ lastName

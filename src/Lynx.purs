@@ -112,11 +112,11 @@ component =
                 [ NavigationTab.navigationTabs_
                   { activePage: activeTab
                   , tabs:
-                    Data.Array.fromFoldable (map (fromTab fragment) page.contents)
+                    Data.Array.fromFoldable (map (fromTab fragment) page.tabs)
                   }
                 ]
               , Layout.grid_
-                [ renderTab activeTab page.contents
+                [ renderTab activeTab page.tabs
                 , Layout.side_ []
                 ]
               ]
@@ -140,7 +140,7 @@ component =
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderTab activeTab tabs =
-    Layout.main_ (Data.Array.fromFoldable $ map renderSection tab.contents)
+    Layout.main_ (Data.Array.fromFoldable $ map renderSection tab.sections)
     where
     byLink :: Tab ExprType -> Boolean
     byLink { link } = activeTab == link
@@ -153,7 +153,7 @@ component =
     Card.card_ $
       append
       [ Format.subHeading_ [ HH.text section.name ] ]
-      $ Data.Array.fromFoldable $ renderField <$> section.contents
+      $ Data.Array.fromFoldable $ renderField <$> section.fields
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -258,9 +258,9 @@ eval = case _ of
     let values = Lynx.Form.keys expr
         evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
     for_ evaled \page -> do
-      for_ page.contents \tab -> do
-        for_ tab.contents \section -> do
-          for_ section.contents \field -> do
+      for_ page.tabs \tab -> do
+        for_ tab.sections \section -> do
+          for_ section.fields \field -> do
             case field.input of
               Currency _ -> pure unit
               DateTime _ -> pure unit
@@ -309,10 +309,10 @@ eval = case _ of
     Typeahead.SelectionChanged _ _ -> pure a
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
-fromTab fragment { contents, name, link } =
+fromTab fragment { sections, name, link } =
   { errors: sum do
-    section <- Data.Array.fromFoldable contents
-    field <- Data.Array.fromFoldable section.contents
+    section <- Data.Array.fromFoldable sections
+    field <- Data.Array.fromFoldable section.fields
     pure (length $ errorsToArray $ errors field)
   , name
   , link: URI.Fragment.print fragment <> "/" <> link

@@ -97,9 +97,9 @@ dropdownOptions = do
   dropdownKey = "dropdown"
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
-    flip findMap evaluatedPage.contents \tab ->
-      flip findMap tab.contents \section ->
-        flip findMap section.contents \field ->
+    flip findMap evaluatedPage.tabs \tab ->
+      flip findMap tab.sections \section ->
+        flip findMap section.fields \field ->
           if field.key == dropdownKey then
             case field.input of
               Dropdown x -> Just x.options
@@ -118,14 +118,14 @@ dropdownOptions = do
   page' :: Page Expr
   page' =
     { name: ""
-    , contents:
+    , tabs:
       Data.NonEmpty.singleton
         { name: ""
         , link: ""
-        , contents:
+        , sections:
           Data.NonEmpty.singleton
             { name: ""
-            , contents:
+            , fields:
               Data.NonEmpty.NonEmpty
                 { name: val_ (string_ "")
                 , visibility: val_ (boolean_ false)
@@ -182,17 +182,17 @@ testPageEither = decodeJson =<< jsonParser testPageJson
 testPageJson :: String
 testPageJson = """
   { "name": "Profile"
-  , "contents":
-    [ """ <> testUser <> """
+  , "tabs":
+    [ """ <> testTab <> """
     ]
   }
 """
 
-testUser :: String
-testUser = """
+testTab :: String
+testTab = """
   { "name": "User"
   , "link": "user"
-  , "contents":
+  , "sections":
     [ """ <> testSection <> """
     ]
   }
@@ -201,7 +201,7 @@ testUser = """
 testSection :: String
 testSection = """
   { "name": "Name"
-  , "contents":
+  , "fields":
     [ """ <> firstName <> """
     , """ <> lastName <> """
     , """ <> active <> """

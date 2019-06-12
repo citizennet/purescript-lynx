@@ -27,7 +27,7 @@ type Form = { name :: String, id :: Lynx.Page.Form.Route }
 forms :: Array Form
 forms =
   [ { name: "Profile", id: Lynx.Page.Form.Profile1 }
-  , { name: "MVP", id: Lynx.Page.Form.MVP (Data.NonEmpty.head mvpPage.contents).link}
+  , { name: "MVP", id: Lynx.Page.Form.MVP (Data.NonEmpty.head mvpPage.tabs).link}
   ]
 
 component

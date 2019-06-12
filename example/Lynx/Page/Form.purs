@@ -103,7 +103,7 @@ component =
         , fragment: appendFragment mvp
         }
       Profile1 ->
-        { activeTab: (Data.NonEmpty.head testPage.contents).link
+        { activeTab: (Data.NonEmpty.head testPage.tabs).link
         , expr: testPage
         , fragment: appendFragment profile1
         }
