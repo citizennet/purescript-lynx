@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Array as Data.Array
 import Data.Const (Const)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find, fold, foldMap, for_, length, sum)
 import Data.Functor.Coproduct.Nested (type (<\/>))
@@ -21,7 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), Sequence, asyncFromTypeahead, errors, errorsToArray, getValue)
 import Lynx.Form as Lynx.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -140,13 +140,13 @@ component =
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderTab activeTab tabs =
-    Layout.main_ (Data.Array.fromFoldable $ map renderSection tab.sections)
+    Layout.main_ (Data.Array.fromFoldable $ map (either renderSection renderSequence) tab.contents)
     where
-    byLink :: Tab ExprType -> Boolean
-    byLink { link } = activeTab == link
+      byLink :: Tab ExprType -> Boolean
+      byLink { link } = activeTab == link
 
-    tab :: Tab ExprType
-    tab = fromMaybe (Data.NonEmpty.head tabs) (find byLink tabs)
+      tab :: Tab ExprType
+      tab = fromMaybe (Data.NonEmpty.head tabs) (find byLink tabs)
 
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection section =
@@ -154,6 +154,15 @@ component =
       append
       [ Format.subHeading_ [ HH.text section.name ] ]
       $ Data.Array.fromFoldable $ renderField <$> section.fields
+
+  renderSequence :: Sequence ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
+  renderSequence sequence =
+    Card.card_ $
+    append
+    [ Format.subHeading_ [ HH.text sequence.name ] ]
+    $ Data.Array.fromFoldable $ do
+      section <- sequence.sections
+      Data.Array.fromFoldable $ renderField <$> section.fields
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -257,21 +266,27 @@ eval = case _ of
   EvalForm expr a -> a <$ do
     let values = Lynx.Form.keys expr
         evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
+        evalField field = do
+          case field.input of
+            Currency _ -> pure unit
+            DateTime _ -> pure unit
+            Dropdown dropdown ->
+              for_ (toArray dropdown.options) \options ->
+                H.query' cp1 field.key (Dropdown.SetItems options unit)
+            Text _ -> pure unit
+            Toggle _ -> pure unit
+            TypeaheadSingle typeahead ->
+              for_ (toArray typeahead.options) \options ->
+                H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
+
     for_ evaled \page -> do
       for_ page.tabs \tab -> do
-        for_ tab.sections \section -> do
-          for_ section.fields \field -> do
-            case field.input of
-              Currency _ -> pure unit
-              DateTime _ -> pure unit
-              Dropdown dropdown ->
-                for_ (toArray dropdown.options) \options ->
-                  H.query' cp1 field.key (Dropdown.SetItems options unit)
-              Text _ -> pure unit
-              Toggle _ -> pure unit
-              TypeaheadSingle typeahead ->
-                for_ (toArray typeahead.options) \options ->
-                  H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
+        for_ tab.contents \contents -> do
+          case contents of
+            Left section -> for_ section.fields evalField
+            Right sequence -> for_ sequence.sections \section ->
+              for_ section.fields evalField
+
     H.modify_ _
       { evaled = evaled
       , expr = expr
@@ -309,10 +324,15 @@ eval = case _ of
     Typeahead.SelectionChanged _ _ -> pure a
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
-fromTab fragment { sections, name, link } =
+fromTab fragment { contents, name, link } =
   { errors: sum do
-    section <- Data.Array.fromFoldable sections
-    field <- Data.Array.fromFoldable section.fields
+    contents' <- Data.Array.fromFoldable contents
+    field <- case contents' of
+      Left section -> Data.Array.fromFoldable section.fields
+      Right sequence -> do
+        section <- sequence.sections
+        Data.Array.fromFoldable section.fields
+
     pure (length $ errorsToArray $ errors field)
   , name
   , link: URI.Fragment.print fragment <> "/" <> link

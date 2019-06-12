@@ -5,6 +5,9 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Array as Data.Array
+import Data.Bifoldable (bifoldMap)
+import Data.Bifunctor (bimap)
+import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), note)
 import Data.Foldable (class Foldable, foldM, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
@@ -30,19 +33,30 @@ import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
 
+type Page f =
+  { name :: String
+  , tabs :: NonEmpty Array (Tab f)
+  }
 
-type Page f = { name :: String
-              , tabs :: NonEmpty Array (Tab f)
-              }
+type Tab f =
+  { name :: String
+  , link :: String
+  , contents :: NonEmpty Array (TabContents f)
+  }
 
-type Tab f = { name :: String
-             , link :: String
-             , sections :: NonEmpty Array (Section f)
-             }
+type TabContents f = Either (Section f) (Sequence f)
 
-type Section f = { name :: String
-                 , fields :: NonEmpty Array (Field f)
-                 }
+type Section f =
+  { name :: String
+  , fields :: NonEmpty Array (Field f)
+  }
+
+type Sequence f =
+  { name :: String
+    -- TODO: need to figure out what `template` should be
+  , template :: Unit
+  , sections :: Array (Section f)
+  }
 
 type FieldRows f r =
   ( name :: f
@@ -276,13 +290,18 @@ eval get page = do
   where
   evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
   evalTab tab = do
-    sections <- traverse evalSection tab.sections
-    pure tab { sections = sections }
+    contents <- traverse (bitraverse evalSection evalSequence) tab.contents
+    pure tab { contents = contents }
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
   evalSection section = do
     fields <- traverse evalField section.fields
     pure section { fields = fields }
+
+  evalSequence :: Sequence Expr -> Either EvalError (Sequence ExprType)
+  evalSequence sequence = do
+    sections <- traverse evalSection sequence.sections
+    pure sequence { sections = sections }
 
   evalField :: Field Expr -> Either EvalError (Field ExprType)
   evalField field = do
@@ -423,10 +442,13 @@ keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysTab page.tabs
   where
   keysTab :: Tab Expr -> Map Key ExprType
-  keysTab tab = foldMap keysSection tab.sections
+  keysTab tab = foldMap (bifoldMap keysSection keysSequence) tab.contents
 
   keysSection :: Section Expr -> Map Key ExprType
   keysSection section = foldMap keysField section.fields
+
+  keysSequence :: Sequence Expr -> Map Key ExprType
+  keysSequence sequence = foldMap keysSection sequence.sections
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -459,10 +481,13 @@ setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
 setValue key val page = page { tabs = map setTab page.tabs }
   where
   setTab :: Tab Expr -> Tab Expr
-  setTab tab = tab { sections = map setSection tab.sections }
+  setTab tab = tab { contents = map (bimap setSection setSequence) tab.contents }
 
   setSection :: Section Expr -> Section Expr
   setSection section = section { fields = map setField section.fields }
+
+  setSequence :: Sequence Expr -> Sequence Expr
+  setSequence sequence = sequence { sections = map setSection sequence.sections }
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -533,35 +558,42 @@ mvpPage =
     Data.NonEmpty.NonEmpty
       { name: "Details"
       , link: "details"
-      , sections:
-        Data.NonEmpty.singleton
-          { name: "Campaign"
-          , fields:
-            Data.NonEmpty.NonEmpty
-              mvpName
-              [ mvpTargetableInterest
-              , mvpFacebookTwitterPage
-              , mvpObjective
-              , mvpMediaBudget
-              , mvpStart
-              , mvpEnd
-              ]
-          }
+      , contents: Data.NonEmpty.singleton mvpDetailsSection
       }
       [ { name: "Creative"
         , link: "creative"
-        , sections:
-          Data.NonEmpty.singleton
-          { name: "Creative"
-          , fields:
-            Data.NonEmpty.NonEmpty
-            mvpSocialAccount
-            [
-            ]
-          }
+        , contents: Data.NonEmpty.singleton mvpCreativeSequence
         }
       ]
   }
+
+mvpDetailsSection :: TabContents Expr
+mvpDetailsSection =
+  Left
+    { name: "Campaign"
+    , fields:
+      Data.NonEmpty.NonEmpty
+      mvpName
+      [ mvpTargetableInterest
+      , mvpFacebookTwitterPage
+      , mvpObjective
+      , mvpMediaBudget
+      , mvpStart
+      , mvpEnd
+      ]
+    }
+
+
+mvpCreativeSequence :: TabContents Expr
+mvpCreativeSequence =
+  Right
+    { name: "Creative"
+    , template: unit
+    , sections: [ { name: "Social Creative"
+                  , fields: Data.NonEmpty.singleton mvpSocialAccount
+                  }
+                ]
+    }
 
 mvpEnd :: Field Expr
 mvpEnd =
@@ -726,8 +758,7 @@ testPage =
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , sections:
-        Data.NonEmpty.singleton testSection
+      , contents: Data.NonEmpty.singleton $ Left testSection
       }
   }
 

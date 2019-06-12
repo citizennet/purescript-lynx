@@ -10,7 +10,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError, Sequence)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -98,14 +98,20 @@ dropdownOptions = do
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
     flip findMap evaluatedPage.tabs \tab ->
-      flip findMap tab.sections \section ->
-        flip findMap section.fields \field ->
-          if field.key == dropdownKey then
-            case field.input of
-              Dropdown x -> Just x.options
-              _ -> Nothing
-          else
-            Nothing
+      flip findMap tab.contents \contents ->
+        case contents of
+          Left section -> getOption section
+          Right sequence -> flip findMap sequence.sections getOption
+
+  getOption :: forall a. Section a -> Maybe a
+  getOption section = flip findMap section.fields \field ->
+    if field.key == dropdownKey then
+      case field.input of
+        Dropdown x -> Just x.options
+        _ -> Nothing
+    else
+      Nothing
+
   foo :: Input Expr
   foo =
     Toggle
@@ -122,11 +128,11 @@ dropdownOptions = do
       Data.NonEmpty.singleton
         { name: ""
         , link: ""
-        , sections:
-          Data.NonEmpty.singleton
-            { name: ""
-            , fields:
-              Data.NonEmpty.NonEmpty
+        , contents: Data.NonEmpty.singleton $
+            Left
+              { name: ""
+              , fields:
+                Data.NonEmpty.NonEmpty
                 { name: val_ (string_ "")
                 , visibility: val_ (boolean_ false)
                 , description: val_ (string_ "")
@@ -140,7 +146,7 @@ dropdownOptions = do
                   , input: dropdown
                   }
                 ]
-            }
+              }
         }
     }
 
@@ -192,8 +198,10 @@ testTab :: String
 testTab = """
   { "name": "User"
   , "link": "user"
-  , "sections":
-    [ """ <> testSection <> """
+  , "contents":
+    [ { "tag": "Left"
+      , "value": """ <> testSection <> """
+      }
     ]
   }
 """
