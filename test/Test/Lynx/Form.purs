@@ -10,7 +10,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabContents(..), ValidationError)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabContents(..), TemplateInput, ValidationError)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -38,6 +38,9 @@ suite =
     Test.Unit.suite "TabContents" do
       test "decoding and encoding roundtrips properly" do
         quickCheck' 3 tabContentsRoundTrip
+    Test.Unit.suite "TemplateInput" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck templateInputRoundTrip
     Test.Unit.suite "Field" do
       test "decoding and encoding roundtrips properly" do
         quickCheck' 3 fieldRoundTrip
@@ -162,6 +165,9 @@ tabRoundTrip = roundTrip
 tabContentsRoundTrip :: TabContents Expr -> Result
 tabContentsRoundTrip = roundTrip
 
+templateInputRoundTrip :: TemplateInput Expr -> Result
+templateInputRoundTrip = roundTrip
+
 fieldRoundTrip :: Field Expr -> Result
 fieldRoundTrip = roundTrip
 
@@ -221,10 +227,23 @@ testSection = """
   }
 """
 
--- TODO: Add sequence to testTab
--- testSequence :: String
--- testSequence = """
---   { "name": "" }
+testSequence :: String
+testSequence = """
+  { "name": "Users"
+  , "template": """ <> testTemplate <> """
+  , "sections": [""" <> testSection <> """]
+  }
+"""
+
+testTemplate :: String
+testTemplate = """
+  { "name": "User"
+  , "fields": [{ "type": "TemplateText"
+              , "required": false
+              , "placeholder": "Maggie"
+              }]
+  }
+"""
 
 testField :: String -> String -> String -> String
 testField n d i = """
