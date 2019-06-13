@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Array as Data.Array
 import Data.Const (Const)
-import Data.Either (Either(..), either)
+import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find, fold, foldMap, for_, length, sum)
 import Data.Functor.Coproduct.Nested (type (<\/>))
@@ -21,7 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError(..), Sequence, asyncFromTypeahead, errors, errorsToArray, getValue)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Sequence, Tab, TabContents(..), ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue, tabContents)
 import Lynx.Form as Lynx.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -140,13 +140,13 @@ component =
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderTab activeTab tabs =
-    Layout.main_ (Data.Array.fromFoldable $ map (either renderSection renderSequence) tab.contents)
+    Layout.main_ (Data.Array.fromFoldable $ map (tabContents renderSection renderSequence) tab.contents)
     where
-      byLink :: Tab ExprType -> Boolean
-      byLink { link } = activeTab == link
+    byLink :: Tab ExprType -> Boolean
+    byLink { link } = activeTab == link
 
-      tab :: Tab ExprType
-      tab = fromMaybe (Data.NonEmpty.head tabs) (find byLink tabs)
+    tab :: Tab ExprType
+    tab = fromMaybe (Data.NonEmpty.head tabs) (find byLink tabs)
 
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection section =
@@ -160,9 +160,7 @@ component =
     Card.card_ $
     append
     [ Format.subHeading_ [ HH.text sequence.name ] ]
-    $ Data.Array.fromFoldable $ do
-      section <- sequence.sections
-      Data.Array.fromFoldable $ renderField <$> section.fields
+    $ sequence.sections >>= map renderField <<< Data.Array.fromFoldable <<< _.fields
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -283,8 +281,8 @@ eval = case _ of
       for_ page.tabs \tab -> do
         for_ tab.contents \contents -> do
           case contents of
-            Left section -> for_ section.fields evalField
-            Right sequence -> for_ sequence.sections \section ->
+            TabSection section -> for_ section.fields evalField
+            TabSequence sequence -> for_ sequence.sections \section ->
               for_ section.fields evalField
 
     H.modify_ _
@@ -328,10 +326,8 @@ fromTab fragment { contents, name, link } =
   { errors: sum do
     contents' <- Data.Array.fromFoldable contents
     field <- case contents' of
-      Left section -> Data.Array.fromFoldable section.fields
-      Right sequence -> do
-        section <- sequence.sections
-        Data.Array.fromFoldable section.fields
+      TabSection { fields } -> Data.Array.fromFoldable fields
+      TabSequence { sections } -> sections >>= Data.Array.fromFoldable <<< _.fields
 
     pure (length $ errorsToArray $ errors field)
   , name

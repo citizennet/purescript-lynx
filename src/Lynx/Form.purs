@@ -5,9 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Array as Data.Array
-import Data.Bifoldable (bifoldMap)
-import Data.Bifunctor (bimap)
-import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), note)
 import Data.Foldable (class Foldable, foldM, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
@@ -44,7 +41,8 @@ type Tab f =
   , contents :: NonEmpty Array (TabContents f)
   }
 
-type TabContents f = Either (Section f) (Sequence f)
+data TabContents f = TabSection (Section f)
+                   | TabSequence (Sequence f)
 
 type Section f =
   { name :: String
@@ -57,6 +55,39 @@ type Sequence f =
   , template :: Unit
   , sections :: Array (Section f)
   }
+
+tabContents
+  :: forall a b
+   . (Section a -> b)
+  -> (Sequence a -> b)
+  -> TabContents a
+  -> b
+tabContents f g = case _ of
+  TabSection section -> f section
+  TabSequence sequence -> g sequence
+
+derive instance eqTabContents :: Eq f => Eq (TabContents f)
+
+derive instance genericTabContents :: Generic (TabContents f) _
+
+instance showTabContents :: Show (TabContents Expr) where
+  show = genericShow
+
+instance arbitraryTabContents :: Arbitrary (TabContents Expr) where
+  arbitrary = genericArbitrary
+
+instance encodeJsonTabContents :: EncodeJson (TabContents Expr) where
+  encodeJson = case _ of
+    TabSection section -> "type" := "TabSection" ~> encodeJson section
+    TabSequence sequence -> "type" := "TabSequence" ~> encodeJson sequence
+
+instance decodeJsonTabContents :: DecodeJson (TabContents Expr) where
+  decodeJson json = do
+    x <- decodeJson json
+    x .: "type" >>= case _ of
+      "TabSection" -> pure <<< TabSection <=< decodeJson $ json
+      "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
+      t -> Left $ "Unsupported TabContents type: " <> t
 
 type FieldRows f r =
   ( name :: f
@@ -290,8 +321,14 @@ eval get page = do
   where
   evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
   evalTab tab = do
-    contents <- traverse (bitraverse evalSection evalSequence) tab.contents
+    contents <- traverse evalTabContents tab.contents
     pure tab { contents = contents }
+
+  evalTabContents :: TabContents Expr -> Either EvalError (TabContents ExprType)
+  evalTabContents =
+    tabContents
+      ((map TabSection) <$> evalSection)
+      ((map TabSequence) <$> evalSequence)
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
   evalSection section = do
@@ -442,7 +479,7 @@ keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysTab page.tabs
   where
   keysTab :: Tab Expr -> Map Key ExprType
-  keysTab tab = foldMap (bifoldMap keysSection keysSequence) tab.contents
+  keysTab tab = foldMap (tabContents keysSection keysSequence) tab.contents
 
   keysSection :: Section Expr -> Map Key ExprType
   keysSection section = foldMap keysField section.fields
@@ -481,13 +518,19 @@ setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
 setValue key val page = page { tabs = map setTab page.tabs }
   where
   setTab :: Tab Expr -> Tab Expr
-  setTab tab = tab { contents = map (bimap setSection setSequence) tab.contents }
+  setTab tab = tab { contents = setTabContents <$> tab.contents }
+
+  setTabContents :: TabContents Expr -> TabContents Expr
+  setTabContents =
+    tabContents
+      (TabSection <<< setSection)
+      (TabSequence <<< setSequence)
 
   setSection :: Section Expr -> Section Expr
-  setSection section = section { fields = map setField section.fields }
+  setSection section = section { fields = setField <$> section.fields }
 
   setSequence :: Sequence Expr -> Sequence Expr
-  setSequence sequence = sequence { sections = map setSection sequence.sections }
+  setSequence sequence = sequence { sections = setSection <$> sequence.sections }
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -569,7 +612,7 @@ mvpPage =
 
 mvpDetailsSection :: TabContents Expr
 mvpDetailsSection =
-  Left
+  TabSection
     { name: "Campaign"
     , fields:
       Data.NonEmpty.NonEmpty
@@ -586,7 +629,7 @@ mvpDetailsSection =
 
 mvpCreativeSequence :: TabContents Expr
 mvpCreativeSequence =
-  Right
+  TabSequence
     { name: "Creative"
     , template: unit
     , sections: [ { name: "Social Creative"
@@ -758,7 +801,7 @@ testPage =
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , contents: Data.NonEmpty.singleton $ Left testSection
+      , contents: Data.NonEmpty.singleton $ TabSection testSection
       }
   }
 

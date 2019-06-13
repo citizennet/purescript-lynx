@@ -10,7 +10,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, ValidationError, Sequence)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabContents(..), ValidationError)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -32,9 +32,12 @@ suite =
         quickCheck' 3 pageRoundTrip
       Test.Unit.suite "dropdown options can be dynamic" do
         dropdownOptions
-    Test.Unit.suite "Section" do
+    Test.Unit.suite "Tab" do
       test "decoding and encoding roundtrips properly" do
-        quickCheck' 3 sectionRoundTrip
+        quickCheck' 3 tabRoundTrip
+    Test.Unit.suite "TabContents" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck' 3 tabContentsRoundTrip
     Test.Unit.suite "Field" do
       test "decoding and encoding roundtrips properly" do
         quickCheck' 3 fieldRoundTrip
@@ -100,8 +103,8 @@ dropdownOptions = do
     flip findMap evaluatedPage.tabs \tab ->
       flip findMap tab.contents \contents ->
         case contents of
-          Left section -> getOption section
-          Right sequence -> flip findMap sequence.sections getOption
+          TabSection section -> getOption section
+          TabSequence sequence -> flip findMap sequence.sections getOption
 
   getOption :: forall a. Section a -> Maybe a
   getOption section = flip findMap section.fields \field ->
@@ -129,7 +132,7 @@ dropdownOptions = do
         { name: ""
         , link: ""
         , contents: Data.NonEmpty.singleton $
-            Left
+            TabSection
               { name: ""
               , fields:
                 Data.NonEmpty.NonEmpty
@@ -153,8 +156,11 @@ dropdownOptions = do
 pageRoundTrip :: Page Expr -> Result
 pageRoundTrip = roundTrip
 
-sectionRoundTrip :: Section Expr -> Result
-sectionRoundTrip = roundTrip
+tabRoundTrip :: Tab Expr -> Result
+tabRoundTrip = roundTrip
+
+tabContentsRoundTrip :: TabContents Expr -> Result
+tabContentsRoundTrip = roundTrip
 
 fieldRoundTrip :: Field Expr -> Result
 fieldRoundTrip = roundTrip
@@ -199,16 +205,14 @@ testTab = """
   { "name": "User"
   , "link": "user"
   , "contents":
-    [ { "tag": "Left"
-      , "value": """ <> testSection <> """
-      }
-    ]
+    [ """ <> testSection <> """]
   }
 """
 
 testSection :: String
 testSection = """
-  { "name": "Name"
+  { "type": "TabSection"
+  , "name": "Name"
   , "fields":
     [ """ <> firstName <> """
     , """ <> lastName <> """
@@ -216,6 +220,11 @@ testSection = """
     ]
   }
 """
+
+-- TODO: Add sequence to testTab
+-- testSequence :: String
+-- testSequence = """
+--   { "name": "" }
 
 testField :: String -> String -> String -> String
 testField n d i = """
