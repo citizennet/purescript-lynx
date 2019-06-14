@@ -127,12 +127,16 @@ clean:
 dist/main.js: $(BUILD)/main.js
 	npx browserify $< --outfile $@
 
+.PHONY: format-examples
+format-examples: $(EXAMPLES) $(NODE_MODULES)
+	find $(EXAMPLE) -type f -name "*.purs" -exec npx purty --write {} \;
+
 .PHONY: format-srcs
 format-srcs: $(SRCS) $(NODE_MODULES)
 	find $(SRC) -type f -name "*.purs" -exec npx purty --write {} \;
 
 .PHONY: format
-format: format-srcs
+format: format-examples format-srcs
 
 test: dist/main.js $(BUILD)/test.out
 

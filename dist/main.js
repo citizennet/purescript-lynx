@@ -28132,7 +28132,7 @@ var PS = {};
       if (x instanceof Profile1) {
           return new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value);
       };
-      throw new Error("Failed pattern match at Lynx.Page.Form (line 30, column 8 - line 30, column 48): " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Page.Form (line 29, column 8 - line 29, column 48): " + [ x.constructor.name ]);
   }, function (x) {
       if (x instanceof Data_Generic_Rep.Inl) {
           return new MVP(x.value0);
@@ -28140,7 +28140,7 @@ var PS = {};
       if (x instanceof Data_Generic_Rep.Inr) {
           return Profile1.value;
       };
-      throw new Error("Failed pattern match at Lynx.Page.Form (line 30, column 8 - line 30, column 48): " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Page.Form (line 29, column 8 - line 29, column 48): " + [ x.constructor.name ]);
   });
   var routeCodec = Routing_Duplex_Generic.sum(genericRoute)(Routing_Duplex_Generic.gRouteSum(Routing_Duplex_Generic.gRouteConstructor(new Data_Symbol.IsSymbol(function () {
       return "MVP";
@@ -28170,7 +28170,7 @@ var PS = {};
           if (v instanceof LynxQuery) {
               return Data_Void.absurd(v.value0);
           };
-          throw new Error("Failed pattern match at Lynx.Page.Form (line 116, column 8 - line 120, column 33): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Page.Form (line 115, column 8 - line 119, column 33): " + [ v.constructor.name ]);
       };
   };
   var eqRoute = new Data_Eq.Eq(function (x) {
@@ -28204,7 +28204,7 @@ var PS = {};
                       fragment: appendFragment(profile1)
                   };
               };
-              throw new Error("Failed pattern match at Lynx.Page.Form (line 99, column 13 - line 109, column 10): " + [ v.route.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Page.Form (line 98, column 13 - line 108, column 10): " + [ v.route.constructor.name ]);
           })();
           return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Lynx.component(dictMonadAff))(input)(Halogen_HTML_Events.input(LynxQuery.create));
       };
@@ -28263,7 +28263,7 @@ var PS = {};
       if (x instanceof Form) {
           return new Data_Generic_Rep.Inr(x.value0);
       };
-      throw new Error("Failed pattern match at Lynx.Route (line 18, column 8 - line 18, column 48): " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Route (line 17, column 8 - line 17, column 48): " + [ x.constructor.name ]);
   }, function (x) {
       if (x instanceof Data_Generic_Rep.Inl) {
           return Home.value;
@@ -28271,7 +28271,7 @@ var PS = {};
       if (x instanceof Data_Generic_Rep.Inr) {
           return new Form(x.value0);
       };
-      throw new Error("Failed pattern match at Lynx.Route (line 18, column 8 - line 18, column 48): " + [ x.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Route (line 17, column 8 - line 17, column 48): " + [ x.constructor.name ]);
   });    
   var form = URI_Fragment.fromString("form");
   var routeCodec = Routing_Duplex.root(Routing_Duplex_Generic.sum(genericRoute)(Routing_Duplex_Generic.gRouteSum(Routing_Duplex_Generic.gRouteConstructor(new Data_Symbol.IsSymbol(function () {
@@ -28432,7 +28432,7 @@ var PS = {};
                   route: v.value0
               })(Data_Void.absurd);
           };
-          throw new Error("Failed pattern match at Lynx.Component.Router (line 50, column 12 - line 60, column 9): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Component.Router (line 54, column 12 - line 64, column 9): " + [ v.constructor.name ]);
       };
       var $$eval = function (v) {
           return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
