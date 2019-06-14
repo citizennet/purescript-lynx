@@ -127,11 +127,14 @@ clean:
 dist/main.js: $(BUILD)/main.js
 	npx browserify $< --outfile $@
 
-test: dist/main.js $(BUILD)/test.out
+.PHONY: format-srcs
+format-srcs: $(SRCS) $(NODE_MODULES)
+	find $(SRC) -type f -name "*.purs" -exec npx purty --write {} \;
 
 .PHONY: format
-format: $(SRCS) $(NODE_MODULES)
-	find $(SRC) -type f -name "*.purs" -exec npx purty --write {} \;
+format: format-srcs
+
+test: dist/main.js $(BUILD)/test.out
 
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
