@@ -109,7 +109,7 @@ $(NODE_MODULES): package.json
 	npm install
 	touch $@
 
-$(OUTPUT)/Main/index.js: $(EXAMPLES) $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+$(OUTPUT)/Main/index.js: format $(EXAMPLES) $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
 	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS)
 
 $(OUTPUT)/Test.Main/index.js: $(EXAMPLES) $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
@@ -128,6 +128,10 @@ dist/main.js: $(BUILD)/main.js
 	npx browserify $< --outfile $@
 
 test: dist/main.js $(BUILD)/test.out
+
+.PHONY: format
+format: $(SRCS) $(NODE_MODULES)
+	find $(SRC) -type f -name "*.purs" -exec npx purty --write {} \;
 
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
