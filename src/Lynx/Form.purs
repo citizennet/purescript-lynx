@@ -53,7 +53,7 @@ type Sequence f =
   { name :: String
   , key :: String
   , template :: Template f
-  , sections :: InputSource (Array (Section f))
+  , values :: InputSource (Array (Section f))
   }
 
 tabSections
@@ -407,9 +407,9 @@ eval get page = do
 
   evalSequence :: Sequence Expr -> Either EvalError (Sequence ExprType)
   evalSequence sequence = ado
-    sections <- (traverse <<< traverse) evalSection sequence.sections
+    values <- (traverse <<< traverse) evalSection sequence.values
     template <- evalTemplate sequence.template
-    in sequence { sections = sections, template = template }
+    in sequence { values = values, template = template }
 
   evalTemplate :: Template Expr -> Either EvalError (Template ExprType)
   evalTemplate template =
@@ -621,7 +621,7 @@ keys page = foldMap keysTab page.tabs
   keysSection section = foldMap keysField section.fields
 
   keysSequence :: Sequence Expr -> Map Key ExprType
-  keysSequence sequence = foldMap (foldMap keysSection) sequence.sections
+  keysSequence sequence = foldMap (foldMap keysSection) sequence.values
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -666,9 +666,9 @@ setValue key val page = page { tabs = map setTab page.tabs }
   setSection section = section { fields = setField <$> section.fields }
 
   setSequence :: Sequence Expr -> Sequence Expr
-  setSequence sequence = case sequence.sections of
-    UserInput sections -> sequence { sections = UserInput $ setSection <$> sections }
-    Invalid sections -> sequence { sections = Invalid $ setSection <$> sections }
+  setSequence sequence = case sequence.values of
+    UserInput sections -> sequence { values = UserInput $ setSection <$> sections }
+    Invalid sections -> sequence { values = Invalid $ setSection <$> sections }
     _ -> sequence
 
   setField :: Field Expr -> Field Expr
@@ -781,7 +781,7 @@ mvpCreativeSequence =
                                    , minLength: Nothing
                                    }
                 }
-    , sections:
+    , values:
         UserInput [ { name: "Social Creative"
                     , fields: Data.NonEmpty.singleton mvpSocialAccount
                     }

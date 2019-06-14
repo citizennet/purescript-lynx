@@ -107,7 +107,7 @@ dropdownOptions = do
       flip findMap tab.sections \sections' ->
         case sections' of
           TabSection section -> getOption section
-          TabSequence sequence -> case sequence.sections of
+          TabSequence sequence -> case sequence.values of
             UserInput sections -> flip findMap sections getOption
             Invalid sections -> flip findMap sections getOption
             _ -> Nothing
@@ -238,7 +238,7 @@ testSequence = """
   , "name": "Users"
   , "key": "users"
   , "template": """ <> testTemplate <> """
-  , "sections": """ <> value (UserInput ("[" <> testSection <> "]")) <> """
+  , "values": """ <> value (UserInput ("[" <> testSection <> "]")) <> """
   }
 """
 

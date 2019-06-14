@@ -160,7 +160,7 @@ component =
     Card.card_ $
     append
     [ Format.subHeading_ [ HH.text sequence.name ] ] $
-    case sequence.sections of
+    case sequence.values of
       UserInput sections -> renderSection <$> sections
       Invalid sections -> renderSection <$> sections
       _ -> mempty
@@ -288,7 +288,7 @@ eval = case _ of
           case sections' of
             TabSection section -> evalSection section
             TabSequence sequence ->
-              case sequence.sections of
+              case sequence.values of
                 UserInput sections -> for_ sections evalSection
                 Invalid sections -> for_ sections evalSection
                 _ -> pure unit
@@ -335,7 +335,7 @@ fromTab fragment { sections: sections'', name, link } =
     sections' <- Data.Array.fromFoldable sections''
     field <- case sections' of
       TabSection { fields } -> Data.Array.fromFoldable fields
-      TabSequence { sections } -> foldMap (_ >>= Data.Array.fromFoldable <<< _.fields) sections
+      TabSequence { values } -> foldMap (_ >>= Data.Array.fromFoldable <<< _.fields) values
     pure (length $ errorsToArray $ errors field)
   , name
   , link: URI.Fragment.print fragment <> "/" <> link
