@@ -67,7 +67,8 @@ OUTPUT := output
 PSA_ARGS := --censor-lib --stash=$(BUILD)/.psa_stash --strict
 SRC := src
 SRCS := $(shell find $(SRC) -name '*.purs' -type f)
-TESTS := $(shell find test -name '*.purs' -type f)
+TEST := test
+TESTS := $(shell find $(TEST) -name '*.purs' -type f)
 
 # Allow RTS args to be passed in to override the default behavior.
 # We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
@@ -135,8 +136,12 @@ format-examples: $(EXAMPLES) $(NODE_MODULES)
 format-srcs: $(SRCS) $(NODE_MODULES)
 	find $(SRC) -type f -name "*.purs" -exec npx purty --write {} \;
 
+.PHONY: format-tests
+format-tests: $(TESTS) $(NODE_MODULES)
+	find $(TEST) -type f -name "*.purs" -exec npx purty --write {} \;
+
 .PHONY: format
-format: format-examples format-srcs
+format: format-examples format-tests format-tests
 
 test: dist/main.js $(BUILD)/test.out
 

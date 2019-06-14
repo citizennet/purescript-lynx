@@ -1,7 +1,6 @@
 module Test.Lynx.Form (suite) where
 
 import Prelude
-
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonParser, stringify)
 import Data.Either (Either(..), either)
 import Data.Foldable (findMap)
@@ -59,32 +58,37 @@ suite =
 
 dropdownOptions :: TestSuite
 dropdownOptions = do
-  let evaluated' :: Either EvalError (Page ExprType)
-      evaluated' = Lynx.Form.eval (\key -> Data.Map.lookup key keys') page'
-      keys' :: Map Key ExprType
-      keys' = Lynx.Form.keys page'
+  let
+    evaluated' :: Either EvalError (Page ExprType)
+    evaluated' = Lynx.Form.eval (\key -> Data.Map.lookup key keys') page'
 
+    keys' :: Map Key ExprType
+    keys' = Lynx.Form.keys page'
   test "initial lookup" do
-    let actual :: Maybe ExprType
-        actual = findOptions evaluated'
-        expected :: ExprType
-        expected = array_ []
+    let
+      actual :: Maybe ExprType
+      actual = findOptions evaluated'
+
+      expected :: ExprType
+      expected = array_ []
     equal (Just expected) actual
+  let
+    evaluated :: Either EvalError (Page ExprType)
+    evaluated = Lynx.Form.eval (\key -> Data.Map.lookup key keys) page
 
-  let evaluated :: Either EvalError (Page ExprType)
-      evaluated = Lynx.Form.eval (\key -> Data.Map.lookup key keys) page
-      keys :: Map Key ExprType
-      keys = Lynx.Form.keys page
-      page :: Page Expr
-      page = Lynx.Form.setValue fooKey (UserInput $ boolean_ true) page'
+    keys :: Map Key ExprType
+    keys = Lynx.Form.keys page
 
+    page :: Page Expr
+    page = Lynx.Form.setValue fooKey (UserInput $ boolean_ true) page'
   test "after altering the toggle" do
-    let actual :: Maybe ExprType
-        actual = findOptions evaluated
-        expected :: ExprType
-        expected = array_ [pair_ { name: string_ "foo", value: int_ 3}]
-    equal (Just expected) actual
+    let
+      actual :: Maybe ExprType
+      actual = findOptions evaluated
 
+      expected :: ExprType
+      expected = array_ [ pair_ { name: string_ "foo", value: int_ 3 } ]
+    equal (Just expected) actual
   where
   dropdown :: Input Expr
   dropdown =
@@ -92,20 +96,22 @@ dropdownOptions = do
       { default: Nothing
       , options:
         if_ (lookup_ fooKey $ val_ (boolean_ false))
-        (val_ $ array_ [pair_ { name: string_ "foo", value: int_ 3}])
-        (val_ $ array_ [])
+          (val_ $ array_ [ pair_ { name: string_ "foo", value: int_ 3 } ])
+          (val_ $ array_ [])
       , placeholder: val_ (string_ "")
       , required: val_ (boolean_ false)
       , value: NotSet
       , errors: mempty
       }
+
   dropdownKey :: Key
   dropdownKey = "dropdown"
+
   findOptions :: forall a b. Either a (Page b) -> Maybe b
-  findOptions = findMap \evaluatedPage ->
-    flip findMap evaluatedPage.tabs \tab ->
-      flip findMap tab.sections \sections' ->
-        case sections' of
+  findOptions =
+    findMap \evaluatedPage ->
+      flip findMap evaluatedPage.tabs \tab ->
+        flip findMap tab.sections \sections' -> case sections' of
           TabSection section -> getOption section
           TabSequence sequence -> case sequence.values of
             UserInput sections -> flip findMap sections getOption
@@ -113,11 +119,10 @@ dropdownOptions = do
             _ -> Nothing
 
   getOption :: forall a. Section a -> Maybe a
-  getOption section = flip findMap section.fields \field ->
-    if field.key == dropdownKey then
-      case field.input of
-        Dropdown x -> Just x.options
-        _ -> Nothing
+  getOption section =
+    flip findMap section.fields \field -> if field.key == dropdownKey then case field.input of
+      Dropdown x -> Just x.options
+      _ -> Nothing
     else
       Nothing
 
@@ -128,8 +133,10 @@ dropdownOptions = do
       , value: NotSet
       , errors: mempty
       }
+
   fooKey :: Key
   fooKey = "foo"
+
   page' :: Page Expr
   page' =
     { name: ""
@@ -137,25 +144,26 @@ dropdownOptions = do
       Data.NonEmpty.singleton
         { name: ""
         , link: ""
-        , sections: Data.NonEmpty.singleton $
-            TabSection
-              { name: ""
-              , fields:
-                Data.NonEmpty.NonEmpty
-                { name: val_ (string_ "")
-                , visibility: val_ (boolean_ false)
-                , description: val_ (string_ "")
-                , key: fooKey
-                , input: foo
+        , sections:
+          Data.NonEmpty.singleton
+            $ TabSection
+                { name: ""
+                , fields:
+                  Data.NonEmpty.NonEmpty
+                    { name: val_ (string_ "")
+                    , visibility: val_ (boolean_ false)
+                    , description: val_ (string_ "")
+                    , key: fooKey
+                    , input: foo
+                    }
+                    [ { name: val_ (string_ "")
+                      , visibility: val_ (boolean_ false)
+                      , description: val_ (string_ "")
+                      , key: dropdownKey
+                      , input: dropdown
+                      }
+                    ]
                 }
-                [ { name: val_ (string_ "")
-                  , visibility: val_ (boolean_ false)
-                  , description: val_ (string_ "")
-                  , key: dropdownKey
-                  , input: dropdown
-                  }
-                ]
-              }
         }
     }
 
@@ -201,59 +209,87 @@ testPageEither :: Either String (Page Expr)
 testPageEither = decodeJson =<< jsonParser testPageJson
 
 testPageJson :: String
-testPageJson = """
+testPageJson =
+  """
   { "name": "Profile"
   , "tabs":
-    [ """ <> testTab <> """
+    [ """
+    <> testTab
+    <> """
     ]
   }
 """
 
 testTab :: String
-testTab = """
+testTab =
+  """
   { "name": "User"
   , "link": "user"
   , "sections":
-    [ """ <> testSection <> """
-    , """ <> testSequence <> """
+    [ """
+    <> testSection
+    <> """
+    , """
+    <> testSequence
+    <> """
     ]
   }
 """
 
 testSection :: String
-testSection = """
+testSection =
+  """
   { "type": "TabSection"
   , "name": "Name"
   , "fields":
-    [ """ <> firstName <> """
-    , """ <> lastName <> """
-    , """ <> active <> """
+    [ """
+    <> firstName
+    <> """
+    , """
+    <> lastName
+    <> """
+    , """
+    <> active
+    <> """
     ]
   }
 """
 
 testSequence :: String
-testSequence = """
+testSequence =
+  """
   { "type": "TabSequence"
   , "name": "Users"
   , "key": "users"
-  , "template": """ <> testTemplate <> """
-  , "values": """ <> value (UserInput ("[" <> testSection <> "]")) <> """
+  , "template": """
+    <> testTemplate
+    <> """
+  , "values": """
+    <> value (UserInput ("[" <> testSection <> "]"))
+    <> """
   }
 """
 
 testTemplate :: String
-testTemplate = """
+testTemplate =
+  """
   { "name": "User"
-  , "fields": [""" <> testTemplateText <> """]
+  , "fields": ["""
+    <> testTemplateText
+    <> """]
   }
 """
 
 testTemplateText :: String
-testTemplateText = """
+testTemplateText =
+  """
   { "type": "TemplateText"
-  , "required": """ <> val true "Boolean" <> """
-  , "placeholder": """ <> val "" "String" <> """
+  , "required": """
+    <> val true "Boolean"
+    <> """
+  , "placeholder": """
+    <> val "" "String"
+    <> """
   , "default": null
   , "maxLength": null
   , "minLength": null
@@ -261,33 +297,56 @@ testTemplateText = """
 """
 
 testField :: String -> String -> String -> String
-testField n d i = """
-  { "name": """ <> val n "String" <> """
-  , "visibility": """ <> val true "Boolean" <> """
-  , "description": """ <> val d "String" <> """
+testField n d i =
+  """
+  { "name": """
+    <> val n "String"
+    <> """
+  , "visibility": """
+    <> val true "Boolean"
+    <> """
+  , "description": """
+    <> val d "String"
+    <> """
   , "key": "firstName"
-  , "input": """ <> i <> """
+  , "input": """
+    <> i
+    <> """
   }
 """
 
 textInput :: String -> String
-textInput v = """
+textInput v =
+  """
   { "type": "Text"
-  , "required": """ <> val true "Boolean" <> """
-  , "placeholder": """ <> val "" "String" <> """
-  , "value": """ <> v <> """
+  , "required": """
+    <> val true "Boolean"
+    <> """
+  , "placeholder": """
+    <> val "" "String"
+    <> """
+  , "value": """
+    <> v
+    <> """
   , "default": null
   , "maxLength": null
   , "minLength": null
-  , "errors": [ """ <> requiredError <> """ ]
+  , "errors": [ """
+    <> requiredError
+    <> """ ]
   }
 """
 
 toggleInput :: String -> String
-toggleInput v = """
+toggleInput v =
+  """
   { "type": "Toggle"
-  , "value": """ <> v <> """
-  , "default": """ <> val false "Boolean" <> """
+  , "value": """
+    <> v
+    <> """
+  , "default": """
+    <> val false "Boolean"
+    <> """
   , "errors": []
   }
 """
@@ -314,26 +373,40 @@ active =
     (toggleInput $ value $ Invalid $ val 10 "Int")
 
 val :: ∀ a. Show a => a -> String -> String
-val x o  = """
-  { "op": "Val", "param": """ <> show x <> """, "in": "Void", "out": """ <> show o <> """ }
+val x o =
+  """
+  { "op": "Val", "param": """
+    <> show x
+    <> """, "in": "Void", "out": """
+    <> show o
+    <> """ }
 """
 
 value :: InputSource String -> String
 value = case _ of
-  UserInput x -> """
-      { "type": "UserInput", "value": """ <> x <> """ }
+  UserInput x ->
     """
-  Invalid x -> """
-      { "type": "Invalid", "value": """ <> x <> """ }
+      { "type": "UserInput", "value": """
+      <> x
+      <> """ }
     """
-  UserCleared -> """
+  Invalid x ->
+    """
+      { "type": "Invalid", "value": """
+      <> x
+      <> """ }
+    """
+  UserCleared ->
+    """
       { "type": "UserCleared" }
     """
-  NotSet -> """
+  NotSet ->
+    """
       { "type": "NotSet" }
     """
 
 requiredError :: String
-requiredError = """
+requiredError =
+  """
   { "type": "Required" }
 """
