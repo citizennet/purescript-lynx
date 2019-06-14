@@ -211,7 +211,9 @@ testTab = """
   { "name": "User"
   , "link": "user"
   , "contents":
-    [ """ <> testSection <> """]
+    [ """ <> testSection <> """
+    , """ <> testSequence <> """
+    ]
   }
 """
 
@@ -229,7 +231,8 @@ testSection = """
 
 testSequence :: String
 testSequence = """
-  { "name": "Users"
+  { "type": "TabSequence"
+  , "name": "Users"
   , "template": """ <> testTemplate <> """
   , "sections": [""" <> testSection <> """]
   }
@@ -238,10 +241,18 @@ testSequence = """
 testTemplate :: String
 testTemplate = """
   { "name": "User"
-  , "fields": [{ "type": "TemplateText"
-              , "required": false
-              , "placeholder": "Maggie"
-              }]
+  , "fields": [""" <> testTemplateText <> """]
+  }
+"""
+
+testTemplateText :: String
+testTemplateText = """
+  { "type": "TemplateText"
+  , "required": """ <> val true "Boolean" <> """
+  , "placeholder": """ <> val "" "String" <> """
+  , "default": null
+  , "maxLength": null
+  , "minLength": null
   }
 """
 
