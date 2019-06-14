@@ -38,10 +38,10 @@ type Page f =
 type Tab f =
   { name :: String
   , link :: String
-  , contents :: NonEmpty Array (TabContents f)
+  , sections :: NonEmpty Array (TabSections f)
   }
 
-data TabContents f = TabSection (Section f)
+data TabSections f = TabSection (Section f)
                    | TabSequence (Sequence f)
 
 type Section f =
@@ -56,38 +56,38 @@ type Sequence f =
   , sections :: InputSource (Array (Section f))
   }
 
-tabContents
+tabSections
   :: forall a b
    . (Section a -> b)
   -> (Sequence a -> b)
-  -> TabContents a
+  -> TabSections a
   -> b
-tabContents f g = case _ of
+tabSections f g = case _ of
   TabSection section -> f section
   TabSequence sequence -> g sequence
 
-derive instance eqTabContents :: Eq f => Eq (TabContents f)
+derive instance eqTabSections :: Eq f => Eq (TabSections f)
 
-derive instance genericTabContents :: Generic (TabContents f) _
+derive instance genericTabSections :: Generic (TabSections f) _
 
-instance showTabContents :: Show (TabContents Expr) where
+instance showTabSections :: Show (TabSections Expr) where
   show = genericShow
 
-instance arbitraryTabContents :: Arbitrary (TabContents Expr) where
+instance arbitraryTabSections :: Arbitrary (TabSections Expr) where
   arbitrary = genericArbitrary
 
-instance encodeJsonTabContents :: EncodeJson (TabContents Expr) where
+instance encodeJsonTabSections :: EncodeJson (TabSections Expr) where
   encodeJson = case _ of
     TabSection section -> "type" := "TabSection" ~> encodeJson section
     TabSequence sequence -> "type" := "TabSequence" ~> encodeJson sequence
 
-instance decodeJsonTabContents :: DecodeJson (TabContents Expr) where
+instance decodeJsonTabSections :: DecodeJson (TabSections Expr) where
   decodeJson json = do
     x <- decodeJson json
     x .: "type" >>= case _ of
       "TabSection" -> pure <<< TabSection <=< decodeJson $ json
       "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
-      t -> Left $ "Unsupported TabContents type: " <> t
+      t -> Left $ "Unsupported TabSections type: " <> t
 
 type Template f =
   { name :: String
@@ -393,11 +393,11 @@ eval get page = do
   where
   evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
   evalTab tab =
-    tab { contents = _ } <$> traverse evalTabContents tab.contents
+    tab { sections = _ } <$> traverse evalTabSections tab.sections
 
-  evalTabContents :: TabContents Expr -> Either EvalError (TabContents ExprType)
-  evalTabContents =
-    tabContents
+  evalTabSections :: TabSections Expr -> Either EvalError (TabSections ExprType)
+  evalTabSections =
+    tabSections
       ((map TabSection) <$> evalSection)
       ((map TabSequence) <$> evalSequence)
 
@@ -615,7 +615,7 @@ keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysTab page.tabs
   where
   keysTab :: Tab Expr -> Map Key ExprType
-  keysTab tab = foldMap (tabContents keysSection keysSequence) tab.contents
+  keysTab tab = foldMap (tabSections keysSection keysSequence) tab.sections
 
   keysSection :: Section Expr -> Map Key ExprType
   keysSection section = foldMap keysField section.fields
@@ -654,11 +654,11 @@ setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
 setValue key val page = page { tabs = map setTab page.tabs }
   where
   setTab :: Tab Expr -> Tab Expr
-  setTab tab = tab { contents = setTabContents <$> tab.contents }
+  setTab tab = tab { sections = setTabSections <$> tab.sections }
 
-  setTabContents :: TabContents Expr -> TabContents Expr
-  setTabContents =
-    tabContents
+  setTabSections :: TabSections Expr -> TabSections Expr
+  setTabSections =
+    tabSections
       (TabSection <<< setSection)
       (TabSequence <<< setSequence)
 
@@ -740,16 +740,16 @@ mvpPage =
     Data.NonEmpty.NonEmpty
       { name: "Details"
       , link: "details"
-      , contents: Data.NonEmpty.singleton mvpDetailsSection
+      , sections: Data.NonEmpty.singleton mvpDetailsSection
       }
       [ { name: "Creative"
         , link: "creative"
-        , contents: Data.NonEmpty.singleton mvpCreativeSequence
+        , sections: Data.NonEmpty.singleton mvpCreativeSequence
         }
       ]
   }
 
-mvpDetailsSection :: TabContents Expr
+mvpDetailsSection :: TabSections Expr
 mvpDetailsSection =
   TabSection
     { name: "Campaign"
@@ -766,7 +766,7 @@ mvpDetailsSection =
     }
 
 
-mvpCreativeSequence :: TabContents Expr
+mvpCreativeSequence :: TabSections Expr
 mvpCreativeSequence =
   TabSequence
     { name: "Creative"
@@ -951,7 +951,7 @@ testPage =
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , contents : Data.NonEmpty.singleton $ TabSection testSection
+      , sections : Data.NonEmpty.singleton $ TabSection testSection
       }
   }
 

@@ -21,7 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Sequence, Tab, TabContents(..), ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue, tabContents)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Sequence, Tab, TabSections(..), ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue, tabSections)
 import Lynx.Form as Lynx.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -140,7 +140,7 @@ component =
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderTab activeTab tabs =
-    Layout.main_ (Data.Array.fromFoldable $ map (tabContents renderSection renderSequence) tab.contents)
+    Layout.main_ (Data.Array.fromFoldable $ map (tabSections renderSection renderSequence) tab.sections)
     where
     byLink :: Tab ExprType -> Boolean
     byLink { link } = activeTab == link
@@ -284,8 +284,8 @@ eval = case _ of
 
     for_ evaled \page -> do
       for_ page.tabs \tab -> do
-        for_ tab.contents \contents -> do
-          case contents of
+        for_ tab.sections \sections' -> do
+          case sections' of
             TabSection section -> evalSection section
             TabSequence sequence ->
               case sequence.sections of
@@ -330,10 +330,10 @@ eval = case _ of
     Typeahead.SelectionChanged _ _ -> pure a
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
-fromTab fragment { contents, name, link } =
+fromTab fragment { sections: sections'', name, link } =
   { errors: sum do
-    contents' <- Data.Array.fromFoldable contents
-    field <- case contents' of
+    sections' <- Data.Array.fromFoldable sections''
+    field <- case sections' of
       TabSection { fields } -> Data.Array.fromFoldable fields
       TabSequence { sections } -> foldMap (_ >>= Data.Array.fromFoldable <<< _.fields) sections
     pure (length $ errorsToArray $ errors field)

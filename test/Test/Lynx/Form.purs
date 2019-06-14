@@ -10,7 +10,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabContents(..), TemplateInput, ValidationError)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabSections(..), TemplateInput, ValidationError)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -35,9 +35,9 @@ suite =
     Test.Unit.suite "Tab" do
       test "decoding and encoding roundtrips properly" do
         quickCheck' 3 tabRoundTrip
-    Test.Unit.suite "TabContents" do
+    Test.Unit.suite "TabSections" do
       test "decoding and encoding roundtrips properly" do
-        quickCheck' 3 tabContentsRoundTrip
+        quickCheck' 3 tabSectionsRoundTrip
     Test.Unit.suite "TemplateInput" do
       test "decoding and encoding roundtrips properly" do
         quickCheck templateInputRoundTrip
@@ -104,8 +104,8 @@ dropdownOptions = do
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
     flip findMap evaluatedPage.tabs \tab ->
-      flip findMap tab.contents \contents ->
-        case contents of
+      flip findMap tab.sections \sections' ->
+        case sections' of
           TabSection section -> getOption section
           TabSequence sequence -> case sequence.sections of
             UserInput sections -> flip findMap sections getOption
@@ -137,7 +137,7 @@ dropdownOptions = do
       Data.NonEmpty.singleton
         { name: ""
         , link: ""
-        , contents: Data.NonEmpty.singleton $
+        , sections: Data.NonEmpty.singleton $
             TabSection
               { name: ""
               , fields:
@@ -165,8 +165,8 @@ pageRoundTrip = roundTrip
 tabRoundTrip :: Tab Expr -> Result
 tabRoundTrip = roundTrip
 
-tabContentsRoundTrip :: TabContents Expr -> Result
-tabContentsRoundTrip = roundTrip
+tabSectionsRoundTrip :: TabSections Expr -> Result
+tabSectionsRoundTrip = roundTrip
 
 templateInputRoundTrip :: TemplateInput Expr -> Result
 templateInputRoundTrip = roundTrip
@@ -213,7 +213,7 @@ testTab :: String
 testTab = """
   { "name": "User"
   , "link": "user"
-  , "contents":
+  , "sections":
     [ """ <> testSection <> """
     , """ <> testSequence <> """
     ]
