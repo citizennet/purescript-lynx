@@ -30,17 +30,136 @@ import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
 
-type LayoutRows c r =
-  ( name :: String
-  , contents :: NonEmpty Array c
-  | r
-  )
+type Page f =
+  { name :: String
+  , tabs :: NonEmpty Array (Tab f)
+  }
 
-type Page f = Record (LayoutRows (Tab f) ())
+type Tab f =
+  { name :: String
+  , link :: String
+  , sections :: NonEmpty Array (TabSections f)
+  }
 
-type Tab f = Record (LayoutRows (Section f) (link :: String))
+data TabSections f
+  = TabSection (Section f)
+  | TabSequence (Sequence f)
 
-type Section f = Record (LayoutRows (Field f) ())
+type Section f =
+  { name :: String
+  , fields :: NonEmpty Array (Field f)
+  }
+
+type Sequence f =
+  { name :: String
+  , key :: String
+  , template :: TemplateSection f
+  , values :: InputSource (Array (Section f))
+  }
+
+tabSections
+  :: forall a b
+   . (Section a -> b)
+  -> (Sequence a -> b)
+  -> TabSections a
+  -> b
+tabSections f g = case _ of
+  TabSection section -> f section
+  TabSequence sequence -> g sequence
+
+derive instance eqTabSections :: Eq f => Eq (TabSections f)
+
+derive instance genericTabSections :: Generic (TabSections f) _
+
+instance showTabSections :: Show (TabSections Expr) where
+  show = genericShow
+
+instance arbitraryTabSections :: Arbitrary (TabSections Expr) where
+  arbitrary = genericArbitrary
+
+instance encodeJsonTabSections :: EncodeJson (TabSections Expr) where
+  encodeJson = case _ of
+    TabSection section -> "type" := "TabSection" ~> encodeJson section
+    TabSequence sequence -> "type" := "TabSequence" ~> encodeJson sequence
+
+instance decodeJsonTabSections :: DecodeJson (TabSections Expr) where
+  decodeJson json = do
+    x <- decodeJson json
+    x .: "type" >>= case _ of
+      "TabSection" -> pure <<< TabSection <=< decodeJson $ json
+      "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
+      t -> Left $ "Unsupported TabSections type: " <> t
+
+type TemplateSection f =
+  { name :: String
+  , fields :: NonEmpty Array (TemplateInput f)
+  }
+
+data TemplateInput f
+  = TemplateCurrency
+    { default :: Maybe f
+    , required :: f
+    , placeholder :: f
+    }
+  | TemplateDateTime
+    { default :: Maybe f
+    , required :: f
+    , placeholder :: f
+    }
+  | TemplateDropdown
+    { default :: Maybe f
+    , required :: f
+    , options :: f
+    , placeholder :: f
+    }
+  | TemplateText
+    { default :: Maybe f
+    , required :: f
+    , placeholder :: f
+    , maxLength :: Maybe f
+    , minLength :: Maybe f
+    }
+  | TemplateToggle
+    { default :: Maybe f
+    }
+  | TemplateTypeaheadSingle
+    { default :: Maybe f
+    , options :: f
+    , resultValue :: f
+    , results :: f
+    , uri :: f
+    }
+
+derive instance eqTemplateInput :: Eq f => Eq (TemplateInput f)
+
+derive instance genericTemplateInput :: Generic (TemplateInput f) _
+
+instance showTemplateInput :: Show (TemplateInput Expr) where
+  show = genericShow
+
+instance arbitraryTemplateInput :: Arbitrary (TemplateInput Expr) where
+  arbitrary = genericArbitrary
+
+instance encodeJsonTemplateInput :: EncodeJson (TemplateInput Expr) where
+  encodeJson = case _ of
+    TemplateCurrency r -> "type" := "TemplateCurrency" ~> encodeJson r
+    TemplateDateTime r -> "type" := "TemplateDateTime" ~> encodeJson r
+    TemplateDropdown r -> "type" := "TemplateDropdown" ~> encodeJson r
+    TemplateText r -> "type" := "TemplateText" ~> encodeJson r
+    TemplateToggle r -> "type" := "TemplateToggle" ~> encodeJson r
+    TemplateTypeaheadSingle r -> "type" := "TemplateTypeaheadSingle" ~> encodeJson r
+
+instance decodeJsonTemplateInput :: DecodeJson (TemplateInput Expr) where
+  decodeJson json = do
+    x <- decodeJson json
+    x .: "type" >>= case _ of
+      "TemplateCurrency" -> pure <<< TemplateCurrency <=< decodeJson $ json
+      "TemplateDateTime" -> pure <<< TemplateDateTime <=< decodeJson $ json
+      "TemplateDropdown" -> pure <<< TemplateDropdown <=< decodeJson $ json
+      "TemplateText" -> pure <<< TemplateText <=< decodeJson $ json
+      "TemplateToggle" -> pure <<< TemplateToggle <=< decodeJson $ json
+      "TemplateTypeaheadSingle" -> pure <<< TemplateTypeaheadSingle <=< decodeJson $ json
+      t -> Left $ "Unsupported TemplateInput type: " <> t
 
 type FieldRows f r =
   ( name :: f
@@ -88,6 +207,7 @@ type DropdownRows f r =
   | r
   )
 
+-- Gabe finds these labels confusing. He'd like a clear definition
 type TypeaheadSingleRows f r =
   ( options :: f
   , resultValue :: f
@@ -269,18 +389,93 @@ instance arbitraryValidationError :: Arbitrary ValidationError where
 
 eval :: (Key -> Maybe ExprType) -> Page Expr -> Either EvalError (Page ExprType)
 eval get page = do
-  contents <- traverse evalTab page.contents
-  pure page { contents = contents }
+  tabs <- traverse evalTab page.tabs
+  pure page { tabs = tabs }
   where
   evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
-  evalTab tab = do
-    contents <- traverse evalSection tab.contents
-    pure tab { contents = contents }
+  evalTab tab =
+    tab { sections = _ } <$> traverse evalTabSections tab.sections
+
+  evalTabSections :: TabSections Expr -> Either EvalError (TabSections ExprType)
+  evalTabSections =
+    tabSections
+      (map TabSection <$> evalSection)
+      (map TabSequence <$> evalSequence)
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
-  evalSection section = do
-    contents <- traverse evalField section.contents
-    pure section { contents = contents }
+  evalSection section =
+    section { fields = _ } <$> traverse evalField section.fields
+
+  evalSequence :: Sequence Expr -> Either EvalError (Sequence ExprType)
+  evalSequence sequence = ado
+    values <- (traverse <<< traverse) evalSection sequence.values
+    template <- evalTemplate sequence.template
+    in sequence { values = values, template = template }
+
+  evalTemplate :: TemplateSection Expr -> Either EvalError (TemplateSection ExprType)
+  evalTemplate template =
+    template { fields = _ } <$> traverse evalTemplateInput template.fields
+
+  evalTemplateInput :: TemplateInput Expr -> Either EvalError (TemplateInput ExprType)
+  evalTemplateInput = case _ of
+    TemplateCurrency input -> ado
+      default <- traverse (evalExpr get) input.default
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      in TemplateCurrency
+        { default
+        , placeholder
+        , required
+        }
+    TemplateDateTime input -> ado
+      default <- traverse (evalExpr get) input.default
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      in TemplateDateTime
+        { default
+        , placeholder
+        , required
+        }
+    TemplateDropdown input -> ado
+      default <- traverse (evalExpr get) input.default
+      options <- evalExpr get input.options
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      in TemplateDropdown
+        { default
+        , options
+        , placeholder
+        , required
+        }
+    TemplateText input -> ado
+      default <- traverse (evalExpr get) input.default
+      maxLength <- traverse (evalExpr get) input.maxLength
+      minLength <- traverse (evalExpr get) input.minLength
+      placeholder <- evalExpr get input.placeholder
+      required <- evalExpr get input.required
+      in TemplateText
+        { default
+        , maxLength
+        , minLength
+        , placeholder
+        , required
+        }
+    TemplateToggle input ->
+      TemplateToggle <<< { default: _ } <$> traverse (evalExpr get) input.default
+
+    TemplateTypeaheadSingle input -> ado
+      default <- traverse (evalExpr get) input.default
+      options <- evalExpr get input.options
+      resultValue <- evalExpr get input.resultValue
+      results <- evalExpr get input.results
+      uri <- evalExpr get input.uri
+      in TemplateTypeaheadSingle
+        { default
+        , options
+        , resultValue
+        , results
+        , uri
+        }
 
   evalField :: Field Expr -> Either EvalError (Field ExprType)
   evalField field = do
@@ -418,13 +613,16 @@ eval get page = do
       otherwise -> mempty
 
 keys :: Page Expr -> Map Key ExprType
-keys page = foldMap keysTab page.contents
+keys page = foldMap keysTab page.tabs
   where
   keysTab :: Tab Expr -> Map Key ExprType
-  keysTab tab = foldMap keysSection tab.contents
+  keysTab tab = foldMap (tabSections keysSection keysSequence) tab.sections
 
   keysSection :: Section Expr -> Map Key ExprType
-  keysSection section = foldMap keysField section.contents
+  keysSection section = foldMap keysField section.fields
+
+  keysSequence :: Sequence Expr -> Map Key ExprType
+  keysSequence sequence = foldMap (foldMap keysSection) sequence.values
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -454,13 +652,25 @@ getValue
 getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
-setValue key val page = page { contents = map setTab page.contents }
+setValue key val page = page { tabs = map setTab page.tabs }
   where
   setTab :: Tab Expr -> Tab Expr
-  setTab tab = tab { contents = map setSection tab.contents }
+  setTab tab = tab { sections = setTabSections <$> tab.sections }
+
+  setTabSections :: TabSections Expr -> TabSections Expr
+  setTabSections =
+    tabSections
+      (TabSection <<< setSection)
+      (TabSequence <<< setSequence)
 
   setSection :: Section Expr -> Section Expr
-  setSection section = section { contents = map setField section.contents }
+  setSection section = section { fields = setField <$> section.fields }
+
+  setSequence :: Sequence Expr -> Sequence Expr
+  setSequence sequence = case sequence.values of
+    UserInput sections -> sequence { values = UserInput $ setSection <$> sections }
+    Invalid sections -> sequence { values = Invalid $ setSection <$> sections }
+    _ -> sequence
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -527,39 +737,60 @@ asyncFromTypeahead typeahead x = case toString typeahead.uri of
 mvpPage :: Page Expr
 mvpPage =
   { name: "New Campaign Request"
-  , contents:
+  , tabs:
     Data.NonEmpty.NonEmpty
       { name: "Details"
       , link: "details"
-      , contents:
-        Data.NonEmpty.singleton
-          { name: "Campaign"
-          , contents:
-            Data.NonEmpty.NonEmpty
-              mvpName
-              [ mvpTargetableInterest
-              , mvpFacebookTwitterPage
-              , mvpObjective
-              , mvpMediaBudget
-              , mvpStart
-              , mvpEnd
-              ]
-          }
+      , sections: Data.NonEmpty.singleton mvpDetailsSection
       }
       [ { name: "Creative"
         , link: "creative"
-        , contents:
-          Data.NonEmpty.singleton
-          { name: "Creative"
-          , contents:
-            Data.NonEmpty.NonEmpty
-            mvpSocialAccount
-            [
-            ]
-          }
+        , sections: Data.NonEmpty.singleton mvpCreativeSequence
         }
       ]
   }
+
+mvpDetailsSection :: TabSections Expr
+mvpDetailsSection =
+  TabSection
+    { name: "Campaign"
+    , fields:
+      Data.NonEmpty.NonEmpty
+      mvpName
+      [ mvpTargetableInterest
+      , mvpFacebookTwitterPage
+      , mvpObjective
+      , mvpMediaBudget
+      , mvpStart
+      , mvpEnd
+      ]
+    }
+
+
+mvpCreativeSequence :: TabSections Expr
+mvpCreativeSequence =
+  TabSequence
+    { name: "Creative"
+    , key: "creative"
+    , template:
+      { name: "Social Creative"
+      , fields:
+        Data.NonEmpty.singleton $
+          TemplateText
+          { default: Nothing
+          , required: val_ (boolean_ true)
+          , placeholder: val_ (string_ "I don't know what a creative is")
+          , maxLength: Nothing
+          , minLength: Nothing
+          }
+      }
+    , values:
+      UserInput
+      [ { name: "Social Creative"
+        , fields: Data.NonEmpty.singleton mvpSocialAccount
+        }
+      ]
+    }
 
 mvpEnd :: Field Expr
 mvpEnd =
@@ -720,19 +951,18 @@ mvpURI =
 testPage :: Page Expr
 testPage =
   { name: "Profile"
-  , contents:
+  , tabs:
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , contents:
-        Data.NonEmpty.singleton testSection
+      , sections : Data.NonEmpty.singleton $ TabSection testSection
       }
   }
 
 testSection :: Section Expr
 testSection =
   { name: "Name"
-  , contents:
+  , fields:
     Data.NonEmpty.NonEmpty
       firstName
       [ lastName

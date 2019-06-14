@@ -10,7 +10,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Errors, ValidationError)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabSections(..), TemplateInput, ValidationError)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -32,9 +32,15 @@ suite =
         quickCheck' 3 pageRoundTrip
       Test.Unit.suite "dropdown options can be dynamic" do
         dropdownOptions
-    Test.Unit.suite "Section" do
+    Test.Unit.suite "Tab" do
       test "decoding and encoding roundtrips properly" do
-        quickCheck' 3 sectionRoundTrip
+        quickCheck' 3 tabRoundTrip
+    Test.Unit.suite "TabSections" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck' 3 tabSectionsRoundTrip
+    Test.Unit.suite "TemplateInput" do
+      test "decoding and encoding roundtrips properly" do
+        quickCheck templateInputRoundTrip
     Test.Unit.suite "Field" do
       test "decoding and encoding roundtrips properly" do
         quickCheck' 3 fieldRoundTrip
@@ -97,15 +103,24 @@ dropdownOptions = do
   dropdownKey = "dropdown"
   findOptions :: forall a b. Either a (Page b) -> Maybe b
   findOptions = findMap \evaluatedPage ->
-    flip findMap evaluatedPage.contents \tab ->
-      flip findMap tab.contents \section ->
-        flip findMap section.contents \field ->
-          if field.key == dropdownKey then
-            case field.input of
-              Dropdown x -> Just x.options
-              _ -> Nothing
-          else
-            Nothing
+    flip findMap evaluatedPage.tabs \tab ->
+      flip findMap tab.sections \sections' ->
+        case sections' of
+          TabSection section -> getOption section
+          TabSequence sequence -> case sequence.values of
+            UserInput sections -> flip findMap sections getOption
+            Invalid sections -> flip findMap sections getOption
+            _ -> Nothing
+
+  getOption :: forall a. Section a -> Maybe a
+  getOption section = flip findMap section.fields \field ->
+    if field.key == dropdownKey then
+      case field.input of
+        Dropdown x -> Just x.options
+        _ -> Nothing
+    else
+      Nothing
+
   foo :: Input Expr
   foo =
     Toggle
@@ -118,15 +133,15 @@ dropdownOptions = do
   page' :: Page Expr
   page' =
     { name: ""
-    , contents:
+    , tabs:
       Data.NonEmpty.singleton
         { name: ""
         , link: ""
-        , contents:
-          Data.NonEmpty.singleton
-            { name: ""
-            , contents:
-              Data.NonEmpty.NonEmpty
+        , sections: Data.NonEmpty.singleton $
+            TabSection
+              { name: ""
+              , fields:
+                Data.NonEmpty.NonEmpty
                 { name: val_ (string_ "")
                 , visibility: val_ (boolean_ false)
                 , description: val_ (string_ "")
@@ -140,15 +155,21 @@ dropdownOptions = do
                   , input: dropdown
                   }
                 ]
-            }
+              }
         }
     }
 
 pageRoundTrip :: Page Expr -> Result
 pageRoundTrip = roundTrip
 
-sectionRoundTrip :: Section Expr -> Result
-sectionRoundTrip = roundTrip
+tabRoundTrip :: Tab Expr -> Result
+tabRoundTrip = roundTrip
+
+tabSectionsRoundTrip :: TabSections Expr -> Result
+tabSectionsRoundTrip = roundTrip
+
+templateInputRoundTrip :: TemplateInput Expr -> Result
+templateInputRoundTrip = roundTrip
 
 fieldRoundTrip :: Field Expr -> Result
 fieldRoundTrip = roundTrip
@@ -182,30 +203,60 @@ testPageEither = decodeJson =<< jsonParser testPageJson
 testPageJson :: String
 testPageJson = """
   { "name": "Profile"
-  , "contents":
-    [ """ <> testUser <> """
+  , "tabs":
+    [ """ <> testTab <> """
     ]
   }
 """
 
-testUser :: String
-testUser = """
+testTab :: String
+testTab = """
   { "name": "User"
   , "link": "user"
-  , "contents":
+  , "sections":
     [ """ <> testSection <> """
+    , """ <> testSequence <> """
     ]
   }
 """
 
 testSection :: String
 testSection = """
-  { "name": "Name"
-  , "contents":
+  { "type": "TabSection"
+  , "name": "Name"
+  , "fields":
     [ """ <> firstName <> """
     , """ <> lastName <> """
     , """ <> active <> """
     ]
+  }
+"""
+
+testSequence :: String
+testSequence = """
+  { "type": "TabSequence"
+  , "name": "Users"
+  , "key": "users"
+  , "template": """ <> testTemplate <> """
+  , "values": """ <> value (UserInput ("[" <> testSection <> "]")) <> """
+  }
+"""
+
+testTemplate :: String
+testTemplate = """
+  { "name": "User"
+  , "fields": [""" <> testTemplateText <> """]
+  }
+"""
+
+testTemplateText :: String
+testTemplateText = """
+  { "type": "TemplateText"
+  , "required": """ <> val true "Boolean" <> """
+  , "placeholder": """ <> val "" "String" <> """
+  , "default": null
+  , "maxLength": null
+  , "minLength": null
   }
 """
 
