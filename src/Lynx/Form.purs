@@ -84,11 +84,11 @@ instance encodeJsonTabSections :: EncodeJson (TabSections Expr) where
 instance decodeJsonTabSections :: DecodeJson (TabSections Expr) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "type"
-      >>= case _ of
-          "TabSection" -> pure <<< TabSection <=< decodeJson $ json
-          "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
-          t -> Left $ "Unsupported TabSections type: " <> t
+    type' <- x .: "type"
+    case type' of
+      "TabSection" -> pure <<< TabSection <=< decodeJson $ json
+      "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
+      t -> Left $ "Unsupported TabSections type: " <> t
 
 type TemplateSection f
   = { name :: String
@@ -152,15 +152,15 @@ instance encodeJsonTemplateInput :: EncodeJson (TemplateInput Expr) where
 instance decodeJsonTemplateInput :: DecodeJson (TemplateInput Expr) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "type"
-      >>= case _ of
-          "TemplateCurrency" -> pure <<< TemplateCurrency <=< decodeJson $ json
-          "TemplateDateTime" -> pure <<< TemplateDateTime <=< decodeJson $ json
-          "TemplateDropdown" -> pure <<< TemplateDropdown <=< decodeJson $ json
-          "TemplateText" -> pure <<< TemplateText <=< decodeJson $ json
-          "TemplateToggle" -> pure <<< TemplateToggle <=< decodeJson $ json
-          "TemplateTypeaheadSingle" -> pure <<< TemplateTypeaheadSingle <=< decodeJson $ json
-          t -> Left $ "Unsupported TemplateInput type: " <> t
+    type' <- x .: "type"
+    case type' of
+      "TemplateCurrency" -> pure <<< TemplateCurrency <=< decodeJson $ json
+      "TemplateDateTime" -> pure <<< TemplateDateTime <=< decodeJson $ json
+      "TemplateDropdown" -> pure <<< TemplateDropdown <=< decodeJson $ json
+      "TemplateText" -> pure <<< TemplateText <=< decodeJson $ json
+      "TemplateToggle" -> pure <<< TemplateToggle <=< decodeJson $ json
+      "TemplateTypeaheadSingle" -> pure <<< TemplateTypeaheadSingle <=< decodeJson $ json
+      t -> Left $ "Unsupported TemplateInput type: " <> t
 
 type FieldRows f r
   = ( name :: f
@@ -245,15 +245,15 @@ instance encodeInput :: EncodeJson (Input Expr) where
 instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "type"
-      >>= case _ of
-          "Currency" -> pure <<< Currency <=< decodeJson $ json
-          "DateTime" -> pure <<< DateTime <=< decodeJson $ json
-          "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
-          "Text" -> pure <<< Text <=< decodeJson $ json
-          "Toggle" -> pure <<< Toggle <=< decodeJson $ json
-          "TypeaheadSingle" -> pure <<< TypeaheadSingle <=< decodeJson $ json
-          t -> Left $ "Unsupported Input type: " <> t
+    type' <- x .: "type"
+    case type' of
+      "Currency" -> pure <<< Currency <=< decodeJson $ json
+      "DateTime" -> pure <<< DateTime <=< decodeJson $ json
+      "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
+      "Text" -> pure <<< Text <=< decodeJson $ json
+      "Toggle" -> pure <<< Toggle <=< decodeJson $ json
+      "TypeaheadSingle" -> pure <<< TypeaheadSingle <=< decodeJson $ json
+      t -> Left $ "Unsupported Input type: " <> t
 
 instance arbitraryInput :: Arbitrary (Input Expr) where
   arbitrary = genericArbitrary
@@ -300,13 +300,13 @@ instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
 instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
   decodeJson json = do
     x' <- decodeJson json
-    x' .: "type"
-      >>= case _ of
-          "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
-          "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
-          "UserCleared" -> pure UserCleared
-          "NotSet" -> pure NotSet
-          x -> Left $ x <> " is not a valid InputSource"
+    type' <- x' .: "type"
+    case type' of
+      "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
+      "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
+      "UserCleared" -> pure UserCleared
+      "NotSet" -> pure NotSet
+      x -> Left $ x <> " is not a valid InputSource"
 
 instance arbitraryInputSource :: (Arbitrary a) => Arbitrary (InputSource a) where
   arbitrary = genericArbitrary
@@ -384,13 +384,13 @@ instance encodeValidationError :: EncodeJson ValidationError where
 instance decodeValidationError :: DecodeJson ValidationError where
   decodeJson json = do
     x' <- decodeJson json
-    x' .: "type"
-      >>= case _ of
-          "Required" -> pure Required
-          "MinLength" -> x' .: "param" >>= (pure <<< MinLength)
-          "MaxLength" -> x' .: "param" >>= (pure <<< MaxLength)
-          "InvalidOption" -> x' .: "param" >>= (pure <<< InvalidOption)
-          x -> Left $ x <> " is not a supported ValidationError"
+    type' <- x' .: "type"
+    case type' of
+      "Required" -> pure Required
+      "MinLength" -> x' .: "param" >>= (pure <<< MinLength)
+      "MaxLength" -> x' .: "param" >>= (pure <<< MaxLength)
+      "InvalidOption" -> x' .: "param" >>= (pure <<< InvalidOption)
+      x -> Left $ x <> " is not a supported ValidationError"
 
 instance arbitraryValidationError :: Arbitrary ValidationError where
   arbitrary = genericArbitrary
@@ -581,24 +581,16 @@ eval get page = do
   validate :: Input ExprType -> Input ExprType
   validate = case _ of
     Currency input -> case displayError input of
-      true ->
-        Currency
-          $ input { errors = input.errors <> validateRequired input }
+      true -> Currency input { errors = input.errors <> validateRequired input }
       false -> Currency input
     DateTime input -> case displayError input of
-      true ->
-        DateTime
-          $ input { errors = input.errors <> validateRequired input }
+      true -> DateTime input { errors = input.errors <> validateRequired input }
       false -> DateTime input
     Dropdown input -> case displayError input of
-      true ->
-        Dropdown
-          $ input { errors = input.errors <> validateInvalid input <> validateRequired input }
+      true -> Dropdown input { errors = input.errors <> validateInvalid input <> validateRequired input }
       false -> Dropdown input
     Text input -> case displayError input of
-      true ->
-        Text
-          $ input { errors = input.errors <> validateRequired input }
+      true -> Text input { errors = input.errors <> validateRequired input }
       false -> Text input
     Toggle input -> Toggle input
     TypeaheadSingle input -> TypeaheadSingle input

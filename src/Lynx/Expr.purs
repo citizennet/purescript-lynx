@@ -414,8 +414,8 @@ instance arbitraryExprType :: Arbitrary ExprType where
       pure (wrap $ Data.BigInt.fromInt x)
 
     go :: Size -> Gen ExprType
-    go size' = case size' < 1 of
-      true ->
+    go size'
+      | size' < 1 =
         oneOf
           $ NonEmpty
               (boolean_ <$> arbitrary)
@@ -423,7 +423,7 @@ instance arbitraryExprType :: Arbitrary ExprType where
               , int_ <$> arbitrary
               , string_ <$> arbitrary
               ]
-      false ->
+      | otherwise =
         let
           size = size' / 10
         in
@@ -530,41 +530,41 @@ instance encodeJsonExpr :: EncodeJson Expr where
 instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
-    x' .: "op"
-      >>= case _ of
-          "Val" -> map val_ (decodeJson json)
-          "If" ->
-            x' .: "params"
-              >>= case _ of
-                  [ x, y, z ] -> pure (if_ x y z)
-                  _ -> Left "Expected 3 params"
-          "Equal" ->
-            x' .: "params"
-              >>= case _ of
-                  [ x, y ] -> pure (equal_ x y)
-                  _ -> Left "Expected 2 params"
-          "Print" ->
-            x' .: "params"
-              >>= case _ of
-                  [ x ] -> pure (print_ x)
-                  _ -> Left "Expected 1 param"
-          "Lookup" ->
-            x' .: "params"
-              >>= case _ of
-                  [ x, y ] -> do
-                    key <- decodeJson x
-                    default <- decodeJson y
-                    pure (lookup_ key default)
-                  _ -> Left "Expected 2 params"
-          op -> Left $ op <> " invalid op"
+    op <- x' .: "op"
+    case op of
+      "Val" -> map val_ (decodeJson json)
+      "If" -> do
+        params <- x' .: "params"
+        case params of
+          [ x, y, z ] -> pure (if_ x y z)
+          _ -> Left "Expected 3 params"
+      "Equal" -> do
+        params <- x' .: "params"
+        case params of
+          [ x, y ] -> pure (equal_ x y)
+          _ -> Left "Expected 2 params"
+      "Print" -> do
+        params <- x' .: "params"
+        case params of
+          [ x ] -> pure (print_ x)
+          _ -> Left "Expected 1 param"
+      "Lookup" -> do
+        params <- x' .: "params"
+        case params of
+          [ x, y ] -> do
+            key <- decodeJson x
+            default <- decodeJson y
+            pure (lookup_ key default)
+          _ -> Left "Expected 2 params"
+      _ -> Left $ op <> " invalid op"
 
 instance arbitraryExpr :: Arbitrary Expr where
   arbitrary = sized go
     where
     go :: Size -> Gen Expr
-    go size' = case size' < 1 of
-      true -> map val_ arbitrary
-      false ->
+    go size'
+      | size' < 1 = map val_ arbitrary
+      | otherwise =
         let
           size = size' / 10
         in

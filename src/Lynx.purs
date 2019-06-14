@@ -149,8 +149,7 @@ component =
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection section =
     Card.card_
-      $ append
-          [ Format.subHeading_ [ HH.text section.name ] ]
+      $ append [ Format.subHeading_ [ HH.text section.name ] ]
       $ Data.Array.fromFoldable
       $ renderField
       <$> section.fields
@@ -158,8 +157,7 @@ component =
   renderSequence :: Sequence ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSequence sequence =
     Card.card_
-      $ append
-          [ Format.subHeading_ [ HH.text sequence.name ] ]
+      $ append [ Format.subHeading_ [ HH.text sequence.name ] ]
       $ case sequence.values of
           UserInput sections -> renderSection <$> sections
           Invalid sections -> renderSection <$> sections
@@ -267,43 +265,37 @@ eval ::
   Query
     ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
-  EvalForm expr a ->
-    a
-      <$ do
-          let
-            values = Lynx.Form.keys expr
+  EvalForm expr a -> do
+    let
+      values = Lynx.Form.keys expr
 
-            evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
+      evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
 
-            evalField field = do
-              case field.input of
-                Currency _ -> pure unit
-                DateTime _ -> pure unit
-                Dropdown dropdown ->
-                  for_ (toArray dropdown.options) \options ->
-                    H.query' cp1 field.key (Dropdown.SetItems options unit)
-                Text _ -> pure unit
-                Toggle _ -> pure unit
-                TypeaheadSingle typeahead ->
-                  for_ (toArray typeahead.options) \options ->
-                    H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
+      evalField field = do
+        case field.input of
+          Currency _ -> pure unit
+          DateTime _ -> pure unit
+          Dropdown dropdown ->
+            for_ (toArray dropdown.options) \options ->
+              H.query' cp1 field.key (Dropdown.SetItems options unit)
+          Text _ -> pure unit
+          Toggle _ -> pure unit
+          TypeaheadSingle typeahead ->
+            for_ (toArray typeahead.options) \options ->
+              H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
 
-            evalSection section = for_ section.fields evalField
-          for_ evaled \page -> do
-            for_ page.tabs \tab -> do
-              for_ tab.sections \sections' -> do
-                case sections' of
-                  TabSection section -> evalSection section
-                  TabSequence sequence -> case sequence.values of
-                    UserInput sections -> for_ sections evalSection
-                    Invalid sections -> for_ sections evalSection
-                    _ -> pure unit
-          H.modify_
-            _
-              { evaled = evaled
-              , expr = expr
-              , values = values
-              }
+      evalSection section = for_ section.fields evalField
+    for_ evaled \page -> do
+      for_ page.tabs \tab -> do
+        for_ tab.sections \sections' -> do
+          case sections' of
+            TabSection section -> evalSection section
+            TabSequence sequence -> case sequence.values of
+              UserInput sections -> for_ sections evalSection
+              Invalid sections -> for_ sections evalSection
+              _ -> pure unit
+    H.modify_ _ { evaled = evaled, expr = expr, values = values }
+    pure a
   HandleInput { activeTab, expr, fragment } a -> do
     { fragment: oldFragment } <- H.get
     H.modify_ _ { activeTab = activeTab, fragment = fragment }
