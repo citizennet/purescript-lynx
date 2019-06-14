@@ -159,8 +159,11 @@ component =
   renderSequence sequence =
     Card.card_ $
     append
-    [ Format.subHeading_ [ HH.text sequence.name ] ]
-    $ sequence.sections >>= map renderField <<< Data.Array.fromFoldable <<< _.fields
+    [ Format.subHeading_ [ HH.text sequence.name ] ] $
+    case sequence.sections of
+      UserInput sections -> renderSection <$> sections
+      Invalid sections -> renderSection <$> sections
+      _ -> mempty
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -277,13 +280,18 @@ eval = case _ of
               for_ (toArray typeahead.options) \options ->
                 H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
 
+        evalSection section = for_ section.fields evalField
+
     for_ evaled \page -> do
       for_ page.tabs \tab -> do
         for_ tab.contents \contents -> do
           case contents of
-            TabSection section -> for_ section.fields evalField
-            TabSequence sequence -> for_ sequence.sections \section ->
-              for_ section.fields evalField
+            TabSection section -> evalSection section
+            TabSequence sequence ->
+              case sequence.sections of
+                UserInput sections -> for_ sections evalSection
+                Invalid sections -> for_ sections evalSection
+                _ -> pure unit
 
     H.modify_ _
       { evaled = evaled
@@ -327,8 +335,7 @@ fromTab fragment { contents, name, link } =
     contents' <- Data.Array.fromFoldable contents
     field <- case contents' of
       TabSection { fields } -> Data.Array.fromFoldable fields
-      TabSequence { sections } -> sections >>= Data.Array.fromFoldable <<< _.fields
-
+      TabSequence { sections } -> foldMap (_ >>= Data.Array.fromFoldable <<< _.fields) sections
     pure (length $ errorsToArray $ errors field)
   , name
   , link: URI.Fragment.print fragment <> "/" <> link

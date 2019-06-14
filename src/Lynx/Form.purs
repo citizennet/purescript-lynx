@@ -51,8 +51,9 @@ type Section f =
 
 type Sequence f =
   { name :: String
+  , key :: String
   , template :: Template f
-  , sections :: Array (Section f)
+  , sections :: InputSource (Array (Section f))
   }
 
 tabContents
@@ -406,8 +407,8 @@ eval get page = do
 
   evalSequence :: Sequence Expr -> Either EvalError (Sequence ExprType)
   evalSequence sequence = ado
-    sections <- traverse evalSection sequence.sections
-    template <- evalTemplate  sequence.template
+    sections <- (traverse <<< traverse) evalSection sequence.sections
+    template <- evalTemplate sequence.template
     in sequence { sections = sections, template = template }
 
   evalTemplate :: Template Expr -> Either EvalError (Template ExprType)
@@ -620,7 +621,7 @@ keys page = foldMap keysTab page.tabs
   keysSection section = foldMap keysField section.fields
 
   keysSequence :: Sequence Expr -> Map Key ExprType
-  keysSequence sequence = foldMap keysSection sequence.sections
+  keysSequence sequence = foldMap (foldMap keysSection) sequence.sections
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -665,7 +666,10 @@ setValue key val page = page { tabs = map setTab page.tabs }
   setSection section = section { fields = setField <$> section.fields }
 
   setSequence :: Sequence Expr -> Sequence Expr
-  setSequence sequence = sequence { sections = setSection <$> sequence.sections }
+  setSequence sequence = case sequence.sections of
+    UserInput sections -> sequence { sections = UserInput $ setSection <$> sections }
+    Invalid sections -> sequence { sections = Invalid $ setSection <$> sections }
+    _ -> sequence
 
   setField :: Field Expr -> Field Expr
   setField field
@@ -766,6 +770,7 @@ mvpCreativeSequence :: TabContents Expr
 mvpCreativeSequence =
   TabSequence
     { name: "Creative"
+    , key: "creative"
     , template: { name: "Social Creative"
                 , fields:
                     Data.NonEmpty.singleton $
@@ -776,10 +781,11 @@ mvpCreativeSequence =
                                    , minLength: Nothing
                                    }
                 }
-    , sections: [ { name: "Social Creative"
-                  , fields: Data.NonEmpty.singleton mvpSocialAccount
-                  }
-                ]
+    , sections:
+        UserInput [ { name: "Social Creative"
+                    , fields: Data.NonEmpty.singleton mvpSocialAccount
+                    }
+                  ]
     }
 
 mvpEnd :: Field Expr
@@ -945,7 +951,7 @@ testPage =
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , contents: Data.NonEmpty.singleton $ TabSection testSection
+      , contents : Data.NonEmpty.singleton $ TabSection testSection
       }
   }
 

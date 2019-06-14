@@ -107,7 +107,10 @@ dropdownOptions = do
       flip findMap tab.contents \contents ->
         case contents of
           TabSection section -> getOption section
-          TabSequence sequence -> flip findMap sequence.sections getOption
+          TabSequence sequence -> case sequence.sections of
+            UserInput sections -> flip findMap sections getOption
+            Invalid sections -> flip findMap sections getOption
+            _ -> Nothing
 
   getOption :: forall a. Section a -> Maybe a
   getOption section = flip findMap section.fields \field ->
@@ -233,8 +236,9 @@ testSequence :: String
 testSequence = """
   { "type": "TabSequence"
   , "name": "Users"
+  , "key": "users"
   , "template": """ <> testTemplate <> """
-  , "sections": [""" <> testSection <> """]
+  , "sections": """ <> value (UserInput ("[" <> testSection <> "]")) <> """
   }
 """
 
