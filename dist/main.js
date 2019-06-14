@@ -20545,7 +20545,7 @@ var PS = {};
               if (v instanceof TabSequence) {
                   return g(v.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 65, column 19 - line 67, column 37): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 66, column 19 - line 68, column 37): " + [ v.constructor.name ]);
           };
       };
   };
@@ -20627,7 +20627,7 @@ var PS = {};
           if (m instanceof NotSet) {
               return NotSet.value;
           };
-          throw new Error("Failed pattern match at Lynx.Form (line 263, column 8 - line 263, column 58): " + [ m.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Form (line 264, column 8 - line 264, column 58): " + [ m.constructor.name ]);
       };
   });
   var setValue = function (key) {
@@ -20728,12 +20728,12 @@ var PS = {};
                               })
                           };
                       };
-                      throw new Error("Failed pattern match at Lynx.Form (line 676, column 26 - line 688, column 73): " + [ field.input.constructor.name ]);
+                      throw new Error("Failed pattern match at Lynx.Form (line 677, column 26 - line 689, column 73): " + [ field.input.constructor.name ]);
                   };
                   if (Data_Boolean.otherwise) {
                       return field;
                   };
-                  throw new Error("Failed pattern match at Lynx.Form (line 674, column 3 - line 674, column 39): " + [ field.constructor.name ]);
+                  throw new Error("Failed pattern match at Lynx.Form (line 675, column 3 - line 675, column 39): " + [ field.constructor.name ]);
               };
               var setSection = function (section) {
                   return {
@@ -20794,7 +20794,7 @@ var PS = {};
               if (v instanceof NotSet) {
                   return Data_Monoid.mempty(dictMonoid);
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 268, column 15 - line 272, column 21): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 269, column 15 - line 273, column 21): " + [ v.constructor.name ]);
           };
       };
   }, function (f) {
@@ -20823,7 +20823,7 @@ var PS = {};
               if (field.input instanceof TypeaheadSingle) {
                   return getValue(field.input.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 633, column 13 - line 639, column 54): " + [ field.input.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 634, column 13 - line 640, column 54): " + [ field.input.constructor.name ]);
           })();
           if (value instanceof Data_Maybe.Just) {
               var v = Lynx_Expr.evalExpr(Data_Function["const"](Data_Maybe.Nothing.value))(value.value0);
@@ -20833,12 +20833,12 @@ var PS = {};
               if (v instanceof Data_Either.Right) {
                   return Data_Map_Internal.singleton(field.key)(v.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 628, column 18 - line 630, column 48): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 629, column 18 - line 631, column 48): " + [ v.constructor.name ]);
           };
           if (value instanceof Data_Maybe.Nothing) {
               return Data_Monoid.mempty(Data_Map_Internal.monoidMap(Data_Ord.ordString));
           };
-          throw new Error("Failed pattern match at Lynx.Form (line 627, column 21 - line 631, column 22): " + [ value.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Form (line 628, column 21 - line 632, column 22): " + [ value.constructor.name ]);
       };
       var keysSection = function (section) {
           return Data_Foldable.foldMap(Data_NonEmpty.foldableNonEmpty(Data_Foldable.foldableArray))(Data_Map_Internal.monoidMap(Data_Ord.ordString))(keysField)(section.fields);
@@ -20872,7 +20872,7 @@ var PS = {};
               if (v instanceof NotSet) {
                   return Control_Applicative.pure(dictApplicative)(NotSet.value);
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 278, column 16 - line 282, column 26): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 279, column 16 - line 283, column 26): " + [ v.constructor.name ]);
           };
       };
   });
@@ -20900,7 +20900,7 @@ var PS = {};
       if (v.input instanceof TypeaheadSingle) {
           return v.input.value0.errors;
       };
-      throw new Error("Failed pattern match at Lynx.Form (line 346, column 20 - line 352, column 60): " + [ v.input.constructor.name ]);
+      throw new Error("Failed pattern match at Lynx.Form (line 347, column 20 - line 353, column 60): " + [ v.input.constructor.name ]);
   };
   var eqValidationError = new Data_Eq.Eq(function (x) {
       return function (y) {
@@ -20953,7 +20953,7 @@ var PS = {};
           if (x instanceof InvalidOption && y instanceof InvalidOption) {
               return Data_Ord.compare(Data_Ord.ordString)(x.value0)(y.value0);
           };
-          throw new Error("Failed pattern match at Lynx.Form (line 362, column 8 - line 362, column 58): " + [ x.constructor.name, y.constructor.name ]);
+          throw new Error("Failed pattern match at Lynx.Form (line 363, column 8 - line 363, column 58): " + [ x.constructor.name, y.constructor.name ]);
       };
   });
   var firstName = {
@@ -21308,7 +21308,7 @@ var PS = {};
               if (v instanceof TypeaheadSingle) {
                   return new TypeaheadSingle(v.value0);
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 572, column 14 - line 594, column 51): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 573, column 14 - line 595, column 51): " + [ v.constructor.name ]);
           };
           var evalTemplateInput = function (v) {
               if (v instanceof TemplateCurrency) {
@@ -21400,7 +21400,7 @@ var PS = {};
                       };
                   })(Data_Traversable.traverse(Data_Traversable.traversableMaybe)(Data_Either.applicativeEither)(Lynx_Expr.evalExpr(get))(v["value0"]["default"])))(Lynx_Expr.evalExpr(get)(v.value0.options)))(Lynx_Expr.evalExpr(get)(v.value0.resultValue)))(Lynx_Expr.evalExpr(get)(v.value0.results)))(Lynx_Expr.evalExpr(get)(v.value0.uri));
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 419, column 23 - line 477, column 10): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 420, column 23 - line 478, column 10): " + [ v.constructor.name ]);
           };
           var evalTemplate = function (template) {
               return Data_Functor.map(Data_Either.functorEither)(function (v) {
@@ -21533,7 +21533,7 @@ var PS = {};
                       });
                   });
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 488, column 15 - line 569, column 10): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 489, column 15 - line 570, column 10): " + [ v.constructor.name ]);
           };
           var evalField = function (field) {
               return Control_Bind.bind(Data_Either.bindEither)(Lynx_Expr.evalExpr(get)(field.description))(function (v) {
@@ -21602,7 +21602,7 @@ var PS = {};
               if (v instanceof Data_Maybe.Nothing) {
                   return Effect_Aff_Class.liftAff(dictMonadAff)(Control_Monad_Error_Class.throwError(Effect_Aff.monadThrowAff)(Effect_Exception.error(Lynx_Expr.print(typeahead.uri) + " is not a String")));
               };
-              throw new Error("Failed pattern match at Lynx.Form (line 725, column 34 - line 732, column 77): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at Lynx.Form (line 726, column 34 - line 733, column 77): " + [ v.constructor.name ]);
           };
       };
   };        
@@ -26797,6 +26797,7 @@ var PS = {};
   exports["eqFragment"] = eqFragment;
 })(PS);
 (function($PS) {
+  // Generated by purs version 0.12.5
   "use strict";
   $PS["Lynx"] = $PS["Lynx"] || {};
   var exports = $PS["Lynx"];

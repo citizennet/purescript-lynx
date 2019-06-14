@@ -41,8 +41,9 @@ type Tab f =
   , sections :: NonEmpty Array (TabSections f)
   }
 
-data TabSections f = TabSection (Section f)
-                   | TabSequence (Sequence f)
+data TabSections f
+  = TabSection (Section f)
+  | TabSequence (Sequence f)
 
 type Section f =
   { name :: String
@@ -52,7 +53,7 @@ type Section f =
 type Sequence f =
   { name :: String
   , key :: String
-  , template :: Template f
+  , template :: TemplateSection f
   , values :: InputSource (Array (Section f))
   }
 
@@ -89,7 +90,7 @@ instance decodeJsonTabSections :: DecodeJson (TabSections Expr) where
       "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
       t -> Left $ "Unsupported TabSections type: " <> t
 
-type Template f =
+type TemplateSection f =
   { name :: String
   , fields :: NonEmpty Array (TemplateInput f)
   }
@@ -398,8 +399,8 @@ eval get page = do
   evalTabSections :: TabSections Expr -> Either EvalError (TabSections ExprType)
   evalTabSections =
     tabSections
-      ((map TabSection) <$> evalSection)
-      ((map TabSequence) <$> evalSequence)
+      (map TabSection <$> evalSection)
+      (map TabSequence <$> evalSequence)
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
   evalSection section =
@@ -411,7 +412,7 @@ eval get page = do
     template <- evalTemplate sequence.template
     in sequence { values = values, template = template }
 
-  evalTemplate :: Template Expr -> Either EvalError (Template ExprType)
+  evalTemplate :: TemplateSection Expr -> Either EvalError (TemplateSection ExprType)
   evalTemplate template =
     template { fields = _ } <$> traverse evalTemplateInput template.fields
 
@@ -771,21 +772,24 @@ mvpCreativeSequence =
   TabSequence
     { name: "Creative"
     , key: "creative"
-    , template: { name: "Social Creative"
-                , fields:
-                    Data.NonEmpty.singleton $
-                      TemplateText { default: Nothing
-                                   , required: val_ (boolean_ true)
-                                   , placeholder: val_ (string_ "I don't know what a creative is")
-                                   , maxLength: Nothing
-                                   , minLength: Nothing
-                                   }
-                }
+    , template:
+      { name: "Social Creative"
+      , fields:
+        Data.NonEmpty.singleton $
+          TemplateText
+          { default: Nothing
+          , required: val_ (boolean_ true)
+          , placeholder: val_ (string_ "I don't know what a creative is")
+          , maxLength: Nothing
+          , minLength: Nothing
+          }
+      }
     , values:
-        UserInput [ { name: "Social Creative"
-                    , fields: Data.NonEmpty.singleton mvpSocialAccount
-                    }
-                  ]
+      UserInput
+      [ { name: "Social Creative"
+        , fields: Data.NonEmpty.singleton mvpSocialAccount
+        }
+      ]
     }
 
 mvpEnd :: Field Expr
