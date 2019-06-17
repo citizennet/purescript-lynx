@@ -245,9 +245,16 @@ testSequence = """
 testTemplate :: String
 testTemplate = """
   { "name": "User"
-  , "fields": [""" <> testTemplateText <> """]
+  , "fields": [""" <> testTemplateFullName <> """]
   }
 """
+
+testTemplateFullName :: String
+testTemplateFullName =
+  testField
+    "Full Name"
+    "Enter the full name"
+    testTemplateText
 
 testTemplateText :: String
 testTemplateText = """

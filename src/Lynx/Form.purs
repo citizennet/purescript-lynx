@@ -92,7 +92,15 @@ instance decodeJsonTabSections :: DecodeJson (TabSections Expr) where
 
 type TemplateSection f =
   { name :: String
-  , fields :: NonEmpty Array (TemplateInput f)
+  , fields :: NonEmpty Array (TemplateField f)
+  }
+
+type TemplateField f =
+  { name :: f
+  , visibility :: f
+  , description :: f
+  , key :: Key
+  , input :: TemplateInput f
   }
 
 data TemplateInput f
@@ -414,7 +422,15 @@ eval get page = do
 
   evalTemplate :: TemplateSection Expr -> Either EvalError (TemplateSection ExprType)
   evalTemplate template =
-    template { fields = _ } <$> traverse evalTemplateInput template.fields
+    template { fields = _ } <$> traverse evalTemplateField template.fields
+
+  evalTemplateField :: TemplateField Expr -> Either EvalError (TemplateField ExprType)
+  evalTemplateField templateField = do
+    description <- evalExpr get templateField.description
+    input <- evalTemplateInput templateField.input
+    name <- evalExpr get templateField.name
+    visibility <- evalExpr get templateField.visibility
+    pure { description, key: templateField.key, input, name, visibility }
 
   evalTemplateInput :: TemplateInput Expr -> Either EvalError (TemplateInput ExprType)
   evalTemplateInput = case _ of
@@ -775,13 +791,19 @@ mvpCreativeSequence =
     , template:
       { name: "Social Creative"
       , fields:
-        Data.NonEmpty.singleton $
-          TemplateText
-          { default: Nothing
-          , required: val_ (boolean_ true)
-          , placeholder: val_ (string_ "I don't know what a creative is")
-          , maxLength: Nothing
-          , minLength: Nothing
+        Data.NonEmpty.singleton
+          { description: val_ (string_ "Copy to display with the creative")
+          , key: "copy"
+          , input:
+            TemplateText
+            { default: Nothing
+            , required: val_ (boolean_ true)
+            , placeholder: val_ (string_ "I don't know what a creative is")
+            , maxLength: Nothing
+            , minLength: Nothing
+            }
+          , name: val_ (string_ "Copy")
+          , visibility: val_ (boolean_ true)
           }
       }
     , values:
