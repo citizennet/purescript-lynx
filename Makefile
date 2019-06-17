@@ -120,10 +120,10 @@ $(NODE_MODULES): package.json
 	npm install
 	touch $@
 
-$(OUTPUT)/Main/index.js: format $(EXAMPLES) $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+$(OUTPUT)/Main/index.js: $(FORMAT_EXAMPLES) $(FORMAT_SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
 	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS)
 
-$(OUTPUT)/Test.Main/index.js: $(EXAMPLES) $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+$(OUTPUT)/Test.Main/index.js: $(FORMAT_EXAMPLES) $(FORMAT_SRCS) $(FORMAT_TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
 	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS) $(TESTS)
 
 .PHONY: clean
