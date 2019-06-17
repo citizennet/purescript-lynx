@@ -139,7 +139,7 @@ dist/main.js: $(BUILD)/main.js
 	npx browserify $< --outfile $@
 
 .PHONY: format
-format: $(FORMAT_EXAMPLES) $(FORMAT_TESTS) $(FORMAT_TESTS)
+format: $(FORMAT_EXAMPLES) $(FORMAT_TESTS) $(FORMAT_SRCS)
 
 test: dist/main.js $(BUILD)/test.out
 
