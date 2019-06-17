@@ -526,9 +526,9 @@ eval get page = do
         arrayOptions = Data.Maybe.fromMaybe [] (toArray options)
 
         value = case value' of
-          UserInput x -> case (not $ x `Data.Array.elem` arrayOptions) of
-            true -> Invalid x
-            false -> UserInput x
+          UserInput x
+            | (not $ x `Data.Array.elem` arrayOptions) -> Invalid x
+            | otherwise -> UserInput x
           otherwise -> otherwise
       pure $ validate
         $ Dropdown
@@ -580,18 +580,20 @@ eval get page = do
 
   validate :: Input ExprType -> Input ExprType
   validate = case _ of
-    Currency input -> case displayError input of
-      true -> Currency input { errors = input.errors <> validateRequired input }
-      false -> Currency input
-    DateTime input -> case displayError input of
-      true -> DateTime input { errors = input.errors <> validateRequired input }
-      false -> DateTime input
-    Dropdown input -> case displayError input of
-      true -> Dropdown input { errors = input.errors <> validateInvalid input <> validateRequired input }
-      false -> Dropdown input
-    Text input -> case displayError input of
-      true -> Text input { errors = input.errors <> validateRequired input }
-      false -> Text input
+    Currency input
+      | displayError input -> Currency input { errors = input.errors <> validateRequired input }
+      | otherwise -> Currency input
+    DateTime input
+      | displayError input -> DateTime input { errors = input.errors <> validateRequired input }
+      | otherwise -> DateTime input
+    Dropdown input
+      | displayError input ->
+        Dropdown
+          $ input { errors = input.errors <> validateInvalid input <> validateRequired input }
+      | otherwise -> Dropdown input
+    Text input
+      | displayError input -> Text input { errors = input.errors <> validateRequired input }
+      | otherwise -> Text input
     Toggle input -> Toggle input
     TypeaheadSingle input -> TypeaheadSingle input
 
@@ -599,9 +601,9 @@ eval get page = do
     ∀ r.
     Record (SharedRows ExprType + ( required :: ExprType | r )) ->
     Errors ValidationError
-  validateRequired input = case input.required == boolean_ true && isEmpty (getValue input) of
-    true -> singletonError Required
-    false -> mempty
+  validateRequired input
+    | input.required == boolean_ true && isEmpty (getValue input) = singletonError Required
+    | otherwise = mempty
 
   validateInvalid ::
     ∀ r.
