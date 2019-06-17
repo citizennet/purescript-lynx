@@ -275,10 +275,17 @@ testTemplate =
   """
   { "name": "User"
   , "fields": ["""
-    <> testTemplateText
+    <> testTemplateFullName
     <> """]
   }
 """
+
+testTemplateFullName :: String
+testTemplateFullName =
+  testField
+    "Full Name"
+    "Enter the full name"
+    testTemplateText
 
 testTemplateText :: String
 testTemplateText =
