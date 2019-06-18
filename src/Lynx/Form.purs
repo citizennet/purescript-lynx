@@ -56,6 +56,113 @@ type Sequence f
     , values :: InputSource (Array (Section f))
     }
 
+stamp :: forall a. Key -> Page a -> Page a
+stamp key page = page { tabs = map stampTab page.tabs }
+  where
+  stampTab :: Tab a -> Tab a
+  stampTab tab = tab { sections = map stampTabSections tab.sections }
+
+  stampTabSections :: TabSections a -> TabSections a
+  stampTabSections tabSections' = case tabSections' of
+    TabSection section -> TabSection section
+    TabSequence sequence
+      | sequence.key == key ->
+        TabSequence
+          sequence
+            { values = stampInputSource sequence.template sequence.values
+            }
+      | otherwise -> TabSequence sequence
+
+  stampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
+  stampInputSource templateSection inputSource = case inputSource of
+    UserInput userInput' -> UserInput (userInput' <> [ stamp' ])
+    Invalid invalid -> Invalid (invalid <> [ stamp' ])
+    UserCleared -> UserInput [ stamp' ]
+    NotSet -> UserInput [ stamp' ]
+    where
+    stamp' = templateSection { fields = map stampField templateSection.fields }
+
+  stampField :: TemplateField a -> Field a
+  stampField templateField = templateField { input = stampInput templateField.input }
+
+  stampInput :: TemplateInput a -> Input a
+  stampInput templateInput = case templateInput of
+    TemplateCurrency currency ->
+      Currency
+        { default: currency.default
+        , errors: mempty
+        , placeholder: currency.placeholder
+        , required: currency.required
+        , value: NotSet
+        }
+    TemplateDateTime dateTime ->
+      DateTime
+        { default: dateTime.default
+        , errors: mempty
+        , placeholder: dateTime.placeholder
+        , required: dateTime.required
+        , value: NotSet
+        }
+    TemplateDropdown dropdown ->
+      Dropdown
+        { default: dropdown.default
+        , errors: mempty
+        , options: dropdown.options
+        , placeholder: dropdown.placeholder
+        , required: dropdown.required
+        , value: NotSet
+        }
+    TemplateText text ->
+      Text
+        { default: text.default
+        , errors: mempty
+        , maxLength: text.maxLength
+        , minLength: text.minLength
+        , placeholder: text.placeholder
+        , required: text.required
+        , value: NotSet
+        }
+    TemplateToggle toggle ->
+      Toggle
+        { default: toggle.default
+        , errors: mempty
+        , value: NotSet
+        }
+    TemplateTypeaheadSingle typeaheadSingle ->
+      TypeaheadSingle
+        { default: typeaheadSingle.default
+        , errors: mempty
+        , options: typeaheadSingle.options
+        , resultValue: typeaheadSingle.resultValue
+        , results: typeaheadSingle.results
+        , uri: typeaheadSingle.uri
+        , value: NotSet
+        }
+
+unstamp :: forall a. Key -> Int -> Page a -> Page a
+unstamp key index page = page { tabs = map unstampTab page.tabs }
+  where
+  unstampTab :: Tab a -> Tab a
+  unstampTab tab = tab { sections = map unstampTabSections tab.sections }
+
+  unstampTabSections :: TabSections a -> TabSections a
+  unstampTabSections tabSections' = case tabSections' of
+    TabSection section -> TabSection section
+    TabSequence sequence
+      | sequence.key == key ->
+        TabSequence
+          sequence
+            { values = unstampInputSource sequence.template sequence.values
+            }
+      | otherwise -> TabSequence sequence
+
+  unstampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
+  unstampInputSource templateSection inputSource = case inputSource of
+    UserInput userInput' -> UserInput (Data.Maybe.fromMaybe userInput' $ Data.Array.deleteAt index userInput')
+    Invalid invalid -> Invalid (Data.Maybe.fromMaybe invalid $ Data.Array.deleteAt index invalid)
+    UserCleared -> UserCleared
+    NotSet -> NotSet
+
 tabSections ::
   forall a b.
   (Section a -> b) ->

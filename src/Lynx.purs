@@ -27,6 +27,7 @@ import Ocelot.Block.Card as Card
 import Ocelot.Block.FormField as FormField
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Header as Header
+import Ocelot.Block.Icon as Icon
 import Ocelot.Block.Input as Input
 import Ocelot.Block.ItemContainer (boldMatches)
 import Ocelot.Block.Layout as Layout
@@ -56,6 +57,7 @@ data Query a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
   | TypeaheadSingleQuery Key (Typeahead.Message Query Maybe ExprType) a
+  | AddSection Key a
 
 type ParentInput
   = { activeTab :: String
@@ -156,12 +158,20 @@ component =
 
   renderSequence :: Sequence ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSequence sequence =
-    Card.card_
-      $ append [ Format.subHeading_ [ HH.text sequence.name ] ]
-      $ case sequence.values of
-          UserInput sections -> renderSection <$> sections
-          Invalid sections -> renderSection <$> sections
-          _ -> mempty
+    Layout.container_
+      ( [ Format.subHeading_ [ HH.text sequence.name ] ]
+        <> case sequence.values of
+            UserInput sections -> renderSection <$> sections
+            Invalid sections -> renderSection <$> sections
+            _ -> mempty
+        <> [ Button.button
+              [ HE.onClick (HE.input_ $ AddSection sequence.key)
+              ]
+              [ Icon.plus_
+              , HH.span [ css "pl-2" ] [ HH.text "Add" ]
+              ]
+          ]
+      )
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
@@ -319,6 +329,9 @@ eval = case _ of
     Typeahead.Searched _ -> pure a
     Typeahead.Selected val -> eval (UpdateValue key (UserInput val) a)
     Typeahead.SelectionChanged _ _ -> pure a
+  AddSection key a -> do
+    { expr } <- H.get
+    eval (EvalForm (Lynx.Form.stamp key expr) a)
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
 fromTab fragment { sections: sections'', name, link } =
