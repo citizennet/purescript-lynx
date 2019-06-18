@@ -57,6 +57,7 @@ suite =
       test "decoding and encoding roundtrips properly" do
         quickCheck validationErrorRoundTrip
     stamp
+    unstamp
 
 stamp :: Test.Unit.TestSuite
 stamp = Test.Unit.suite "stamp" do
@@ -192,6 +193,195 @@ stamp = Test.Unit.suite "stamp" do
                     ]
                 }
               , values: NotSet
+              }
+          )
+
+    equal expected actual
+
+unstamp :: Test.Unit.TestSuite
+unstamp = Test.Unit.suite "unstamp" do
+  test "ignores a `Page _` that lacks a `Sequence _`" do
+    let actual :: Page Expr
+        actual = Lynx.Form.unstamp "foo" 0 page'
+
+        expected :: Page Expr
+        expected = page'
+
+        page' :: Page Expr
+        page' =
+          makePage
+          ( Data.NonEmpty.singleton
+            $ TabSection
+              { name: ""
+              , fields:
+                Data.NonEmpty.NonEmpty
+                { name: val_ (string_ "")
+                , visibility: val_ (boolean_ false)
+                , description: val_ (string_ "")
+                , key: "foo"
+                , input:
+                  Toggle
+                    { default: Nothing
+                    , value: NotSet
+                    , errors: mempty
+                    }
+                }
+                [
+                ]
+              }
+          )
+
+    equal expected actual
+
+  test "ignores a `Page _` that lacks the given `Key`" do
+    let actual :: Page Expr
+        actual = Lynx.Form.unstamp "bar" 0 page'
+
+        expected :: Page Expr
+        expected = page'
+
+        page' :: Page Expr
+        page' =
+          makePage
+          ( Data.NonEmpty.singleton
+            $ TabSequence
+              { key: "foo"
+              , name: ""
+              , template:
+                { name: ""
+                , fields:
+                  Data.NonEmpty.NonEmpty
+                    { name: val_ (string_ "")
+                    , visibility: val_ (boolean_ false)
+                    , description: val_ (string_ "")
+                    , key: "toggle"
+                    , input: TemplateToggle { default: Nothing }
+                    }
+                    [
+                    ]
+                }
+              , values: NotSet
+              }
+            )
+
+    equal expected actual
+
+  test "ignores a `Page _` with the given `Key` that lacks the index" do
+    let actual :: Page Expr
+        actual = Lynx.Form.unstamp "foo" 10 page'
+
+        expected :: Page Expr
+        expected = page'
+
+        page' :: Page Expr
+        page' =
+          makePage
+          ( Data.NonEmpty.singleton
+            $ TabSequence
+              { key: "foo"
+              , name: ""
+              , template:
+                { name: ""
+                , fields:
+                  Data.NonEmpty.NonEmpty
+                    { name: val_ (string_ "")
+                    , visibility: val_ (boolean_ false)
+                    , description: val_ (string_ "")
+                    , key: "toggle"
+                    , input: TemplateToggle { default: Nothing }
+                    }
+                    [
+                    ]
+                }
+              , values:
+                UserInput
+                [ { name: ""
+                  , fields:
+                    Data.NonEmpty.singleton
+                      { name: val_ (string_ "")
+                      , visibility: val_ (boolean_ false)
+                      , description: val_ (string_ "")
+                      , key: "toggle"
+                      , input:
+                        Toggle
+                        { default: Nothing
+                        , errors: mempty
+                        , value: NotSet
+                        }
+                      }
+                  }
+                ]
+              }
+          )
+
+    equal expected actual
+
+  test "unstamps in a `Page _` with the given `Key` and index" do
+    let actual :: Page Expr
+        actual = Lynx.Form.unstamp "foo" 0 page'
+
+        expected :: Page Expr
+        expected =
+          makePage
+          ( Data.NonEmpty.singleton
+            $ TabSequence
+              { key: "foo"
+              , name: ""
+              , template:
+                { name: ""
+                , fields:
+                  Data.NonEmpty.NonEmpty
+                    { name: val_ (string_ "")
+                    , visibility: val_ (boolean_ false)
+                    , description: val_ (string_ "")
+                    , key: "toggle"
+                    , input: TemplateToggle { default: Nothing }
+                    }
+                    [
+                    ]
+                }
+              , values: UserInput []
+              }
+          )
+
+        page' :: Page Expr
+        page' =
+          makePage
+          ( Data.NonEmpty.singleton
+            $ TabSequence
+              { key: "foo"
+              , name: ""
+              , template:
+                { name: ""
+                , fields:
+                  Data.NonEmpty.NonEmpty
+                    { name: val_ (string_ "")
+                    , visibility: val_ (boolean_ false)
+                    , description: val_ (string_ "")
+                    , key: "toggle"
+                    , input: TemplateToggle { default: Nothing }
+                    }
+                    [
+                    ]
+                }
+              , values:
+                UserInput
+                [ { name: ""
+                  , fields:
+                    Data.NonEmpty.singleton
+                      { name: val_ (string_ "")
+                      , visibility: val_ (boolean_ false)
+                      , description: val_ (string_ "")
+                      , key: "toggle"
+                      , input:
+                        Toggle
+                        { default: Nothing
+                        , errors: mempty
+                        , value: NotSet
+                        }
+                      }
+                  }
+                ]
               }
           )
 
