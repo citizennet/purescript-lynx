@@ -8,6 +8,7 @@ import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find, fold, foldMap, for_, length, sum)
 import Data.Functor.Coproduct.Nested (type (<\/>))
+import Data.FunctorWithIndex as Data.FunctorWithIndex
 import Data.Map (Map)
 import Data.Map as Data.Map
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -59,6 +60,7 @@ data Query a
   | DateTimePickerQuery Key DateTimePicker.Message a
   | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
   | AddSection Key a
+  | RemoveSection Key Int a
 
 type ParentInput
   = { activeTab :: String
@@ -162,8 +164,14 @@ component =
     Layout.container_
       ( [ Format.subHeading_ [ HH.text sequence.name ] ]
         <> case sequence.values of
-            UserInput sections -> map renderSequenceSection sections
-            Invalid sections -> map renderSequenceSection sections
+            UserInput sections ->
+              Data.FunctorWithIndex.mapWithIndex
+                (renderSequenceSection sequence.key)
+                sections
+            Invalid sections ->
+              Data.FunctorWithIndex.mapWithIndex
+                (renderSequenceSection sequence.key)
+                sections
             _ -> mempty
         <> [ Button.button
              [ HE.onClick (HE.input_ $ AddSection sequence.key)
@@ -174,11 +182,19 @@ component =
            ]
       )
 
-  renderSequenceSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  renderSequenceSection section =
+  renderSequenceSection :: Key -> Int -> Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
+  renderSequenceSection key index section =
     Card.card_
-      ( [ Format.subHeading_
+      ( [ Format.subHeading
+          [ css "relative"
+          ]
           [ HH.text section.name
+          , Button.buttonClear
+            [ css "absolute pin-r pr-0"
+            , HE.onClick (HE.input_ $ RemoveSection key index)
+            ]
+            [ Icon.close_
+            ]
           ]
         ]
         <> Data.Array.fromFoldable (map renderField section.fields)
@@ -351,6 +367,10 @@ eval = case _ of
   AddSection key a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Form.stamp key expr) a)
+
+  RemoveSection key index a -> do
+    { expr } <- H.get
+    eval (EvalForm (Lynx.Form.unstamp key index expr) a)
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
 fromTab fragment { sections: sections'', name, link } =
