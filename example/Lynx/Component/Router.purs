@@ -1,7 +1,6 @@
 module Lynx.Component.Router where
 
 import Prelude
-
 import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
 import Data.Maybe (Maybe(..))
@@ -14,22 +13,28 @@ import Lynx.Page.Home as Home
 import Lynx.Route (Route(..), form)
 import URI.Fragment as URI.Fragment
 
-type State = Route
+type State
+  = Route
 
-data Query a = Navigate Route a
+data Query a
+  = Navigate Route a
 
-type Input = Unit
+type Input
+  = Unit
 
-type Message = Void
+type Message
+  = Void
 
-type ChildSlots = Either2 Unit Unit
+type ChildSlots
+  = Either2 Unit Unit
 
-type ChildQueries = Coproduct2 Home.Query Form.Query
+type ChildQueries
+  = Coproduct2 Home.Query Form.Query
 
-component
-  :: ∀ m
-   . MonadAff m
-  => H.Component HH.HTML Query Input Message m
+component ::
+  ∀ m.
+  MonadAff m =>
+  H.Component HH.HTML Query Input Message m
 component =
   H.parentComponent
     { initialState: const Home
@@ -38,7 +43,6 @@ component =
     , receiver: const Nothing
     }
   where
-
   eval :: Query ~> H.ParentDSL State Query ChildQueries ChildSlots Message m
   eval (Navigate dest a) = do
     route <- H.get
