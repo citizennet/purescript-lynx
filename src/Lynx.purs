@@ -142,7 +142,7 @@ component =
         <> reflectType x.right
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  renderTab activeTab tabs = Layout.main_ (Data.Array.fromFoldable $ map (tabSections renderSection renderSequence) tab.sections)
+  renderTab activeTab tabs = Layout.main_ (Data.Array.fromFoldable $ (tabSections renderSection renderSequence) <$> tab.sections)
     where
     byLink :: Tab ExprType -> Boolean
     byLink { link } = activeTab == link
@@ -196,8 +196,11 @@ component =
               ]
           ]
       ]
-        <> Data.Array.fromFoldable (map renderField section.fields)
+        <> Data.Array.fromFoldable (map (renderField <<< indexKey index) section.fields)
       )
+
+  indexKey :: forall r. Int -> { key :: Key | r } -> { key :: Key | r }
+  indexKey index r = r { key = r.key <> show index }
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderField field =
