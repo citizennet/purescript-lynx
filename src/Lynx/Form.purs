@@ -140,6 +140,34 @@ stamp key page = page { tabs = map stampTab page.tabs }
         , value: NotSet
         }
 
+unstamp :: forall a. Key -> Int -> Page a -> Page a
+unstamp key index page = page { tabs = map unstampTab page.tabs }
+  where
+  unstampTab :: Tab a -> Tab a
+  unstampTab tab = tab { sections = map unstampTabSections tab.sections }
+
+  unstampTabSections :: TabSections a -> TabSections a
+  unstampTabSections tabSections' = case tabSections' of
+    TabSection section -> TabSection section
+    TabSequence sequence
+      | sequence.key == key ->
+        TabSequence
+          sequence
+            { values = unstampInputSource sequence.template sequence.values
+            }
+      | otherwise -> TabSequence sequence
+
+  unstampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
+  unstampInputSource templateSection inputSource = case inputSource of
+    UserInput userInput' ->
+      UserInput (Data.Maybe.fromMaybe userInput' $ Data.Array.deleteAt index userInput')
+    Invalid invalid ->
+      Invalid (Data.Maybe.fromMaybe invalid $ Data.Array.deleteAt index invalid)
+    UserCleared ->
+      UserCleared
+    NotSet ->
+      NotSet
+
 tabSections
   :: forall a b
    . (Section a -> b)
