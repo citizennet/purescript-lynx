@@ -162,8 +162,8 @@ component =
     Layout.container_
       ( [ Format.subHeading_ [ HH.text sequence.name ] ]
         <> case sequence.values of
-            UserInput sections -> renderSection <$> sections
-            Invalid sections -> renderSection <$> sections
+            UserInput sections -> map renderSequenceSection sections
+            Invalid sections -> map renderSequenceSection sections
             _ -> mempty
         <> [ Button.button
              [ HE.onClick (HE.input_ $ AddSection sequence.key)
@@ -172,6 +172,16 @@ component =
              , HH.span [css "pl-2"] [HH.text "Add"]
              ]
            ]
+      )
+
+  renderSequenceSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
+  renderSequenceSection section =
+    Card.card_
+      ( [ Format.subHeading_
+          [ HH.text section.name
+          ]
+        ]
+        <> Data.Array.fromFoldable (map renderField section.fields)
       )
 
   renderField :: Field ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
