@@ -861,7 +861,7 @@ mvpPage =
       }
       [ { name: "Creative"
         , link: "creative"
-        , sections: Data.NonEmpty.singleton mvpCreativeSequence
+        , sections: Data.NonEmpty.NonEmpty mvpSocialAccount [ mvpCreativeSequence ]
         }
       ]
   }
@@ -888,7 +888,7 @@ mvpCreativeSequence =
     { name: "Creative"
     , key: "creative"
     , template:
-      { name: "Social Creative"
+      { name: "Creative Copy"
       , fields:
         Data.NonEmpty.singleton
           { description: val_ (string_ "Copy to display with the creative")
@@ -905,12 +905,7 @@ mvpCreativeSequence =
           , visibility: val_ (boolean_ true)
           }
       }
-    , values:
-      UserInput
-        [ { name: "Social Creative"
-          , fields: Data.NonEmpty.singleton mvpSocialAccount
-          }
-        ]
+    , values: NotSet
     }
 
 mvpEnd :: Field Expr
@@ -1016,19 +1011,24 @@ mvpObjective =
         ]
       )
 
-mvpSocialAccount :: Field Expr
+mvpSocialAccount :: TabSections Expr
 mvpSocialAccount =
-  { description: val_ (string_ "")
-  , input:
-    Toggle
-      { default: Nothing
-      , value: NotSet
-      , errors: mempty
-      }
-  , key: "social-account"
-  , name: val_ (string_ "Social Account")
-  , visibility: val_ (boolean_ true)
-  }
+  TabSection
+    { name: "Social Creative"
+    , fields:
+      Data.NonEmpty.singleton
+        { description: val_ (string_ "")
+        , input:
+          Toggle
+            { default: Nothing
+            , value: NotSet
+            , errors: mempty
+            }
+        , key: "social-account"
+        , name: val_ (string_ "Social Account")
+        , visibility: val_ (boolean_ true)
+        }
+    }
 
 mvpStart :: Field Expr
 mvpStart =
