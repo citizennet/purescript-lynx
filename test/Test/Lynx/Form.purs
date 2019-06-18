@@ -60,17 +60,6 @@ suite =
 
 stamp :: Test.Unit.TestSuite
 stamp = Test.Unit.suite "stamp" do
-  let makePage :: Data.NonEmpty.NonEmpty Array (TabSections Expr) -> Page Expr
-      makePage sections =
-        { name: ""
-        , tabs:
-          Data.NonEmpty.singleton
-            { name: ""
-            , link: ""
-            , sections
-            }
-        }
-
   test "ignores a `Page _` that lacks a `Sequence _`" do
     let actual :: Page Expr
         actual = Lynx.Form.stamp "foo" page'
@@ -283,32 +272,38 @@ dropdownOptions = do
   fooKey = "foo"
   page' :: Page Expr
   page' =
-    { name: ""
-    , tabs:
-      Data.NonEmpty.singleton
+    makePage
+    ( Data.NonEmpty.singleton $
+      TabSection
         { name: ""
-        , link: ""
-        , sections: Data.NonEmpty.singleton $
-            TabSection
-              { name: ""
-              , fields:
-                Data.NonEmpty.NonEmpty
-                { name: val_ (string_ "")
-                , visibility: val_ (boolean_ false)
-                , description: val_ (string_ "")
-                , key: fooKey
-                , input: foo
-                }
-                [ { name: val_ (string_ "")
-                  , visibility: val_ (boolean_ false)
-                  , description: val_ (string_ "")
-                  , key: dropdownKey
-                  , input: dropdown
-                  }
-                ]
-              }
+        , fields:
+          Data.NonEmpty.NonEmpty
+          { name: val_ (string_ "")
+          , visibility: val_ (boolean_ false)
+          , description: val_ (string_ "")
+          , key: fooKey
+          , input: foo
+          }
+          [ { name: val_ (string_ "")
+            , visibility: val_ (boolean_ false)
+            , description: val_ (string_ "")
+            , key: dropdownKey
+            , input: dropdown
+            }
+          ]
         }
+    )
+
+makePage :: Data.NonEmpty.NonEmpty Array (TabSections Expr) -> Page Expr
+makePage sections =
+  { name: ""
+  , tabs:
+    Data.NonEmpty.singleton
+    { name: ""
+    , link: ""
+    , sections
     }
+  }
 
 pageRoundTrip :: Page Expr -> Result
 pageRoundTrip = roundTrip
