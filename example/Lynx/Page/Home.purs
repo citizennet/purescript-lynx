@@ -1,7 +1,6 @@
 module Lynx.Page.Home where
 
 import Prelude
-
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Halogen as H
@@ -14,25 +13,30 @@ import Ocelot.Block.Card as Card
 import Ocelot.Block.Format as Format
 import Ocelot.Block.Table as Table
 
-type State = Unit
+type State
+  = Unit
 
-data Query a = Noop a
+data Query a
+  = Noop a
 
-type Input = Unit
+type Input
+  = Unit
 
-type Message = Void
+type Message
+  = Void
 
-type Form = { name :: String, id :: Lynx.Page.Form.Route }
+type Form
+  = { name :: String, id :: Lynx.Page.Form.Route }
 
 forms :: Array Form
 forms =
   [ { name: "Profile", id: Lynx.Page.Form.Profile1 }
-  , { name: "MVP", id: Lynx.Page.Form.MVP (Data.NonEmpty.head mvpPage.tabs).link}
+  , { name: "MVP", id: Lynx.Page.Form.MVP (Data.NonEmpty.head mvpPage.tabs).link }
   ]
 
-component
-  :: ∀ m
-   . H.Component HH.HTML Query Input Message m
+component ::
+  ∀ m.
+  H.Component HH.HTML Query Input Message m
 component =
   H.component
     { initialState: const unit
@@ -41,7 +45,6 @@ component =
     , receiver: const Nothing
     }
   where
-
   eval :: Query ~> H.ComponentDSL State Query Message m
   eval (Noop a) = pure a
 
@@ -56,8 +59,8 @@ component =
   renderRow { name, id } =
     Table.row_
       [ Table.cell_
-        [ HH.a
-          [ safeHref $ Form id ]
-          [ HH.text name ]
-        ]
+          [ HH.a
+              [ safeHref $ Form id ]
+              [ HH.text name ]
+          ]
       ]

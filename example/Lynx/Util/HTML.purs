@@ -1,7 +1,6 @@
 module Lynx.Util.HTML where
 
 import Prelude
-
 import Halogen as HH
 import Halogen.HTML.Properties as HP
 import Lynx.Route (Route, routeCodec)

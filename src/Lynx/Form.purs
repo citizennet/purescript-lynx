@@ -1,7 +1,6 @@
 module Lynx.Form where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Array as Data.Array
@@ -30,32 +29,32 @@ import Test.QuickCheck (class Arbitrary)
 import Test.QuickCheck.Arbitrary (genericArbitrary)
 import Type.Row (type (+))
 
-type Page f =
-  { name :: String
-  , tabs :: NonEmpty Array (Tab f)
-  }
+type Page f
+  = { name :: String
+    , tabs :: NonEmpty Array (Tab f)
+    }
 
-type Tab f =
-  { name :: String
-  , link :: String
-  , sections :: NonEmpty Array (TabSections f)
-  }
+type Tab f
+  = { name :: String
+    , link :: String
+    , sections :: NonEmpty Array (TabSections f)
+    }
 
 data TabSections f
   = TabSection (Section f)
   | TabSequence (Sequence f)
 
-type Section f =
-  { name :: String
-  , fields :: NonEmpty Array (Field f)
-  }
+type Section f
+  = { name :: String
+    , fields :: NonEmpty Array (Field f)
+    }
 
-type Sequence f =
-  { name :: String
-  , key :: String
-  , template :: TemplateSection f
-  , values :: InputSource (Array (Section f))
-  }
+type Sequence f
+  = { name :: String
+    , key :: String
+    , template :: TemplateSection f
+    , values :: InputSource (Array (Section f))
+    }
 
 stamp :: forall a. Key -> Page a -> Page a
 stamp key page = page { tabs = map stampTab page.tabs }
@@ -76,10 +75,10 @@ stamp key page = page { tabs = map stampTab page.tabs }
 
   stampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
   stampInputSource templateSection inputSource = case inputSource of
-    UserInput userInput' -> UserInput (userInput' <> [stamp'])
-    Invalid invalid -> Invalid (invalid <> [stamp'])
-    UserCleared -> UserInput [stamp']
-    NotSet -> UserInput [stamp']
+    UserInput userInput' -> UserInput (userInput' <> [ stamp' ])
+    Invalid invalid -> Invalid (invalid <> [ stamp' ])
+    UserCleared -> UserInput [ stamp' ]
+    NotSet -> UserInput [ stamp' ]
     where
     stamp' = templateSection { fields = map stampField templateSection.fields }
 
@@ -159,21 +158,17 @@ unstamp key index page = page { tabs = map unstampTab page.tabs }
 
   unstampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
   unstampInputSource templateSection inputSource = case inputSource of
-    UserInput userInput' ->
-      UserInput (Data.Maybe.fromMaybe userInput' $ Data.Array.deleteAt index userInput')
-    Invalid invalid ->
-      Invalid (Data.Maybe.fromMaybe invalid $ Data.Array.deleteAt index invalid)
-    UserCleared ->
-      UserCleared
-    NotSet ->
-      NotSet
+    UserInput userInput' -> UserInput (Data.Maybe.fromMaybe userInput' $ Data.Array.deleteAt index userInput')
+    Invalid invalid -> Invalid (Data.Maybe.fromMaybe invalid $ Data.Array.deleteAt index invalid)
+    UserCleared -> UserCleared
+    NotSet -> NotSet
 
-tabSections
-  :: forall a b
-   . (Section a -> b)
-  -> (Sequence a -> b)
-  -> TabSections a
-  -> b
+tabSections ::
+  forall a b.
+  (Section a -> b) ->
+  (Sequence a -> b) ->
+  TabSections a ->
+  b
 tabSections f g = case _ of
   TabSection section -> f section
   TabSequence sequence -> g sequence
@@ -196,23 +191,24 @@ instance encodeJsonTabSections :: EncodeJson (TabSections Expr) where
 instance decodeJsonTabSections :: DecodeJson (TabSections Expr) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "type" >>= case _ of
+    type' <- x .: "type"
+    case type' of
       "TabSection" -> pure <<< TabSection <=< decodeJson $ json
       "TabSequence" -> pure <<< TabSequence <=< decodeJson $ json
       t -> Left $ "Unsupported TabSections type: " <> t
 
-type TemplateSection f =
-  { name :: String
-  , fields :: NonEmpty Array (TemplateField f)
-  }
+type TemplateSection f
+  = { name :: String
+    , fields :: NonEmpty Array (TemplateField f)
+    }
 
-type TemplateField f =
-  { name :: f
-  , visibility :: f
-  , description :: f
-  , key :: Key
-  , input :: TemplateInput f
-  }
+type TemplateField f
+  = { name :: f
+    , visibility :: f
+    , description :: f
+    , key :: Key
+    , input :: TemplateInput f
+    }
 
 data TemplateInput f
   = TemplateCurrency
@@ -271,7 +267,8 @@ instance encodeJsonTemplateInput :: EncodeJson (TemplateInput Expr) where
 instance decodeJsonTemplateInput :: DecodeJson (TemplateInput Expr) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "type" >>= case _ of
+    type' <- x .: "type"
+    case type' of
       "TemplateCurrency" -> pure <<< TemplateCurrency <=< decodeJson $ json
       "TemplateDateTime" -> pure <<< TemplateDateTime <=< decodeJson $ json
       "TemplateDropdown" -> pure <<< TemplateDropdown <=< decodeJson $ json
@@ -280,60 +277,61 @@ instance decodeJsonTemplateInput :: DecodeJson (TemplateInput Expr) where
       "TemplateTypeaheadSingle" -> pure <<< TemplateTypeaheadSingle <=< decodeJson $ json
       t -> Left $ "Unsupported TemplateInput type: " <> t
 
-type FieldRows f r =
-  ( name :: f
-  , visibility :: f
-  , description :: f
-  , key :: Key
-  , input :: Input f
-  | r
-  )
+type FieldRows f r
+  = ( name :: f
+    , visibility :: f
+    , description :: f
+    , key :: Key
+    , input :: Input f
+    | r
+    )
 
-type Field f = Record (FieldRows f ())
+type Field f
+  = Record (FieldRows f ())
 
-type SharedRows f r =
-  ( default :: Maybe f
-  , value :: InputSource f
-  , errors :: Errors ValidationError
-  | r
-  )
+type SharedRows f r
+  = ( default :: Maybe f
+    , value :: InputSource f
+    , errors :: Errors ValidationError
+    | r
+    )
 
-type RequiredRows f r =
-  ( required :: f
-  | r
-  )
+type RequiredRows f r
+  = ( required :: f
+    | r
+    )
 
-type StringRows f r =
-  ( placeholder :: f
-  , maxLength :: Maybe f
-  , minLength :: Maybe f
-  | r
-  )
+type StringRows f r
+  = ( placeholder :: f
+    , maxLength :: Maybe f
+    , minLength :: Maybe f
+    | r
+    )
 
-type CurrencyRows f r =
-  ( placeholder :: f
-  | r
-  )
+type CurrencyRows f r
+  = ( placeholder :: f
+    | r
+    )
 
-type DateTimeRows f r =
-  ( placeholder :: f
-  | r
-  )
+type DateTimeRows f r
+  = ( placeholder :: f
+    | r
+    )
 
-type DropdownRows f r =
-  ( options :: f
-  , placeholder :: f
-  | r
-  )
+type DropdownRows f r
+  = ( options :: f
+    , placeholder :: f
+    | r
+    )
 
 -- Gabe finds these labels confusing. He'd like a clear definition
-type TypeaheadSingleRows f r =
-  ( options :: f
-  , resultValue :: f
-  , results :: f
-  , uri :: f
-  | r
-  )
+type TypeaheadSingleRows f r
+  = ( options :: f
+    , resultValue :: f
+    , results :: f
+    , uri :: f
+    | r
+    )
 
 data Input f
   = Currency (Record (SharedRows f + RequiredRows f + CurrencyRows f + ()))
@@ -346,7 +344,9 @@ data Input f
 derive instance eqInput :: (Eq f) => Eq (Input f)
 
 derive instance genericInput :: Generic (Input f) _
-instance showInput :: Show (Input Expr) where show = genericShow
+
+instance showInput :: Show (Input Expr) where
+  show = genericShow
 
 instance encodeInput :: EncodeJson (Input Expr) where
   encodeJson = case _ of
@@ -360,7 +360,8 @@ instance encodeInput :: EncodeJson (Input Expr) where
 instance decodeInput :: DecodeJson (Input Expr) where
   decodeJson json = do
     x <- decodeJson json
-    x .: "type" >>= case _ of
+    type' <- x .: "type"
+    case type' of
       "Currency" -> pure <<< Currency <=< decodeJson $ json
       "DateTime" -> pure <<< DateTime <=< decodeJson $ json
       "Dropdown" -> pure <<< Dropdown <=< decodeJson $ json
@@ -414,7 +415,8 @@ instance encodeInputSource :: (EncodeJson a) => EncodeJson (InputSource a) where
 instance decodeInputSource :: (DecodeJson a) => DecodeJson (InputSource a) where
   decodeJson json = do
     x' <- decodeJson json
-    x' .: "type" >>= case _ of
+    type' <- x' .: "type"
+    case type' of
       "UserInput" -> x' .: "value" >>= (pure <<< UserInput)
       "Invalid" -> x' .: "value" >>= (pure <<< Invalid)
       "UserCleared" -> pure UserCleared
@@ -429,7 +431,8 @@ userInput = case _ of
   UserInput x -> Just x
   _ -> Nothing
 
-newtype Errors e = Errors (Set e)
+newtype Errors e
+  = Errors (Set e)
 
 derive instance eqErrors :: Eq e => Eq (Errors e)
 
@@ -496,7 +499,8 @@ instance encodeValidationError :: EncodeJson ValidationError where
 instance decodeValidationError :: DecodeJson ValidationError where
   decodeJson json = do
     x' <- decodeJson json
-    x' .: "type" >>= case _ of
+    type' <- x' .: "type"
+    case type' of
       "Required" -> pure Required
       "MinLength" -> x' .: "param" >>= (pure <<< MinLength)
       "MaxLength" -> x' .: "param" >>= (pure <<< MaxLength)
@@ -512,8 +516,7 @@ eval get page = do
   pure page { tabs = tabs }
   where
   evalTab :: Tab Expr -> Either EvalError (Tab ExprType)
-  evalTab tab =
-    tab { sections = _ } <$> traverse evalTabSections tab.sections
+  evalTab tab = tab { sections = _ } <$> traverse evalTabSections tab.sections
 
   evalTabSections :: TabSections Expr -> Either EvalError (TabSections ExprType)
   evalTabSections =
@@ -522,8 +525,7 @@ eval get page = do
       (map TabSequence <$> evalSequence)
 
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
-  evalSection section =
-    section { fields = _ } <$> traverse evalField section.fields
+  evalSection section = section { fields = _ } <$> traverse evalField section.fields
 
   evalSequence :: Sequence Expr -> Either EvalError (Sequence ExprType)
   evalSequence sequence = ado
@@ -532,8 +534,7 @@ eval get page = do
     in sequence { values = values, template = template }
 
   evalTemplate :: TemplateSection Expr -> Either EvalError (TemplateSection ExprType)
-  evalTemplate template =
-    template { fields = _ } <$> traverse evalTemplateField template.fields
+  evalTemplate template = template { fields = _ } <$> traverse evalTemplateField template.fields
 
   evalTemplateField :: TemplateField Expr -> Either EvalError (TemplateField ExprType)
   evalTemplateField templateField = do
@@ -587,9 +588,7 @@ eval get page = do
         , placeholder
         , required
         }
-    TemplateToggle input ->
-      TemplateToggle <<< { default: _ } <$> traverse (evalExpr get) input.default
-
+    TemplateToggle input -> TemplateToggle <<< { default: _ } <$> traverse (evalExpr get) input.default
     TemplateTypeaheadSingle input -> ado
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
@@ -619,46 +618,50 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure $ validate $ Currency
-        { default
-        , placeholder
-        , required
-        , value
-        , errors: mempty
-        }
+      pure $ validate
+        $ Currency
+            { default
+            , placeholder
+            , required
+            , value
+            , errors: mempty
+            }
     DateTime input -> do
       default <- traverse (evalExpr get) input.default
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure $ validate $ DateTime
-        { default
-        , placeholder
-        , required
-        , value
-        , errors: mempty
-        }
+      pure $ validate
+        $ DateTime
+            { default
+            , placeholder
+            , required
+            , value
+            , errors: mempty
+            }
     Dropdown input -> do
       default <- traverse (evalExpr get) input.default
       options <- evalExpr get input.options
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value' <- traverse (evalExpr get) input.value
-      let arrayOptions = Data.Maybe.fromMaybe [] (toArray options)
-          value = case value' of
-            UserInput x ->
-              if (not $ x `Data.Array.elem` arrayOptions)
-                then Invalid x
-                else UserInput x
-            otherwise -> otherwise
-      pure $ validate $ Dropdown
-        { default
-        , options
-        , placeholder
-        , required
-        , value
-        , errors: mempty
-        }
+      let
+        arrayOptions = Data.Maybe.fromMaybe [] (toArray options)
+
+        value = case value' of
+          UserInput x
+            | (not $ x `Data.Array.elem` arrayOptions) -> Invalid x
+            | otherwise -> UserInput x
+          otherwise -> otherwise
+      pure $ validate
+        $ Dropdown
+            { default
+            , options
+            , placeholder
+            , required
+            , value
+            , errors: mempty
+            }
     Text input -> do
       default <- traverse (evalExpr get) input.default
       maxLength <- traverse (evalExpr get) input.maxLength
@@ -666,15 +669,16 @@ eval get page = do
       placeholder <- evalExpr get input.placeholder
       required <- evalExpr get input.required
       value <- traverse (evalExpr get) input.value
-      pure $ validate $ Text
-        { default
-        , maxLength
-        , minLength
-        , placeholder
-        , required
-        , value
-        , errors: mempty
-        }
+      pure $ validate
+        $ Text
+            { default
+            , maxLength
+            , minLength
+            , placeholder
+            , required
+            , value
+            , errors: mempty
+            }
     Toggle input -> do
       default <- traverse (evalExpr get) input.default
       value <- traverse (evalExpr get) input.value
@@ -686,58 +690,51 @@ eval get page = do
       results <- evalExpr get input.results
       uri <- evalExpr get input.uri
       value <- traverse (evalExpr get) input.value
-      pure $ validate $ TypeaheadSingle
-        { default
-        , options
-        , resultValue
-        , results
-        , uri
-        , value
-        , errors: mempty
-        }
+      pure $ validate
+        $ TypeaheadSingle
+            { default
+            , options
+            , resultValue
+            , results
+            , uri
+            , value
+            , errors: mempty
+            }
 
   validate :: Input ExprType -> Input ExprType
   validate = case _ of
-    Currency input ->
-      if displayError input
-        then Currency $
-          input { errors = input.errors <> validateRequired input }
-        else Currency input
-    DateTime input ->
-      if displayError input
-        then DateTime $
-          input { errors = input.errors <> validateRequired input }
-        else DateTime input
-    Dropdown input ->
-      if displayError input
-        then Dropdown $
-          input { errors = input.errors <> validateInvalid input <> validateRequired input }
-        else Dropdown input
-    Text input ->
-      if displayError input
-        then Text $
-          input { errors = input.errors <> validateRequired input }
-        else Text input
+    Currency input
+      | displayError input -> Currency input { errors = input.errors <> validateRequired input }
+      | otherwise -> Currency input
+    DateTime input
+      | displayError input -> DateTime input { errors = input.errors <> validateRequired input }
+      | otherwise -> DateTime input
+    Dropdown input
+      | displayError input ->
+        Dropdown
+          $ input { errors = input.errors <> validateInvalid input <> validateRequired input }
+      | otherwise -> Dropdown input
+    Text input
+      | displayError input -> Text input { errors = input.errors <> validateRequired input }
+      | otherwise -> Text input
     Toggle input -> Toggle input
     TypeaheadSingle input -> TypeaheadSingle input
 
-  validateRequired
-    :: ∀ r
-     . Record (SharedRows ExprType + ( required :: ExprType | r ))
-    -> Errors ValidationError
-  validateRequired input =
-    if input.required == boolean_ true && isEmpty (getValue input)
-      then singletonError Required
-      else mempty
+  validateRequired ::
+    ∀ r.
+    Record (SharedRows ExprType + ( required :: ExprType | r )) ->
+    Errors ValidationError
+  validateRequired input
+    | input.required == boolean_ true && isEmpty (getValue input) = singletonError Required
+    | otherwise = mempty
 
-  validateInvalid
-    :: ∀ r
-     . Record (SharedRows ExprType + r )
-    -> Errors ValidationError
-  validateInvalid input =
-    case input.value of
-      Invalid x -> singletonError (InvalidOption $ print x)
-      otherwise -> mempty
+  validateInvalid ::
+    ∀ r.
+    Record (SharedRows ExprType + r) ->
+    Errors ValidationError
+  validateInvalid input = case input.value of
+    Invalid x -> singletonError (InvalidOption $ print x)
+    otherwise -> mempty
 
 keys :: Page Expr -> Map Key ExprType
 keys page = foldMap keysTab page.tabs
@@ -766,16 +763,16 @@ keys page = foldMap keysTab page.tabs
       Toggle toggle -> getValue toggle
       TypeaheadSingle typeahead -> getValue typeahead
 
-displayError
-  :: ∀ r
-   . Record (SharedRows ExprType r)
-  -> Boolean
+displayError ::
+  ∀ r.
+  Record (SharedRows ExprType r) ->
+  Boolean
 displayError x = x.value /= NotSet
 
-getValue
-  :: ∀ a r
-   . Record (SharedRows a r)
-  -> Maybe a
+getValue ::
+  ∀ a r.
+  Record (SharedRows a r) ->
+  Maybe a
 getValue x = userInput x.value <|> x.default
 
 setValue :: Key -> InputSource ExprType -> Page Expr -> Page Expr
@@ -802,25 +799,19 @@ setValue key val page = page { tabs = map setTab page.tabs }
   setField :: Field Expr -> Field Expr
   setField field
     | key == field.key = case field.input of
-      Currency input ->
-        field { input = Currency input { value = map val_ val } }
-      DateTime input ->
-        field { input = DateTime input { value = map val_ val } }
-      Dropdown input ->
-        field { input = Dropdown input { value = map val_ val } }
-      Text input ->
-        field { input = Text input { value = map val_ val } }
-      Toggle input ->
-        field { input = Toggle input { value = map val_ val } }
-      TypeaheadSingle input ->
-        field { input = TypeaheadSingle input { value = map val_ val } }
+      Currency input -> field { input = Currency input { value = map val_ val } }
+      DateTime input -> field { input = DateTime input { value = map val_ val } }
+      Dropdown input -> field { input = Dropdown input { value = map val_ val } }
+      Text input -> field { input = Text input { value = map val_ val } }
+      Toggle input -> field { input = Toggle input { value = map val_ val } }
+      TypeaheadSingle input -> field { input = TypeaheadSingle input { value = map val_ val } }
     | otherwise = field
 
-parseTypeaheadJSON
-  :: forall r
-  . { results :: ExprType, resultValue :: ExprType | r }
-  -> Json
-  -> Either String (Array ExprType)
+parseTypeaheadJSON ::
+  forall r.
+  { results :: ExprType, resultValue :: ExprType | r } ->
+  Json ->
+  Either String (Array ExprType)
 parseTypeaheadJSON { results, resultValue } json' = do
   resultsFields' <- parseArray "`results`" results
   resultsFields <- traverse (parseString "`results`") resultsFields'
@@ -844,23 +835,21 @@ parseTypeaheadJSON { results, resultValue } json' = do
   parseString :: String -> ExprType -> Either String String
   parseString field = note (field <> " not an Array of Strings") <<< toString
 
-asyncFromTypeahead
-  :: forall f r
-  . MonadAff f
-  => { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r }
-  -> String
-  -> f (RemoteData String (Array ExprType))
+asyncFromTypeahead ::
+  forall f r.
+  MonadAff f =>
+  { resultValue :: ExprType, results :: ExprType, uri :: ExprType | r } ->
+  String ->
+  f (RemoteData String (Array ExprType))
 asyncFromTypeahead typeahead x = case toString typeahead.uri of
   Just uri -> do
     { response } <-
       liftAff
         (Network.HTTP.Affjax.get Network.HTTP.Affjax.Response.json $ uri <> x)
     pure (Network.RemoteData.fromEither $ parseTypeaheadJSON typeahead response)
-  Nothing ->
-    liftAff (throwError $ error $ print typeahead.uri <> " is not a String")
+  Nothing -> liftAff (throwError $ error $ print typeahead.uri <> " is not a String")
 
 -- MVP
-
 mvpPage :: Page Expr
 mvpPage =
   { name: "New Campaign Request"
@@ -883,16 +872,15 @@ mvpDetailsSection =
     { name: "Campaign"
     , fields:
       Data.NonEmpty.NonEmpty
-      mvpName
-      [ mvpTargetableInterest
-      , mvpFacebookTwitterPage
-      , mvpObjective
-      , mvpMediaBudget
-      , mvpStart
-      , mvpEnd
-      ]
+        mvpName
+        [ mvpTargetableInterest
+        , mvpFacebookTwitterPage
+        , mvpObjective
+        , mvpMediaBudget
+        , mvpStart
+        , mvpEnd
+        ]
     }
-
 
 mvpCreativeSequence :: TabSections Expr
 mvpCreativeSequence =
@@ -907,22 +895,22 @@ mvpCreativeSequence =
           , key: "copy"
           , input:
             TemplateText
-            { default: Nothing
-            , required: val_ (boolean_ true)
-            , placeholder: val_ (string_ "I don't know what a creative is")
-            , maxLength: Nothing
-            , minLength: Nothing
-            }
+              { default: Nothing
+              , required: val_ (boolean_ true)
+              , placeholder: val_ (string_ "I don't know what a creative is")
+              , maxLength: Nothing
+              , minLength: Nothing
+              }
           , name: val_ (string_ "Copy")
           , visibility: val_ (boolean_ true)
           }
       }
     , values:
       UserInput
-      [ { name: "Social Creative"
-        , fields: Data.NonEmpty.singleton mvpSocialAccount
-        }
-      ]
+        [ { name: "Social Creative"
+          , fields: Data.NonEmpty.singleton mvpSocialAccount
+          }
+        ]
     }
 
 mvpEnd :: Field Expr
@@ -948,8 +936,8 @@ mvpFacebookTwitterPage =
     TypeaheadSingle
       { default: Nothing
       , options: val_ (array_ [])
-      , resultValue: val_ (array_ [string_ "name"])
-      , results: val_ (array_ [string_ "facebookTwitterPage"])
+      , resultValue: val_ (array_ [ string_ "name" ])
+      , results: val_ (array_ [ string_ "facebookTwitterPage" ])
       , uri: val_ (string_ mvpURI)
       , value: NotSet
       , errors: mempty
@@ -1013,29 +1001,30 @@ mvpObjective =
   options :: Expr
   options =
     val_
-    ( array_
-      [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
-      , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
-      , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
-      , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
-      , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
-      , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
-      , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
-      , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
-      , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
-      , pair_ { name: string_ "Reach", value: string_ "Reach" }
-      , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
-      ]
-    )
+      ( array_
+        [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
+        , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
+        , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
+        , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
+        , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
+        , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
+        , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
+        , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
+        , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
+        , pair_ { name: string_ "Reach", value: string_ "Reach" }
+        , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
+        ]
+      )
 
 mvpSocialAccount :: Field Expr
 mvpSocialAccount =
   { description: val_ (string_ "")
-  , input: Toggle
-    { default: Nothing
-    , value: NotSet
-    , errors: mempty
-    }
+  , input:
+    Toggle
+      { default: Nothing
+      , value: NotSet
+      , errors: mempty
+      }
   , key: "social-account"
   , name: val_ (string_ "Social Account")
   , visibility: val_ (boolean_ true)
@@ -1064,8 +1053,8 @@ mvpTargetableInterest =
     TypeaheadSingle
       { default: Nothing
       , options: val_ (array_ [])
-      , resultValue: val_ (array_ [string_ "name"])
-      , results: val_ (array_ [string_ "targetableInterest"])
+      , resultValue: val_ (array_ [ string_ "name" ])
+      , results: val_ (array_ [ string_ "targetableInterest" ])
       , uri: val_ (string_ mvpURI)
       , value: NotSet
       , errors: mempty
@@ -1076,11 +1065,9 @@ mvpTargetableInterest =
   }
 
 mvpURI :: String
-mvpURI =
-  "https://raw.githubusercontent.com/citizennet/purescript-lynx/706ef89d4e2f4ebdf5a6fc485936fd4d3973b5e8/src/mvp.json?ignore="
+mvpURI = "https://raw.githubusercontent.com/citizennet/purescript-lynx/706ef89d4e2f4ebdf5a6fc485936fd4d3973b5e8/src/mvp.json?ignore="
 
 -- Test
-
 testPage :: Page Expr
 testPage =
   { name: "Profile"
@@ -1088,7 +1075,7 @@ testPage =
     Data.NonEmpty.singleton
       { name: "User"
       , link: "user"
-      , sections : Data.NonEmpty.singleton $ TabSection testSection
+      , sections: Data.NonEmpty.singleton $ TabSection testSection
       }
   }
 
@@ -1111,15 +1098,16 @@ firstName =
   , visibility: val_ (boolean_ true)
   , description: val_ (string_ "Enter your first name")
   , key: "firstName"
-  , input: Text
-    { default: Just (val_ (string_ "John"))
-    , maxLength: Nothing
-    , minLength: Nothing
-    , placeholder: val_ (string_ "")
-    , required: val_ (boolean_ true)
-    , value: NotSet
-    , errors: mempty
-    }
+  , input:
+    Text
+      { default: Just (val_ (string_ "John"))
+      , maxLength: Nothing
+      , minLength: Nothing
+      , placeholder: val_ (string_ "")
+      , required: val_ (boolean_ true)
+      , value: NotSet
+      , errors: mempty
+      }
   }
 
 lastName :: Field Expr
@@ -1128,15 +1116,16 @@ lastName =
   , visibility: val_ (boolean_ true)
   , description: val_ (string_ "Enter your last name")
   , key: "lastName"
-  , input: Text
-    { default: Just (val_ (string_ "Smith"))
-    , maxLength: Nothing
-    , minLength: Nothing
-    , placeholder: val_ (string_ "")
-    , required: val_ (boolean_ true)
-    , value: NotSet
-    , errors: mempty
-    }
+  , input:
+    Text
+      { default: Just (val_ (string_ "Smith"))
+      , maxLength: Nothing
+      , minLength: Nothing
+      , placeholder: val_ (string_ "")
+      , required: val_ (boolean_ true)
+      , value: NotSet
+      , errors: mempty
+      }
   }
 
 active :: Field Expr
@@ -1145,16 +1134,18 @@ active =
   , visibility: val_ (boolean_ true)
   , description
   , key: "active"
-  , input: Toggle
-    { default: Just (val_ (boolean_ true))
-    , value: NotSet
-    , errors: mempty
-    }
+  , input:
+    Toggle
+      { default: Just (val_ (boolean_ true))
+      , value: NotSet
+      , errors: mempty
+      }
   }
   where
-  description = if_ (lookup_ "active" $ val_ (boolean_ true))
-    (val_ (string_ "User's account is active!"))
-    (val_ (string_ "User's account is not active"))
+  description =
+    if_ (lookup_ "active" $ val_ (boolean_ true))
+      (val_ (string_ "User's account is active!"))
+      (val_ (string_ "User's account is not active"))
 
 food :: Field Expr
 food =
@@ -1162,27 +1153,30 @@ food =
   , visibility: val_ (boolean_ true)
   , description: val_ (string_ "What is your favorite food?")
   , key: "food"
-  , input: Dropdown
-    { default: Nothing
-    , options:
-      if_
-        do lookup_ "active" (val_ $ boolean_ false)
-        do val_ $
-          array_
-            [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
-            , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
-            ]
-        do val_ $
-          array_
-            [ pair_ { name: string_ "Apple", value: string_ "Apple" }
-            , pair_ { name: string_ "Banana", value: string_ "Banana" }
-            , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
-            ]
-    , placeholder: val_ (string_ "Choose a food")
-    , required: val_ (boolean_ true)
-    , value: NotSet
-    , errors: mempty
-    }
+  , input:
+    Dropdown
+      { default: Nothing
+      , options:
+        if_
+          (lookup_ "active" (val_ $ boolean_ false))
+          ( val_
+            $ array_
+                [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
+                , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
+                ]
+          )
+          ( val_
+            $ array_
+                [ pair_ { name: string_ "Apple", value: string_ "Apple" }
+                , pair_ { name: string_ "Banana", value: string_ "Banana" }
+                , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
+                ]
+          )
+      , placeholder: val_ (string_ "Choose a food")
+      , required: val_ (boolean_ true)
+      , value: NotSet
+      , errors: mempty
+      }
   }
 
 money :: Field Expr
@@ -1191,11 +1185,12 @@ money =
   , visibility: val_ (boolean_ true)
   , description: val_ (string_ "")
   , key: "money"
-  , input: Currency
-    { default: Nothing
-    , placeholder: val_ (cents_ (wrap zero))
-    , required: val_ (boolean_ true)
-    , value: NotSet
-    , errors: mempty
-    }
+  , input:
+    Currency
+      { default: Nothing
+      , placeholder: val_ (cents_ (wrap zero))
+      , required: val_ (boolean_ true)
+      , value: NotSet
+      , errors: mempty
+      }
   }
