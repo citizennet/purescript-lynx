@@ -153,12 +153,12 @@ unstamp key index page = page { tabs = map unstampTab page.tabs }
       | sequence.key == key ->
         TabSequence
           sequence
-            { values = unstampInputSource sequence.template sequence.values
+            { values = unstampInputSource sequence.values
             }
       | otherwise -> TabSequence sequence
 
-  unstampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
-  unstampInputSource templateSection inputSource = case inputSource of
+  unstampInputSource :: InputSource (Array (Section a)) -> InputSource (Array (Section a))
+  unstampInputSource inputSource = case inputSource of
     UserInput userInput' ->
       UserInput (Data.Maybe.fromMaybe userInput' $ Data.Array.deleteAt index userInput')
     Invalid invalid ->
