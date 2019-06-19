@@ -1,7 +1,6 @@
 module Lynx.Expr where
 
 import Prelude
-
 import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.BigInt as Data.BigInt
@@ -29,7 +28,8 @@ import Ocelot.Data.Currency (Cents, formatCentsToStrDollars)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 import Test.QuickCheck.Gen (Gen, Size, arrayOf, oneOf, sized)
 
-type Key = String
+type Key
+  = String
 
 newtype ArrayF a
   = Array (Array a)
@@ -338,12 +338,12 @@ base out param = { in: "Void", out, op: "Val", param: encodeJson param }
 
 type ExprTypeF
   = ArrayF
-    <\/> BooleanF
-    <\/> CentsF
-    <\/> DateTimeF
-    <\/> IntF
-    <\/> PairF
-    <\/> StringF
+      <\/> BooleanF
+      <\/> CentsF
+      <\/> DateTimeF
+      <\/> IntF
+      <\/> PairF
+      <\/> StringF
 
 decodeExprTypeF :: ExprJSON -> Either String (ExprTypeF ExprJSON)
 decodeExprTypeF x =
@@ -355,10 +355,10 @@ decodeExprTypeF x =
     <|> map inj (decodePairF x)
     <|> map inj (decodeStringF x)
     <|> Left
-      ( show x { param = stringify x.param }
-        <> " unsupported."
-        <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
-      )
+        ( show x { param = stringify x.param }
+          <> " unsupported."
+          <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
+        )
 
 encodeExprTypeF :: ExprTypeF ExprJSON -> ExprJSON
 encodeExprTypeF =
@@ -408,53 +408,52 @@ instance decodeJsonExprType :: DecodeJson ExprType where
 instance arbitraryExprType :: Arbitrary ExprType where
   arbitrary = sized go
     where
-      cents :: Gen Cents
-      cents = do
-        x <- arbitrary
-        pure (wrap $ Data.BigInt.fromInt x)
-      go :: Size -> Gen ExprType
-      go size' =
-        if size' < 1 then
-          oneOf $ NonEmpty
-            (boolean_ <$> arbitrary)
-            [ cents_ <$> cents
-            , int_ <$> arbitrary
-            , string_ <$> arbitrary
-            ]
-        else
-          let size = size' / 10
-          in oneOf $ NonEmpty
-             (array_ <$> arrayOf (go size))
-             [ pair_ <$> ({ name: _, value: _ } <$> go size <*> go size)
-             ]
+    cents :: Gen Cents
+    cents = do
+      x <- arbitrary
+      pure (wrap $ Data.BigInt.fromInt x)
+
+    go :: Size -> Gen ExprType
+    go size'
+      | size' < 1 =
+        oneOf
+          $ NonEmpty
+              (boolean_ <$> arbitrary)
+              [ cents_ <$> cents
+              , int_ <$> arbitrary
+              , string_ <$> arbitrary
+              ]
+      | otherwise =
+        let
+          size = size' / 10
+        in
+          oneOf
+            $ NonEmpty
+                (array_ <$> arrayOf (go size))
+                [ pair_ <$> ({ name: _, value: _ } <$> go size <*> go size)
+                ]
 
 instance corecursiveExprTypeExprTypeF ::
-  Corecursive
-    ExprType
-    ( ArrayF
-      <\/> BooleanF
-      <\/> CentsF
-      <\/> DateTimeF
-      <\/> IntF
-      <\/> PairF
-      <\/> StringF
-    )
-    where
-      embed x = ExprType (embed $ map (un ExprType) x)
+  Corecursive ExprType ( ArrayF
+    <\/> BooleanF
+    <\/> CentsF
+    <\/> DateTimeF
+    <\/> IntF
+    <\/> PairF
+    <\/> StringF
+  ) where
+  embed x = ExprType (embed $ map (un ExprType) x)
 
 instance recursiveExprTypeExprTypeF ::
-  Recursive
-    ExprType
-    ( ArrayF
-      <\/> BooleanF
-      <\/> CentsF
-      <\/> DateTimeF
-      <\/> IntF
-      <\/> PairF
-      <\/> StringF
-    )
-    where
-      project (ExprType x) = map ExprType (project x)
+  Recursive ExprType ( ArrayF
+    <\/> BooleanF
+    <\/> CentsF
+    <\/> DateTimeF
+    <\/> IntF
+    <\/> PairF
+    <\/> StringF
+  ) where
+  project (ExprType x) = map ExprType (project x)
 
 instance showExprType :: Show ExprType where
   show x = genericShow x
@@ -494,11 +493,12 @@ toInt x' = do
   pure x
 
 toObject :: ExprType -> Object String
-toObject item = fold do
-  { name: name', value: value' } <- toPair item
-  name <- toString name'
-  value <- toString value'
-  pure (Foreign.Object.fromHomogeneous { name, value })
+toObject item =
+  fold do
+    { name: name', value: value' } <- toPair item
+    name <- toString name'
+    value <- toString value'
+    pure (Foreign.Object.fromHomogeneous { name, value })
 
 toPair :: ExprType -> Maybe { name :: ExprType, value :: ExprType }
 toPair x' = do
@@ -530,40 +530,51 @@ instance encodeJsonExpr :: EncodeJson Expr where
 instance decodeJsonExpr :: DecodeJson Expr where
   decodeJson json = do
     x' <- decodeJson json
-    x' .: "op" >>= case _ of
+    op <- x' .: "op"
+    case op of
       "Val" -> map val_ (decodeJson json)
-      "If" -> x' .: "params" >>= case _ of
-        [x, y, z] -> pure (if_ x y z)
-        _ -> Left "Expected 3 params"
-      "Equal" -> x' .: "params" >>= case _ of
-        [x, y] -> pure (equal_ x y)
-        _ -> Left "Expected 2 params"
-      "Print" -> x' .: "params" >>= case _ of
-        [x] -> pure (print_ x)
-        _ -> Left "Expected 1 param"
-      "Lookup" -> x' .: "params" >>= case _ of
-        [x, y] -> do
-          key <- decodeJson x
-          default <- decodeJson y
-          pure (lookup_ key default)
-        _ -> Left "Expected 2 params"
-      op -> Left $ op <> " invalid op"
+      "If" -> do
+        params <- x' .: "params"
+        case params of
+          [ x, y, z ] -> pure (if_ x y z)
+          _ -> Left "Expected 3 params"
+      "Equal" -> do
+        params <- x' .: "params"
+        case params of
+          [ x, y ] -> pure (equal_ x y)
+          _ -> Left "Expected 2 params"
+      "Print" -> do
+        params <- x' .: "params"
+        case params of
+          [ x ] -> pure (print_ x)
+          _ -> Left "Expected 1 param"
+      "Lookup" -> do
+        params <- x' .: "params"
+        case params of
+          [ x, y ] -> do
+            key <- decodeJson x
+            default <- decodeJson y
+            pure (lookup_ key default)
+          _ -> Left "Expected 2 params"
+      _ -> Left $ op <> " invalid op"
 
 instance arbitraryExpr :: Arbitrary Expr where
   arbitrary = sized go
     where
     go :: Size -> Gen Expr
-    go size' =
-      if size' < 1 then
-        map val_ arbitrary
-      else
-        let size = size' / 10
-        in oneOf $ NonEmpty
-            (If <$> go size <*> go size <*> go size)
-            [ Equal <$> go size <*> go size
-            , Print <$> go size
-            , Lookup <$> arbitrary <*> go size
-            ]
+    go size'
+      | size' < 1 = map val_ arbitrary
+      | otherwise =
+        let
+          size = size' / 10
+        in
+          oneOf
+            $ NonEmpty
+                (If <$> go size <*> go size <*> go size)
+                [ Equal <$> go size <*> go size
+                , Print <$> go size
+                , Lookup <$> arbitrary <*> go size
+                ]
 
 data ExprA
   = ValA ExprType
@@ -573,17 +584,12 @@ data ExprA
   | LookupA Key ExprA String
 
 instance encodeJsonExprA :: EncodeJson ExprA where
-  encodeJson =
-    case _ of
-      ValA x -> encodeJson x
-      IfA x y z i o ->
-        "params" := [ x, y, z ] ~> encodeHelper "If" i o
-      EqualA x y i o ->
-        "params" := [ x, y ] ~> encodeHelper "Equal" i o
-      PrintA x i o ->
-        "params" := [ x ] ~> encodeHelper "Print" i o
-      LookupA x y o ->
-        "params" := [ encodeJson x, encodeJson y ] ~> encodeHelper "Lookup" "Void" o
+  encodeJson = case _ of
+    ValA x -> encodeJson x
+    IfA x y z i o -> "params" := [ x, y, z ] ~> encodeHelper "If" i o
+    EqualA x y i o -> "params" := [ x, y ] ~> encodeHelper "Equal" i o
+    PrintA x i o -> "params" := [ x ] ~> encodeHelper "Print" i o
+    LookupA x y o -> "params" := [ encodeJson x, encodeJson y ] ~> encodeHelper "Lookup" "Void" o
 
 toExprA :: Expr -> ExprA
 toExprA = case _ of
@@ -600,6 +606,7 @@ toExprA = case _ of
     Equal x _ -> reflectIn x
     Print x -> reflectIn x
     Lookup _ _ -> "Void"
+
   reflectOut :: Expr -> String
   reflectOut = case _ of
     Val x -> reflectType x
@@ -609,8 +616,7 @@ toExprA = case _ of
     Lookup _ x -> reflectOut x
 
 encodeHelper :: String -> String -> String -> Json
-encodeHelper op i o =
-  "op" := op ~> "in" := i ~> "out" := o ~> jsonEmptyObject
+encodeHelper op i o = "op" := op ~> "in" := i ~> "out" := o ~> jsonEmptyObject
 
 data EvalError
   = IfCondition ExprType

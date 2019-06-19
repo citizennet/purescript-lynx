@@ -1,7 +1,6 @@
 module Lynx.Page.Form where
 
 import Prelude hiding ((/))
-
 import Data.Const (Const)
 import Data.Either.Nested (type (\/))
 import Data.Functor.Coproduct.Nested (type (<\/>))
@@ -35,10 +34,11 @@ instance showRoute :: Show Route where
   show = genericShow
 
 routeCodec :: RouteDuplex' Route
-routeCodec = sum
-  { "MVP": URI.Fragment.toString mvp / string segment
-  , "Profile1": URI.Fragment.toString profile1 / noArgs
-  }
+routeCodec =
+  sum
+    { "MVP": URI.Fragment.toString mvp / string segment
+    , "Profile1": URI.Fragment.toString profile1 / noArgs
+    }
 
 mvp :: Fragment
 mvp = URI.Fragment.fromString "mvp"
@@ -46,10 +46,10 @@ mvp = URI.Fragment.fromString "mvp"
 profile1 :: Fragment
 profile1 = URI.Fragment.fromString "profile-1"
 
-type State =
-  { fragment :: Fragment
-  , route :: Route
-  }
+type State
+  = { fragment :: Fragment
+    , route :: Route
+    }
 
 data Query a
   = Initialize ParentInput a
@@ -62,18 +62,19 @@ type ParentInput
 
 type ChildQuery
   = Lynx.Query
-  <\/> Const Void
+      <\/> Const Void
 
 type ChildSlot
   = Unit
-  \/ Void
+      \/ Void
 
-type Message = Void
+type Message
+  = Void
 
-component
-  :: ∀ m
-   .  MonadAff m
-   => H.Component HH.HTML Query ParentInput Message m
+component ::
+  ∀ m.
+  MonadAff m =>
+  H.Component HH.HTML Query ParentInput Message m
 component =
   H.parentComponent
     { initialState
@@ -82,13 +83,11 @@ component =
     , receiver: HE.input Initialize
     }
   where
-
   initialState :: ParentInput -> State
   initialState = identity
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render { fragment, route } =
-    HH.slot' cp1 unit Lynx.component input (HE.input LynxQuery)
+  render { fragment, route } = HH.slot' cp1 unit Lynx.component input (HE.input LynxQuery)
     where
     appendFragment :: Fragment -> Fragment
     appendFragment segment =
@@ -108,11 +107,11 @@ component =
         , fragment: appendFragment profile1
         }
 
-eval
-  :: ∀ m
-   . MonadAff m
-  => Query
-  ~> H.ParentDSL State Query ChildQuery ChildSlot Message m
+eval ::
+  ∀ m.
+  MonadAff m =>
+  Query
+    ~> H.ParentDSL State Query ChildQuery ChildSlot Message m
 eval = case _ of
   Initialize { fragment, route } a -> do
     H.modify_ _ { fragment = fragment, route = route }

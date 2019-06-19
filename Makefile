@@ -62,12 +62,18 @@ BUILD := .build
 DEPS := 'bower_components/purescript-*/src/**/*.purs'
 EXAMPLE := example
 EXAMPLES := $(shell find $(EXAMPLE) -name '*.purs' -type f)
+FORMAT := $(BUILD)/format
 NODE_MODULES := node_modules/.stamp
 OUTPUT := output
 PSA_ARGS := --censor-lib --stash=$(BUILD)/.psa_stash --strict
 SRC := src
 SRCS := $(shell find $(SRC) -name '*.purs' -type f)
-TESTS := $(shell find test -name '*.purs' -type f)
+TEST := test
+TESTS := $(shell find $(TEST) -name '*.purs' -type f)
+
+FORMAT_EXAMPLES := $(patsubst %,$(FORMAT)/%.formatted,$(EXAMPLES))
+FORMAT_SRCS := $(patsubst %,$(FORMAT)/%.formatted,$(SRCS))
+FORMAT_TESTS := $(patsubst %,$(FORMAT)/%.formatted,$(TESTS))
 
 # Allow RTS args to be passed in to override the default behavior.
 # We can invoke make like: `RTS_ARGS='+RTS -N16 -RTS' make`.
@@ -105,14 +111,19 @@ $(BUILD)/test.out: $(BUILD)/test.js | $(BUILD)
 	node $< | tee $@.tmp # Store output in a temp file in case of a failure.
 	mv $@.tmp $@ # Move the output where it belongs.
 
+$(FORMAT)/%.purs.formatted: %.purs $(NODE_MODULES)
+	npx purty --write $<
+	@mkdir -p $$(dirname $@)
+	@touch $@
+
 $(NODE_MODULES): package.json
 	npm install
 	touch $@
 
-$(OUTPUT)/Main/index.js: $(EXAMPLES) $(SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+$(OUTPUT)/Main/index.js: $(FORMAT_EXAMPLES) $(FORMAT_SRCS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
 	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS)
 
-$(OUTPUT)/Test.Main/index.js: $(EXAMPLES) $(SRCS) $(TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
+$(OUTPUT)/Test.Main/index.js: $(FORMAT_EXAMPLES) $(FORMAT_SRCS) $(FORMAT_TESTS) $(BOWER_COMPONENTS) $(NODE_MODULES) | $(BUILD)
 	npx psa $(PSA_ARGS) $(RTS_ARGS) $(DEPS) $(EXAMPLES) $(SRCS) $(TESTS)
 
 .PHONY: clean
@@ -126,6 +137,9 @@ clean:
 
 dist/main.js: $(BUILD)/main.js
 	npx browserify $< --outfile $@
+
+.PHONY: format
+format: $(FORMAT_EXAMPLES) $(FORMAT_TESTS) $(FORMAT_SRCS)
 
 test: dist/main.js $(BUILD)/test.out
 

@@ -1,7 +1,6 @@
 module Lynx where
 
 import Prelude
-
 import Data.Array as Data.Array
 import Data.Const (Const)
 import Data.Either (Either(..))
@@ -44,13 +43,13 @@ import Ocelot.HTML.Properties (css)
 import URI (Fragment)
 import URI.Fragment as URI.Fragment
 
-type State =
-  { activeTab :: String
-  , evaled :: Either EvalError (Page ExprType)
-  , expr :: Page Expr
-  , fragment :: Fragment
-  , values :: Map Key ExprType
-  }
+type State
+  = { activeTab :: String
+    , evaled :: Either EvalError (Page ExprType)
+    , expr :: Page Expr
+    , fragment :: Fragment
+    , values :: Map Key ExprType
+    }
 
 data Query a
   = EvalForm (Page Expr) a
@@ -58,7 +57,7 @@ data Query a
   | UpdateValue Key (InputSource ExprType) a
   | DropdownQuery Key (Dropdown.Message Query ExprType) a
   | DateTimePickerQuery Key DateTimePicker.Message a
-  | TypeaheadSingleQuery  Key (Typeahead.Message Query Maybe ExprType) a
+  | TypeaheadSingleQuery Key (Typeahead.Message Query Maybe ExprType) a
   | AddSection Key a
   | RemoveSection Key Int a
 
@@ -69,23 +68,24 @@ type ParentInput
     }
 
 type ChildQuery m
-  = Dropdown.Query Query ExprType  m
-  <\/> DateTimePicker.Query
-  <\/> Typeahead.Query Query Maybe ExprType m
-  <\/> Const Void
+  = Dropdown.Query Query ExprType m
+      <\/> DateTimePicker.Query
+      <\/> Typeahead.Query Query Maybe ExprType m
+      <\/> Const Void
 
 type ChildSlot
   = Key
-  \/ Key
-  \/ Key
-  \/ Void
+      \/ Key
+      \/ Key
+      \/ Void
 
-type Message = Void
+type Message
+  = Void
 
-component
-  :: ∀ m
-   .  MonadAff m
-   => H.Component HH.HTML Query ParentInput Message m
+component ::
+  ∀ m.
+  MonadAff m =>
+  H.Component HH.HTML Query ParentInput Message m
 component =
   H.parentComponent
     { initialState
@@ -94,7 +94,6 @@ component =
     , receiver: HE.input HandleInput
     }
   where
-
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render { activeTab, evaled, fragment, values } =
     HH.div_
@@ -102,27 +101,27 @@ component =
           Left e ->
             Layout.section_
               [ Card.card_
-                [ Format.p
-                  [ css "text-red" ]
-                  [ renderEvalError e ]
-                ]
+                  [ Format.p
+                      [ css "text-red" ]
+                      [ renderEvalError e ]
+                  ]
               ]
           Right page ->
             HH.div_
               [ Header.header_
-                [ Format.headingDark_ [ HH.text page.name ]
-                ]
+                  [ Format.headingDark_ [ HH.text page.name ]
+                  ]
               , Header.header_
-                [ NavigationTab.navigationTabs_
-                  { activePage: activeTab
-                  , tabs:
-                    Data.Array.fromFoldable (map (fromTab fragment) page.tabs)
-                  }
-                ]
+                  [ NavigationTab.navigationTabs_
+                      { activePage: activeTab
+                      , tabs:
+                        Data.Array.fromFoldable (map (fromTab fragment) page.tabs)
+                      }
+                  ]
               , Layout.grid_
-                [ renderTab activeTab page.tabs
-                , Layout.side_ []
-                ]
+                  [ renderTab activeTab page.tabs
+                  , Layout.side_ []
+                  ]
               ]
       , HH.pre_ [ HH.text $ show values ]
       ]
@@ -130,21 +129,20 @@ component =
   renderEvalError :: forall a b c d. EvalError -> H.ParentHTML a b c d
   renderEvalError = case _ of
     IfCondition x ->
-      HH.text $
-        "Expected conditional to be a Boolean, but its type is: "
-          <> reflectType x
+      HH.text
+        $ "Expected conditional to be a Boolean, but its type is: "
+        <> reflectType x
     EqualMismatch x ->
-      HH.text $
-        "Expected both sides of equal to have the same type,"
-          <> " but they are different."
-          <> " left: "
-          <> reflectType x.left
-          <> " right: "
-          <> reflectType x.right
+      HH.text
+        $ "Expected both sides of equal to have the same type,"
+        <> " but they are different."
+        <> " left: "
+        <> reflectType x.left
+        <> " right: "
+        <> reflectType x.right
 
   renderTab :: String -> NonEmpty Array (Tab ExprType) -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  renderTab activeTab tabs =
-    Layout.main_ (Data.Array.fromFoldable $ map (tabSections renderSection renderSequence) tab.sections)
+  renderTab activeTab tabs = Layout.main_ (Data.Array.fromFoldable $ map (tabSections renderSection renderSequence) tab.sections)
     where
     byLink :: Tab ExprType -> Boolean
     byLink { link } = activeTab == link
@@ -154,10 +152,11 @@ component =
 
   renderSection :: Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSection section =
-    Card.card_ $
-      append
-      [ Format.subHeading_ [ HH.text section.name ] ]
-      $ Data.Array.fromFoldable $ renderField <$> section.fields
+    Card.card_
+      $ append [ Format.subHeading_ [ HH.text section.name ] ]
+      $ Data.Array.fromFoldable
+      $ renderField
+      <$> section.fields
 
   renderSequence :: Sequence ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSequence sequence =
@@ -174,12 +173,12 @@ component =
                 sections
             _ -> mempty
         <> [ Button.button
-             [ HE.onClick (HE.input_ $ AddSection sequence.key)
-             ]
-             [ Icon.plus_
-             , HH.span [css "pl-2"] [HH.text "Add"]
-             ]
-           ]
+              [ HE.onClick (HE.input_ $ AddSection sequence.key)
+              ]
+              [ Icon.plus_
+              , HH.span [ css "pl-2" ] [ HH.text "Add" ]
+              ]
+          ]
       )
 
   renderSequenceSection :: Key -> Int -> Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
@@ -190,13 +189,13 @@ component =
           ]
           [ HH.text section.name
           , Button.buttonClear
-            [ css "absolute pin-r pr-0"
-            , HE.onClick (HE.input_ $ RemoveSection key index)
-            ]
-            [ Icon.close_
-            ]
+              [ css "absolute pin-r pr-0"
+              , HE.onClick (HE.input_ $ RemoveSection key index)
+              ]
+              [ Icon.close_
+              ]
           ]
-        ]
+      ]
         <> Data.Array.fromFoldable (map renderField section.fields)
       )
 
@@ -216,10 +215,11 @@ component =
       Input.currency_
         [ HP.id_ field.key
         , HP.placeholder (print currency.placeholder)
-        , HP.value $ fold do
-          value <- getValue currency
-          _ <- toCents value
-          pure (print value)
+        , HP.value
+            $ fold do
+                value <- getValue currency
+                _ <- toCents value
+                pure (print value)
         , HE.onValueChange (HE.input $ UpdateValue field.key <<< Data.Maybe.maybe UserCleared (UserInput <<< cents_) <<< parseCentsFromDollarStr)
         ]
     DateTime dateTime ->
@@ -236,12 +236,12 @@ component =
         { selectedItem: getValue dropdown
         , items: fold (toArray dropdown.options)
         , render:
-          Dropdown.Render.render $
-            Dropdown.Render.defDropdown
-              Button.button
-              []
-              (foldMap (print <<< _.name) <<< toPair)
-              (print dropdown.placeholder)
+          Dropdown.Render.render
+            $ Dropdown.Render.defDropdown
+                Button.button
+                []
+                (foldMap (print <<< _.name) <<< toPair)
+                (print dropdown.placeholder)
         }
         (HE.input $ DropdownQuery field.key)
     Text input ->
@@ -271,9 +271,9 @@ component =
         )
         (HE.input $ TypeaheadSingleQuery field.key)
 
-  renderValidation
-    :: Input ExprType
-    -> Array (H.ParentHTML Query (ChildQuery m) ChildSlot m)
+  renderValidation ::
+    Input ExprType ->
+    Array (H.ParentHTML Query (ChildQuery m) ChildSlot m)
   renderValidation = case _ of
     Currency currency -> renderValidation' currency.errors
     DateTime dateTime -> renderValidation' dateTime.errors
@@ -282,10 +282,12 @@ component =
     Toggle toggle -> renderValidation' toggle.errors
     TypeaheadSingle typeahead -> renderValidation' typeahead.errors
     where
-    renderValidation' = errorsToArray >>> case _ of
-      []  -> []
-      [e] -> [ HH.p_ [ HH.text $ renderValidationError e ] ]
-      es  -> [ HH.ul_ $ HH.li_ <<< pure <<< HH.text <<< renderValidationError <$> es ]
+    renderValidation' =
+      errorsToArray
+        >>> case _ of
+            [] -> []
+            [ e ] -> [ HH.p_ [ HH.text $ renderValidationError e ] ]
+            es -> [ HH.ul_ $ HH.li_ <<< pure <<< HH.text <<< renderValidationError <$> es ]
 
     renderValidationError = case _ of
       Required -> "This field is required"
@@ -293,93 +295,82 @@ component =
       MaxLength x -> "Cannot contain more than " <> show x <> " characters"
       InvalidOption x -> x <> " is not a valid option"
 
-eval
-  :: ∀ m
-   . MonadAff m
-  => Query
-  ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
+eval ::
+  ∀ m.
+  MonadAff m =>
+  Query
+    ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Message m
 eval = case _ of
-  EvalForm expr a -> a <$ do
-    let values = Lynx.Form.keys expr
-        evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
-        evalField field = do
-          case field.input of
-            Currency _ -> pure unit
-            DateTime _ -> pure unit
-            Dropdown dropdown ->
-              for_ (toArray dropdown.options) \options ->
-                H.query' cp1 field.key (Dropdown.SetItems options unit)
-            Text _ -> pure unit
-            Toggle _ -> pure unit
-            TypeaheadSingle typeahead ->
-              for_ (toArray typeahead.options) \options ->
-                H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
+  EvalForm expr a -> do
+    let
+      values = Lynx.Form.keys expr
 
-        evalSection section = for_ section.fields evalField
+      evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
 
+      evalField field = do
+        case field.input of
+          Currency _ -> pure unit
+          DateTime _ -> pure unit
+          Dropdown dropdown ->
+            for_ (toArray dropdown.options) \options ->
+              H.query' cp1 field.key (Dropdown.SetItems options unit)
+          Text _ -> pure unit
+          Toggle _ -> pure unit
+          TypeaheadSingle typeahead ->
+            for_ (toArray typeahead.options) \options ->
+              H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
+
+      evalSection section = for_ section.fields evalField
     for_ evaled \page -> do
       for_ page.tabs \tab -> do
         for_ tab.sections \sections' -> do
           case sections' of
             TabSection section -> evalSection section
-            TabSequence sequence ->
-              case sequence.values of
-                UserInput sections -> for_ sections evalSection
-                Invalid sections -> for_ sections evalSection
-                _ -> pure unit
-
-    H.modify_ _
-      { evaled = evaled
-      , expr = expr
-      , values = values
-      }
-
+            TabSequence sequence -> case sequence.values of
+              UserInput sections -> for_ sections evalSection
+              Invalid sections -> for_ sections evalSection
+              _ -> pure unit
+    H.modify_ _ { evaled = evaled, expr = expr, values = values }
+    pure a
   HandleInput { activeTab, expr, fragment } a -> do
     { fragment: oldFragment } <- H.get
     H.modify_ _ { activeTab = activeTab, fragment = fragment }
-    if fragment == oldFragment
-      then pure a
-      else eval (EvalForm expr a)
-
+    case fragment == oldFragment of
+      true -> pure a
+      false -> eval (EvalForm expr a)
   UpdateValue key val a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Form.setValue key val expr) a)
-
   DropdownQuery key message a -> case message of
     Dropdown.Emit x -> a <$ eval x
     Dropdown.Selected val -> eval (UpdateValue key (UserInput val) a)
     Dropdown.VisibilityChanged _ -> pure a
-
   DateTimePickerQuery key message a -> case message of
     DateTimePicker.DateMessage _ -> pure a
-    DateTimePicker.SelectionChanged (Just val) ->
-      eval (UpdateValue key (UserInput $ datetime_ val) a)
-    DateTimePicker.SelectionChanged Nothing ->
-      eval (UpdateValue key UserCleared a)
+    DateTimePicker.SelectionChanged (Just val) -> eval (UpdateValue key (UserInput $ datetime_ val) a)
+    DateTimePicker.SelectionChanged Nothing -> eval (UpdateValue key UserCleared a)
     DateTimePicker.TimeMessage _ -> pure a
-
   TypeaheadSingleQuery key message a -> case message of
     Typeahead.Emit x -> a <$ eval x
     Typeahead.Searched _ -> pure a
     Typeahead.Selected val -> eval (UpdateValue key (UserInput val) a)
     Typeahead.SelectionChanged _ _ -> pure a
-
   AddSection key a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Form.stamp key expr) a)
-
   RemoveSection key index a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Form.unstamp key index expr) a)
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
 fromTab fragment { sections: sections'', name, link } =
-  { errors: sum do
-    sections' <- Data.Array.fromFoldable sections''
-    field <- case sections' of
-      TabSection { fields } -> Data.Array.fromFoldable fields
-      TabSequence { values } -> foldMap (_ >>= Data.Array.fromFoldable <<< _.fields) values
-    pure (length $ errorsToArray $ errors field)
+  { errors:
+    sum do
+      sections' <- Data.Array.fromFoldable sections''
+      field <- case sections' of
+        TabSection { fields } -> Data.Array.fromFoldable fields
+        TabSequence { values } -> foldMap (_ >>= Data.Array.fromFoldable <<< _.fields) values
+      pure (length $ errorsToArray $ errors field)
   , name
   , link: URI.Fragment.print fragment <> "/" <> link
   , page: link
@@ -396,5 +387,6 @@ initialState { activeTab, expr, fragment } =
   where
   evaled :: Either EvalError (Page ExprType)
   evaled = Lynx.Form.eval (\key -> Data.Map.lookup key values) expr
+
   values :: Map String ExprType
   values = Lynx.Form.keys expr
