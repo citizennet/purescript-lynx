@@ -146,3 +146,7 @@ test: dist/main.js $(BUILD)/test.out
 .PHONY: watch
 watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
 	npx watch-exec --command 'make dist/main.js' --watch $(EXAMPLE) --watch $(SRC)
+
+.PHONY: test-watch
+test-watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
+	npx watch-exec --command 'make test' --watch $(TESTS) --watch $(SRC)
