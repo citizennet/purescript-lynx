@@ -149,4 +149,4 @@ watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
 
 .PHONY: test-watch
 test-watch: $(BOWER_COMPONENTS) $(NODE_MODULES)
-	npx watch-exec --command 'make test' --watch $(TESTS) --watch $(SRC)
+	npx watch-exec --command 'make test' --watch $(TEST) --watch $(SRC)
