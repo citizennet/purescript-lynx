@@ -136,7 +136,7 @@ clean:
 	  node_modules
 
 dist/main.js: $(BUILD)/main.js
-	npx browserify $< --outfile $@
+	npx browserify $< | npx uglifyjs --compress --mangle --output $@
 
 .PHONY: format
 format: $(FORMAT_EXAMPLES) $(FORMAT_TESTS) $(FORMAT_SRCS)
