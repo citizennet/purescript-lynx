@@ -13,17 +13,17 @@ jobs:
 
       - restore_cache:
           keys:
-            - v0.1-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
-            - v0.1-npm-cache-{{ .Branch }}
-            - v0.1-npm-cache-master-{{ checksum "package.json" }}
-            - v0.1-npm-cache-master
+            - v0.3-npm-cache-{{ .Branch }}-{{ checksum "package.json" }}
+            - v0.3-npm-cache-{{ .Branch }}
+            - v0.3-npm-cache-master-{{ checksum "package.json" }}
+            - v0.3-npm-cache-master
 
       - restore_cache:
           keys:
-            - v0.3-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
-            - v0.3-bower-cache-{{ .Branch }}
-            - v0.3-bower-cache-master-{{ checksum "bower.json" }}
-            - v0.3-bower-cache-master
+            - v0.2-bower-cache-{{ .Branch }}-{{ checksum "bower.json" }}
+            - v0.2-bower-cache-{{ .Branch }}
+            - v0.2-bower-cache-master-{{ checksum "bower.json" }}
+            - v0.2-bower-cache-master
 
       - restore_cache:
           keys:
