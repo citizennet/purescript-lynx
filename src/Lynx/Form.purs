@@ -18,6 +18,8 @@ import Data.NonEmpty as Data.NonEmpty
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Traversable (class Traversable, for, sequenceDefault, traverse)
+import Data.UUID as Data.UUID
+import Effect (Effect)
 import Effect.Aff (error, throwError)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, isEmpty, lookup_, pair_, print, string_, toArray, toString, val_)
@@ -49,38 +51,58 @@ type Section f
     , fields :: NonEmpty Array (Field f)
     }
 
+type SequenceSection f
+  = { id :: String
+    , name :: String
+    , fields :: NonEmpty Array (Field f)
+    }
+
 type Sequence f
   = { name :: String
     , key :: String
     , template :: TemplateSection f
-    , values :: InputSource (Array (Section f))
+    , values :: InputSource (Array (SequenceSection f))
     }
 
-stamp :: forall a. Key -> Page a -> Page a
-stamp key page = page { tabs = map stampTab page.tabs }
+stamp :: forall a. Key -> Page a -> Effect (Page a)
+stamp key page = do
+  tabs <- traverse stampTab page.tabs
+  pure page { tabs = tabs }
   where
-  stampTab :: Tab a -> Tab a
-  stampTab tab = tab { sections = map stampTabSections tab.sections }
+  stampTab :: Tab a -> Effect (Tab a)
+  stampTab tab = do
+    sections <- traverse stampTabSections tab.sections
+    pure tab { sections = sections }
 
-  stampTabSections :: TabSections a -> TabSections a
+  stampTabSections :: TabSections a -> Effect (TabSections a)
   stampTabSections tabSections' = case tabSections' of
-    TabSection section -> TabSection section
+    TabSection section -> pure (TabSection section)
     TabSequence sequence
-      | sequence.key == key ->
-        TabSequence
-          sequence
-            { values = stampInputSource sequence.template sequence.values
-            }
-      | otherwise -> TabSequence sequence
+      | sequence.key == key -> do
+        values <- stampInputSource sequence.template sequence.values
+        pure
+          ( TabSequence
+            sequence
+              { values = values
+              }
+          )
+      | otherwise -> pure (TabSequence sequence)
 
-  stampInputSource :: TemplateSection a -> InputSource (Array (Section a)) -> InputSource (Array (Section a))
-  stampInputSource templateSection inputSource = case inputSource of
-    UserInput userInput' -> UserInput (userInput' <> [ stamp' ])
-    Invalid invalid -> Invalid (invalid <> [ stamp' ])
-    UserCleared -> UserInput [ stamp' ]
-    NotSet -> UserInput [ stamp' ]
+  stampInputSource :: TemplateSection a -> InputSource (Array (SequenceSection a)) -> Effect (InputSource (Array (SequenceSection a)))
+  stampInputSource templateSection inputSource = do
+    uuid <- Data.UUID.genUUID
+    pure case inputSource of
+      UserInput userInput' -> UserInput (userInput' <> [ stamp' uuid ])
+      Invalid invalid -> Invalid (invalid <> [ stamp' uuid ])
+      UserCleared -> UserInput [ stamp' uuid ]
+      NotSet -> UserInput [ stamp' uuid ]
     where
-    stamp' = templateSection { fields = map stampField templateSection.fields }
+    stamp' :: Data.UUID.UUID -> SequenceSection a
+    stamp' uuid =
+      { id: show uuid
+      , fields: map stampField templateSection.fields
+      , name: templateSection.name
+      }
 
   stampField :: TemplateField a -> Field a
   stampField templateField = templateField { input = stampInput templateField.input }
@@ -156,7 +178,7 @@ unstamp key index page = page { tabs = map unstampTab page.tabs }
             }
       | otherwise -> TabSequence sequence
 
-  unstampInputSource :: InputSource (Array (Section a)) -> InputSource (Array (Section a))
+  unstampInputSource :: InputSource (Array (SequenceSection a)) -> InputSource (Array (SequenceSection a))
   unstampInputSource inputSource = case inputSource of
     UserInput userInput' -> UserInput (Data.Maybe.fromMaybe userInput' $ Data.Array.deleteAt index userInput')
     Invalid invalid -> Invalid (Data.Maybe.fromMaybe invalid $ Data.Array.deleteAt index invalid)
@@ -527,9 +549,12 @@ eval get page = do
   evalSection :: Section Expr -> Either EvalError (Section ExprType)
   evalSection section = section { fields = _ } <$> traverse evalField section.fields
 
+  evalSequenceSection :: SequenceSection Expr -> Either EvalError (SequenceSection ExprType)
+  evalSequenceSection sequenceSection = sequenceSection { fields = _ } <$> traverse evalField sequenceSection.fields
+
   evalSequence :: Sequence Expr -> Either EvalError (Sequence ExprType)
   evalSequence sequence = ado
-    values <- (traverse <<< traverse) evalSection sequence.values
+    values <- (traverse <<< traverse) evalSequenceSection sequence.values
     template <- evalTemplate sequence.template
     in sequence { values = values, template = template }
 
@@ -745,8 +770,11 @@ keys page = foldMap keysTab page.tabs
   keysSection :: Section Expr -> Map Key ExprType
   keysSection section = foldMap keysField section.fields
 
+  keysSequenceSection :: SequenceSection Expr -> Map Key ExprType
+  keysSequenceSection sequenceSection = foldMap keysField sequenceSection.fields
+
   keysSequence :: Sequence Expr -> Map Key ExprType
-  keysSequence sequence = foldMap (foldMap keysSection) sequence.values
+  keysSequence sequence = foldMap (foldMap keysSequenceSection) sequence.values
 
   keysField :: Field Expr -> Map Key ExprType
   keysField field = case value of
@@ -790,10 +818,13 @@ setValue key val page = page { tabs = map setTab page.tabs }
   setSection :: Section Expr -> Section Expr
   setSection section = section { fields = setField <$> section.fields }
 
+  setSequenceSection :: SequenceSection Expr -> SequenceSection Expr
+  setSequenceSection sequenceSection = sequenceSection { fields = setField <$> sequenceSection.fields }
+
   setSequence :: Sequence Expr -> Sequence Expr
   setSequence sequence = case sequence.values of
-    UserInput sections -> sequence { values = UserInput $ setSection <$> sections }
-    Invalid sections -> sequence { values = Invalid $ setSection <$> sections }
+    UserInput sections -> sequence { values = UserInput $ setSequenceSection <$> sections }
+    Invalid sections -> sequence { values = Invalid $ setSequenceSection <$> sections }
     _ -> sequence
 
   setField :: Field Expr -> Field Expr

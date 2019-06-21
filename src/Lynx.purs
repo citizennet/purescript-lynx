@@ -14,14 +14,16 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Maybe as Data.Maybe
 import Data.NonEmpty (NonEmpty)
 import Data.NonEmpty as Data.NonEmpty
+import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
 import Halogen.HTML as HH
+import Halogen.HTML.Elements.Keyed as Halogen.HTML.Elements.Keyed
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Lynx.Expr (EvalError(..), Expr, ExprType, Key, boolean_, cents_, datetime_, print, reflectType, string_, toArray, toBoolean, toCents, toDateTime, toObject, toPair, toString)
-import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Sequence, Tab, TabSections(..), ValidationError(..), asyncFromTypeahead, errors, errorsToArray, getValue, tabSections)
+import Lynx.Form (Field, Input(..), InputSource(..), Page, Section, Sequence, Tab, TabSections(..), ValidationError(..), SequenceSection, asyncFromTypeahead, errors, errorsToArray, getValue, tabSections)
 import Lynx.Form as Lynx.Form
 import Ocelot.Block.Button as Button
 import Ocelot.Block.Card as Card
@@ -161,42 +163,45 @@ component =
   renderSequence :: Sequence ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   renderSequence sequence =
     Layout.container_
-      ( [ Format.subHeading_ [ HH.text sequence.name ] ]
-        <> case sequence.values of
-            UserInput sections ->
-              Data.FunctorWithIndex.mapWithIndex
-                (renderSequenceSection sequence.key)
-                sections
-            Invalid sections ->
-              Data.FunctorWithIndex.mapWithIndex
-                (renderSequenceSection sequence.key)
-                sections
-            _ -> mempty
-        <> [ Button.button
-              [ HE.onClick (HE.input_ $ AddSection sequence.key)
-              ]
-              [ Icon.plus_
-              , HH.span [ css "pl-2" ] [ HH.text "Add" ]
-              ]
+      ( [ Format.subHeading_ [ HH.text sequence.name ]
+      , Halogen.HTML.Elements.Keyed.div_ case sequence.values of
+          UserInput sections ->
+            Data.FunctorWithIndex.mapWithIndex
+              (renderSequenceSection sequence.key)
+              sections
+          Invalid sections ->
+            Data.FunctorWithIndex.mapWithIndex
+              (renderSequenceSection sequence.key)
+              sections
+          _ -> mempty
+      , Button.button
+          [ HE.onClick (HE.input_ $ AddSection sequence.key)
           ]
-      )
-
-  renderSequenceSection :: Key -> Int -> Section ExprType -> H.ParentHTML Query (ChildQuery m) ChildSlot m
-  renderSequenceSection key index section =
-    Card.card_
-      ( [ Format.subHeading
-          [ css "relative"
-          ]
-          [ HH.text section.name
-          , Button.buttonClear
-              [ css "absolute pin-r pr-0"
-              , HE.onClick (HE.input_ $ RemoveSection key index)
-              ]
-              [ Icon.close_
-              ]
+          [ Icon.plus_
+          , HH.span [ css "pl-2" ] [ HH.text "Add" ]
           ]
       ]
-        <> Data.Array.fromFoldable (map (renderField <<< indexKey index) section.fields)
+      )
+
+  renderSequenceSection :: Key -> Int -> SequenceSection ExprType -> Tuple String (H.ParentHTML Query (ChildQuery m) ChildSlot m)
+  renderSequenceSection key index section =
+    Tuple
+      section.id
+      ( Card.card_
+        ( [ Format.subHeading
+            [ css "relative"
+            ]
+            [ HH.text section.name
+            , Button.buttonClear
+                [ css "absolute pin-r pr-0"
+                , HE.onClick (HE.input_ $ RemoveSection key index)
+                ]
+                [ Icon.close_
+                ]
+            ]
+        ]
+          <> Data.Array.fromFoldable (map (renderField <<< indexKey index) section.fields)
+        )
       )
 
   indexKey :: forall r. Int -> { key :: Key | r } -> { key :: Key | r }
@@ -324,14 +329,16 @@ eval = case _ of
               H.query' cp3 field.key (Typeahead.ReplaceItems (pure options) unit)
 
       evalSection section = for_ section.fields evalField
+
+      evalSequenceSection sequenceSection = for_ sequenceSection.fields evalField
     for_ evaled \page -> do
       for_ page.tabs \tab -> do
         for_ tab.sections \sections' -> do
           case sections' of
             TabSection section -> evalSection section
             TabSequence sequence -> case sequence.values of
-              UserInput sections -> for_ sections evalSection
-              Invalid sections -> for_ sections evalSection
+              UserInput sections -> for_ sections evalSequenceSection
+              Invalid sections -> for_ sections evalSequenceSection
               _ -> pure unit
     H.modify_ _ { evaled = evaled, expr = expr, values = values }
     pure a
@@ -359,8 +366,9 @@ eval = case _ of
     Typeahead.Selected val -> eval (UpdateValue key (UserInput val) a)
     Typeahead.SelectionChanged _ _ -> pure a
   AddSection key a -> do
-    { expr } <- H.get
-    eval (EvalForm (Lynx.Form.stamp key expr) a)
+    { expr: expr' } <- H.get
+    expr <- H.liftEffect (Lynx.Form.stamp key expr')
+    eval (EvalForm expr a)
   RemoveSection key index a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Form.unstamp key index expr) a)

@@ -11,6 +11,8 @@
     "watch-exec": "^1.2.2"
   },
   "dependencies": {
-    "big-integer": "^1.6.31"
+    "big-integer": "^1.6.31",
+    "uuid": "^3.3.2",
+    "uuid-validate": "0.0.3"
   }
 }
