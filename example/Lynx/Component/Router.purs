@@ -4,6 +4,7 @@ import Prelude
 import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
 import Data.Maybe (Maybe(..))
+import Data.UUID as Node.UUID
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath as CP
@@ -59,6 +60,7 @@ component =
         unit
         Form.component
         { fragment: URI.Fragment.fromString ("/" <> URI.Fragment.toString form)
+        , idGenerator: H.liftEffect (map show Node.UUID.genUUID)
         , route: s
         }
         absurd

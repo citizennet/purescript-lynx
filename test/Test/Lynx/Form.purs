@@ -9,7 +9,7 @@ import Data.Map as Data.Map
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as Data.NonEmpty
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, if_, int_, lookup_, pair_, string_, val_)
-import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Section, Tab, TabSections(..), TemplateInput(..), ValidationError)
+import Lynx.Form (Errors, Field, Input(..), InputSource(..), Page, Tab, TabSections(..), TemplateInput(..), ValidationError)
 import Lynx.Form as Lynx.Form
 import Test.QuickCheck (Result(..), (===))
 import Test.Unit (Test, TestSuite, failure, success, test)
@@ -63,9 +63,6 @@ stamp =
   Test.Unit.suite "stamp" do
     test "ignores a `Page _` that lacks a `Sequence _`" do
       let
-        actual :: Page Expr
-        actual = Lynx.Form.stamp "foo" page'
-
         expected :: Page Expr
         expected = page'
 
@@ -91,12 +88,10 @@ stamp =
                       []
                   }
             )
+      actual <- Lynx.Form.stamp (pure "") "foo" page'
       equal expected actual
     test "ignores a `Page _` that lacks the given `Key`" do
       let
-        actual :: Page Expr
-        actual = Lynx.Form.stamp "bar" page'
-
         expected :: Page Expr
         expected = page'
 
@@ -122,12 +117,10 @@ stamp =
                   , values: NotSet
                   }
             )
+      actual <- Lynx.Form.stamp (pure "") "bar" page'
       equal expected actual
     test "stamps in a `Page _` with the given `Key`" do
       let
-        actual :: Page Expr
-        actual = Lynx.Form.stamp "foo" page'
-
         expected :: Page Expr
         expected =
           makePage
@@ -149,7 +142,8 @@ stamp =
                     }
                   , values:
                     UserInput
-                      [ { name: ""
+                      [ { id: "unique-toggle"
+                        , name: ""
                         , fields:
                           Data.NonEmpty.singleton
                             { name: val_ (string_ "")
@@ -190,6 +184,7 @@ stamp =
                   , values: NotSet
                   }
             )
+      actual <- Lynx.Form.stamp (pure "unique-toggle") "foo" page'
       equal expected actual
 
 unstamp :: Test.Unit.TestSuite
@@ -286,7 +281,8 @@ unstamp =
                     }
                   , values:
                     UserInput
-                      [ { name: ""
+                      [ { id: ""
+                        , name: ""
                         , fields:
                           Data.NonEmpty.singleton
                             { name: val_ (string_ "")
@@ -354,7 +350,8 @@ unstamp =
                     }
                   , values:
                     UserInput
-                      [ { name: ""
+                      [ { id: ""
+                        , name: ""
                         , fields:
                           Data.NonEmpty.singleton
                             { name: val_ (string_ "")
@@ -436,7 +433,7 @@ dropdownOptions = do
             Invalid sections -> flip findMap sections getOption
             _ -> Nothing
 
-  getOption :: forall a. Section a -> Maybe a
+  getOption :: forall a r. { fields :: Data.NonEmpty.NonEmpty Array (Field a) | r } -> Maybe a
   getOption section =
     flip findMap section.fields \field -> if field.key == dropdownKey then case field.input of
       Dropdown x -> Just x.options
@@ -563,6 +560,7 @@ testSection :: String
 testSection =
   """
   { "type": "TabSection"
+  , "id": "unique-name"
   , "name": "Name"
   , "fields":
     [ """

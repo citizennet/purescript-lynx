@@ -15,6 +15,7 @@ import Data.Maybe as Data.Maybe
 import Data.NonEmpty (NonEmpty)
 import Data.NonEmpty as Data.NonEmpty
 import Data.Tuple (Tuple(..))
+import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1, cp2, cp3)
@@ -50,6 +51,7 @@ type State
     , evaled :: Either EvalError (Page ExprType)
     , expr :: Page Expr
     , fragment :: Fragment
+    , idGenerator :: Aff String
     , values :: Map Key ExprType
     }
 
@@ -67,6 +69,7 @@ type ParentInput
   = { activeTab :: String
     , expr :: Page Expr
     , fragment :: Fragment
+    , idGenerator :: Aff String
     }
 
 type ChildQuery m
@@ -366,8 +369,8 @@ eval = case _ of
     Typeahead.Selected val -> eval (UpdateValue key (UserInput val) a)
     Typeahead.SelectionChanged _ _ -> pure a
   AddSection key a -> do
-    { expr: expr' } <- H.get
-    expr <- H.liftEffect (Lynx.Form.stamp key expr')
+    { idGenerator, expr: expr' } <- H.get
+    expr <- H.liftAff (Lynx.Form.stamp idGenerator key expr')
     eval (EvalForm expr a)
   RemoveSection key index a -> do
     { expr } <- H.get
@@ -388,11 +391,12 @@ fromTab fragment { sections: sections'', name, link } =
   }
 
 initialState :: ParentInput -> State
-initialState { activeTab, expr, fragment } =
+initialState { activeTab, expr, fragment, idGenerator } =
   { activeTab
   , evaled
   , expr
   , fragment
+  , idGenerator
   , values
   }
   where

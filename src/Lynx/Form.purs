@@ -18,8 +18,6 @@ import Data.NonEmpty as Data.NonEmpty
 import Data.Set (Set, toUnfoldable)
 import Data.Set as Data.Set
 import Data.Traversable (class Traversable, for, sequenceDefault, traverse)
-import Data.UUID as Data.UUID
-import Effect (Effect)
 import Effect.Aff (error, throwError)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Lynx.Expr (EvalError, Expr, ExprType, Key, array_, boolean_, cents_, evalExpr, if_, isEmpty, lookup_, pair_, print, string_, toArray, toString, val_)
@@ -64,17 +62,17 @@ type Sequence f
     , values :: InputSource (Array (SequenceSection f))
     }
 
-stamp :: forall a. Key -> Page a -> Effect (Page a)
-stamp key page = do
+stamp :: forall a f. Monad f => f String -> Key -> Page a -> f (Page a)
+stamp generate key page = do
   tabs <- traverse stampTab page.tabs
   pure page { tabs = tabs }
   where
-  stampTab :: Tab a -> Effect (Tab a)
+  stampTab :: Tab a -> f (Tab a)
   stampTab tab = do
     sections <- traverse stampTabSections tab.sections
     pure tab { sections = sections }
 
-  stampTabSections :: TabSections a -> Effect (TabSections a)
+  stampTabSections :: TabSections a -> f (TabSections a)
   stampTabSections tabSections' = case tabSections' of
     TabSection section -> pure (TabSection section)
     TabSequence sequence
@@ -88,18 +86,18 @@ stamp key page = do
           )
       | otherwise -> pure (TabSequence sequence)
 
-  stampInputSource :: TemplateSection a -> InputSource (Array (SequenceSection a)) -> Effect (InputSource (Array (SequenceSection a)))
+  stampInputSource :: TemplateSection a -> InputSource (Array (SequenceSection a)) -> f (InputSource (Array (SequenceSection a)))
   stampInputSource templateSection inputSource = do
-    uuid <- Data.UUID.genUUID
+    id <- generate
     pure case inputSource of
-      UserInput userInput' -> UserInput (userInput' <> [ stamp' uuid ])
-      Invalid invalid -> Invalid (invalid <> [ stamp' uuid ])
-      UserCleared -> UserInput [ stamp' uuid ]
-      NotSet -> UserInput [ stamp' uuid ]
+      UserInput userInput' -> UserInput (userInput' <> [ stamp' id ])
+      Invalid invalid -> Invalid (invalid <> [ stamp' id ])
+      UserCleared -> UserInput [ stamp' id ]
+      NotSet -> UserInput [ stamp' id ]
     where
-    stamp' :: Data.UUID.UUID -> SequenceSection a
-    stamp' uuid =
-      { id: show uuid
+    stamp' :: String -> SequenceSection a
+    stamp' id =
+      { id
       , fields: map stampField templateSection.fields
       , name: templateSection.name
       }

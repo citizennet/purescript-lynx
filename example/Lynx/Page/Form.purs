@@ -7,6 +7,7 @@ import Data.Functor.Coproduct.Nested (type (<\/>))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.NonEmpty as Data.NonEmpty
+import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1)
@@ -48,6 +49,7 @@ profile1 = URI.Fragment.fromString "profile-1"
 
 type State
   = { fragment :: Fragment
+    , idGenerator :: Aff String
     , route :: Route
     }
 
@@ -57,6 +59,7 @@ data Query a
 
 type ParentInput
   = { fragment :: Fragment
+    , idGenerator :: Aff String
     , route :: Route
     }
 
@@ -87,7 +90,7 @@ component =
   initialState = identity
 
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render { fragment, route } = HH.slot' cp1 unit Lynx.component input (HE.input LynxQuery)
+  render { fragment, idGenerator, route } = HH.slot' cp1 unit Lynx.component input (HE.input LynxQuery)
     where
     appendFragment :: Fragment -> Fragment
     appendFragment segment =
@@ -100,11 +103,13 @@ component =
         { activeTab
         , expr: mvpPage
         , fragment: appendFragment mvp
+        , idGenerator
         }
       Profile1 ->
         { activeTab: (Data.NonEmpty.head testPage.tabs).link
         , expr: testPage
         , fragment: appendFragment profile1
+        , idGenerator
         }
 
 eval ::
