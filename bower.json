@@ -23,7 +23,8 @@
     "purescript-psci-support": "^4.0.0",
     "purescript-routing-duplex": "^0.2.0",
     "purescript-routing": "^8.0.0",
-    "purescript-test-unit": "^14.0.0"
+    "purescript-test-unit": "^14.0.0",
+    "purescript-uuid": "^5.2.2"
   },
   "resolutions": {
     "purescript-profunctor-lenses": "^5.0.0"
