@@ -356,8 +356,8 @@ decodeExprTypeF x =
     <|> map inj (decodeStringF x)
     <|> Left
         ( show x { param = stringify x.param }
-          <> " unsupported."
-          <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
+            <> " unsupported."
+            <> " Expected Array, Boolean, Cents, DateTime, Int, Pair, or String."
         )
 
 encodeExprTypeF :: ExprTypeF ExprJSON -> ExprJSON
@@ -435,23 +435,23 @@ instance arbitraryExprType :: Arbitrary ExprType where
 
 instance corecursiveExprTypeExprTypeF ::
   Corecursive ExprType ( ArrayF
-    <\/> BooleanF
-    <\/> CentsF
-    <\/> DateTimeF
-    <\/> IntF
-    <\/> PairF
-    <\/> StringF
+      <\/> BooleanF
+      <\/> CentsF
+      <\/> DateTimeF
+      <\/> IntF
+      <\/> PairF
+      <\/> StringF
   ) where
   embed x = ExprType (embed $ map (un ExprType) x)
 
 instance recursiveExprTypeExprTypeF ::
   Recursive ExprType ( ArrayF
-    <\/> BooleanF
-    <\/> CentsF
-    <\/> DateTimeF
-    <\/> IntF
-    <\/> PairF
-    <\/> StringF
+      <\/> BooleanF
+      <\/> CentsF
+      <\/> DateTimeF
+      <\/> IntF
+      <\/> PairF
+      <\/> StringF
   ) where
   project (ExprType x) = map ExprType (project x)
 

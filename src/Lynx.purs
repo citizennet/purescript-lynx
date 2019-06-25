@@ -167,23 +167,23 @@ component =
   renderSequence sequence =
     Layout.container_
       ( [ Format.subHeading_ [ HH.text sequence.name ]
-      , Halogen.HTML.Elements.Keyed.div_ case sequence.values of
-          UserInput sections ->
-            Data.FunctorWithIndex.mapWithIndex
-              (renderSequenceSection sequence.key)
-              sections
-          Invalid sections ->
-            Data.FunctorWithIndex.mapWithIndex
-              (renderSequenceSection sequence.key)
-              sections
-          _ -> mempty
-      , Button.button
-          [ HE.onClick (HE.input_ $ AddSection sequence.key)
-          ]
-          [ Icon.plus_
-          , HH.span [ css "pl-2" ] [ HH.text "Add" ]
-          ]
-      ]
+        , Halogen.HTML.Elements.Keyed.div_ case sequence.values of
+            UserInput sections ->
+              Data.FunctorWithIndex.mapWithIndex
+                (renderSequenceSection sequence.key)
+                sections
+            Invalid sections ->
+              Data.FunctorWithIndex.mapWithIndex
+                (renderSequenceSection sequence.key)
+                sections
+            _ -> mempty
+        , Button.button
+            [ HE.onClick (HE.input_ $ AddSection sequence.key)
+            ]
+            [ Icon.plus_
+            , HH.span [ css "pl-2" ] [ HH.text "Add" ]
+            ]
+        ]
       )
 
   renderSequenceSection :: Key -> Int -> SequenceSection ExprType -> Tuple String (H.ParentHTML Query (ChildQuery m) ChildSlot m)
@@ -191,20 +191,20 @@ component =
     Tuple
       section.id
       ( Card.card_
-        ( [ Format.subHeading
-            [ css "relative"
-            ]
-            [ HH.text section.name
-            , Button.buttonClear
-                [ css "absolute pin-r pr-0"
-                , HE.onClick (HE.input_ $ RemoveSection key index)
+          ( [ Format.subHeading
+                [ css "relative"
                 ]
-                [ Icon.close_
+                [ HH.text section.name
+                , Button.buttonClear
+                    [ css "absolute pin-r pr-0"
+                    , HE.onClick (HE.input_ $ RemoveSection key index)
+                    ]
+                    [ Icon.close_
+                    ]
                 ]
             ]
-        ]
-          <> Data.Array.fromFoldable (map (renderField <<< indexKey index) section.fields)
-        )
+              <> Data.Array.fromFoldable (map (renderField <<< indexKey index) section.fields)
+          )
       )
 
   indexKey :: forall r. Int -> { key :: Key | r } -> { key :: Key | r }
@@ -274,11 +274,11 @@ component =
         field.key
         Typeahead.single
         ( Typeahead.asyncSingle
-          { async: asyncFromTypeahead typeahead
-          , itemToObject: toObject
-          , renderFuzzy: HH.span_ <<< boldMatches "value"
-          }
-          []
+            { async: asyncFromTypeahead typeahead
+            , itemToObject: toObject
+            , renderFuzzy: HH.span_ <<< boldMatches "value"
+            }
+            []
         )
         (HE.input $ TypeaheadSingleQuery field.key)
 
