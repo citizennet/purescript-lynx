@@ -80,9 +80,9 @@ stamp generate key page = do
         values <- stampInputSource sequence.template sequence.values
         pure
           ( TabSequence
-            sequence
-              { values = values
-              }
+              sequence
+                { values = values
+                }
           )
       | otherwise -> pure (TabSequence sequence)
 
@@ -1026,18 +1026,18 @@ mvpObjective =
   options =
     val_
       ( array_
-        [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
-        , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
-        , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
-        , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
-        , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
-        , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
-        , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
-        , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
-        , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
-        , pair_ { name: string_ "Reach", value: string_ "Reach" }
-        , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
-        ]
+          [ pair_ { name: string_ "App Installs", value: string_ "App Installs" }
+          , pair_ { name: string_ "Brand Awareness", value: string_ "Brand Awareness" }
+          , pair_ { name: string_ "Conversions", value: string_ "Conversions" }
+          , pair_ { name: string_ "Event Responses", value: string_ "Event Responses" }
+          , pair_ { name: string_ "Lead Generation", value: string_ "Lead Generation" }
+          , pair_ { name: string_ "Link Clicks", value: string_ "Link Clicks" }
+          , pair_ { name: string_ "Offer Claims", value: string_ "Offer Claims" }
+          , pair_ { name: string_ "Page Likes", value: string_ "Page Likes" }
+          , pair_ { name: string_ "Post Engagement", value: string_ "Post Engagement" }
+          , pair_ { name: string_ "Reach", value: string_ "Reach" }
+          , pair_ { name: string_ "VideoViews", value: string_ "VideoViews" }
+          ]
       )
 
 mvpSocialAccount :: TabSections Expr
@@ -1189,17 +1189,17 @@ food =
         if_
           (lookup_ "active" (val_ $ boolean_ false))
           ( val_
-            $ array_
-                [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
-                , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
-                ]
+              $ array_
+                  [ pair_ { name: string_ "Strawberry", value: string_ "Strawberry" }
+                  , pair_ { name: string_ "Blueberry", value: string_ "Blueberry" }
+                  ]
           )
           ( val_
-            $ array_
-                [ pair_ { name: string_ "Apple", value: string_ "Apple" }
-                , pair_ { name: string_ "Banana", value: string_ "Banana" }
-                , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
-                ]
+              $ array_
+                  [ pair_ { name: string_ "Apple", value: string_ "Apple" }
+                  , pair_ { name: string_ "Banana", value: string_ "Banana" }
+                  , pair_ { name: string_ "Cherry", value: string_ "Cherry" }
+                  ]
           )
       , placeholder: val_ (string_ "Choose a food")
       , required: val_ (boolean_ true)
