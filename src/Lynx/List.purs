@@ -1,6 +1,10 @@
 module Lynx.List
   ( Column
+  , Input
+  , Query
+  , Output
   , View
+  , component
   , fromJSON
   , toJSON
   ) where
@@ -11,7 +15,14 @@ import Data.Codec.Argonaut as Data.Codec.Argonaut
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
+import Data.Traversable as Data.Traversable
+import Halogen as Halogen
+import Halogen.HTML as Halogen.HTML
 import Lynx.Expr as Lynx.Expr
+import Ocelot.Block.Card as Ocelot.Block.Card
+import Ocelot.Block.Format as Ocelot.Block.Format
+import Ocelot.Block.Table as Ocelot.Block.Table
+import Ocelot.HTML.Properties as Ocelot.HTML.Properties
 
 -- | The intent of providing `JSONView` as an abstraction instead of using doing
 -- | our serialization directly on `View` is that it decouples the
@@ -48,6 +59,41 @@ type Column
     , value :: Lynx.Expr.Key
     }
 
+-- | The representation of a "view" that we want to render.
+-- | This representation is also different from the `View` so we can make
+-- | changes to how we render things without forcing those changes to ripple
+-- | back into the logic of what a "view" really does.
+type RenderView
+  = { columns :: Array RenderColumn
+    }
+
+type RenderColumn
+  = { name :: Lynx.Expr.ExprType
+    }
+
+type Input
+  = View
+
+data Query a
+
+type Output
+  = Void
+
+type State
+  = Either Lynx.Expr.EvalError RenderView
+
+component :: forall f. Halogen.Component Halogen.HTML.HTML Query Input Output f
+component =
+  Halogen.component
+    { eval
+    , initialState
+    , receiver
+    , render
+    }
+
+eval :: forall f. Query ~> f
+eval query = eval query
+
 fromArgonaut ::
   forall a.
   Data.Argonaut.DecodeJson a =>
@@ -68,6 +114,23 @@ fromJSON :: Data.Argonaut.Json -> Either String View
 fromJSON json = case Data.Codec.Argonaut.decode view json of
   Left err -> Left (Data.Codec.Argonaut.printJsonDecodeError err)
   Right x -> Right x
+
+initialState :: Input -> State
+initialState input = do
+  columns <- Data.Traversable.traverse column input.columns
+  pure
+    { columns
+    }
+  where
+  column :: Column -> Either Lynx.Expr.EvalError RenderColumn
+  column column' = do
+    name <- Lynx.Expr.evalExpr lookup column'.name
+    pure
+      { name
+      }
+
+  lookup :: Lynx.Expr.Key -> Maybe Lynx.Expr.ExprType
+  lookup key = Nothing
 
 -- | This is the main thing that decides how to de/serialize our values.
 -- |
@@ -90,6 +153,45 @@ jsonView =
 
   jsonColumns :: Data.Codec.Argonaut.JsonCodec (Array JSONColumn)
   jsonColumns = Data.Codec.Argonaut.array jsonColumn
+
+receiver :: Input -> Maybe (Query Unit)
+receiver input = Nothing
+
+render :: forall a f. State -> Halogen.HTML a f
+render state' = case state' of
+  Left error ->
+    Ocelot.Block.Card.card_
+      [ Ocelot.Block.Format.p
+          [ Ocelot.HTML.Properties.css "text-red"
+          ]
+          [ evalError error
+          ]
+      ]
+  Right state ->
+    Ocelot.Block.Table.table_
+      [ Ocelot.Block.Table.row_ (map column state.columns)
+      ]
+  where
+  column :: RenderColumn -> Halogen.HTML a f
+  column column' =
+    Ocelot.Block.Table.header_
+      [ Halogen.HTML.text (Lynx.Expr.print column'.name)
+      ]
+
+  evalError :: Lynx.Expr.EvalError -> Halogen.HTML a f
+  evalError error = case error of
+    Lynx.Expr.IfCondition x ->
+      Halogen.HTML.text
+        $ "Expected conditional to be a Boolean, but its type is: "
+        <> Lynx.Expr.reflectType x
+    Lynx.Expr.EqualMismatch x ->
+      Halogen.HTML.text
+        $ "Expected both sides of equal to have the same type,"
+        <> " but they are different."
+        <> " left: "
+        <> Lynx.Expr.reflectType x.left
+        <> " right: "
+        <> Lynx.Expr.reflectType x.right
 
 -- | We provide a way to encode a `View` to `argonaut`'s idea of JSON.
 toJSON :: View -> Data.Argonaut.Json

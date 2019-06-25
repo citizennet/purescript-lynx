@@ -13,6 +13,7 @@ import URI.Fragment as URI.Fragment
 data Route
   = Home
   | Form Lynx.Page.Form.Route
+  | List
 
 derive instance genericRoute :: Generic Route _
 
@@ -29,7 +30,11 @@ routeCodec =
     $ sum
         { "Home": noArgs
         , "Form": URI.Fragment.toString form / Lynx.Page.Form.routeCodec
+        , "List": URI.Fragment.toString list / noArgs
         }
 
 form :: Fragment
 form = URI.Fragment.fromString "form"
+
+list :: Fragment
+list = URI.Fragment.fromString "list"
