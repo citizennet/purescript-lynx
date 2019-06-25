@@ -17,7 +17,8 @@
     "purescript-affjax": "6.0.0",
     "purescript-matryoshka": "^0.4.0",
     "purescript-uri": "^6.1.0",
-    "purescript-quickcheck": "^5.0.0"
+    "purescript-quickcheck": "^5.0.0",
+    "purescript-codec-argonaut": "^6.0.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
