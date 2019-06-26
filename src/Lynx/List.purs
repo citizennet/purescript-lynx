@@ -13,6 +13,7 @@ import Prelude
 import Data.Argonaut as Data.Argonaut
 import Data.Codec.Argonaut as Data.Codec.Argonaut
 import Data.Either (Either(..))
+import Data.Either as Data.Either
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Traversable as Data.Traversable
@@ -102,9 +103,7 @@ fromArgonaut ::
 fromArgonaut = Data.Codec.Argonaut.prismaticCodec from to Data.Codec.Argonaut.json
   where
   from :: Data.Argonaut.Json -> Maybe a
-  from json = case Data.Argonaut.decodeJson json of
-    Left _ -> Nothing
-    Right x -> Just x
+  from json = Data.Either.hush (Data.Argonaut.decodeJson json)
 
   to :: a -> Data.Argonaut.Json
   to = Data.Argonaut.encodeJson
