@@ -79,5 +79,7 @@ component =
             , value: "start"
             }
           ]
+        , rows:
+          []
         }
         absurd

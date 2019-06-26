@@ -11,6 +11,7 @@ module Lynx.List
 
 import Prelude
 import Data.Argonaut as Data.Argonaut
+import Data.Array as Data.Array
 import Data.Codec.Argonaut as Data.Codec.Argonaut
 import Data.Const (Const(..))
 import Data.Either (Either(..))
@@ -21,6 +22,7 @@ import Data.Traversable as Data.Traversable
 import Halogen as Halogen
 import Halogen.HTML as Halogen.HTML
 import Lynx.Expr as Lynx.Expr
+import Lynx.Form as Lynx.Form
 import Ocelot.Block.Card as Ocelot.Block.Card
 import Ocelot.Block.Format as Ocelot.Block.Format
 import Ocelot.Block.Table as Ocelot.Block.Table
@@ -67,14 +69,17 @@ type Column
 -- | back into the logic of what a "view" really does.
 type RenderView
   = { columns :: Array RenderColumn
+    , rows :: Array (Lynx.Form.Page Lynx.Expr.ExprType)
     }
 
 type RenderColumn
   = { name :: Lynx.Expr.ExprType
+    , value :: Lynx.Expr.Key
     }
 
 type Input
   = { columns :: Array Column
+    , rows :: Array (Lynx.Form.Page Lynx.Expr.ExprType)
     }
 
 type Query
@@ -123,6 +128,7 @@ initialState input = do
   columns <- Data.Traversable.traverse column input.columns
   pure
     { columns
+    , rows: input.rows
     }
   where
   column :: Column -> Either Lynx.Expr.EvalError RenderColumn
@@ -130,6 +136,7 @@ initialState input = do
     name <- Lynx.Expr.evalExpr lookup column'.name
     pure
       { name
+      , value: column'.value
       }
 
   lookup :: Lynx.Expr.Key -> Maybe Lynx.Expr.ExprType
@@ -172,9 +179,26 @@ render state' = case state' of
       ]
   Right state ->
     Ocelot.Block.Table.table_
-      [ Ocelot.Block.Table.row_ (map column state.columns)
-      ]
+      $ [ Ocelot.Block.Table.row_ (map column state.columns)
+        ]
+      <> map (row state.columns) state.rows
   where
+  cell :: Lynx.Form.Page Lynx.Expr.ExprType -> RenderColumn -> Halogen.HTML a f
+  cell page column' = Ocelot.Block.Table.cell_ (cellValue page column'.value)
+
+  cellValue :: Lynx.Form.Page Lynx.Expr.ExprType -> Lynx.Expr.Key -> Array (Halogen.HTML a f)
+  cellValue page key =
+    Data.Array.fromFoldable do
+      field <- Lynx.Form.getField key page
+      exprType <- case field.input of
+        Lynx.Form.Currency currency -> Lynx.Form.getValue currency
+        Lynx.Form.DateTime dateTime -> Lynx.Form.getValue dateTime
+        Lynx.Form.Dropdown dropdown -> Lynx.Form.getValue dropdown
+        Lynx.Form.Text text -> Lynx.Form.getValue text
+        Lynx.Form.Toggle toggle -> Lynx.Form.getValue toggle
+        Lynx.Form.TypeaheadSingle typeaheadSingle -> Lynx.Form.getValue typeaheadSingle
+      pure (Halogen.HTML.text $ Lynx.Expr.print exprType)
+
   column :: RenderColumn -> Halogen.HTML a f
   column column' =
     Ocelot.Block.Table.header_
@@ -195,6 +219,11 @@ render state' = case state' of
         <> Lynx.Expr.reflectType x.left
         <> " right: "
         <> Lynx.Expr.reflectType x.right
+
+  row :: Array RenderColumn -> Lynx.Form.Page Lynx.Expr.ExprType -> Halogen.HTML a f
+  row columns page =
+    Ocelot.Block.Table.row_
+      (map (cell page) columns)
 
 -- | We provide a way to encode a `View` to `argonaut`'s idea of JSON.
 toJSON :: View -> Data.Argonaut.Json
