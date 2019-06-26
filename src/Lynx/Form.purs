@@ -5,7 +5,7 @@ import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, (.:), (:=), (~>))
 import Data.Array as Data.Array
 import Data.Either (Either(..), note)
-import Data.Foldable (class Foldable, foldM, foldMap, foldlDefault, foldrDefault)
+import Data.Foldable (class Foldable, findMap, foldM, foldMap, foldlDefault, foldrDefault)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map (Map)
@@ -794,6 +794,14 @@ displayError ::
   Record (SharedRows ExprType r) ->
   Boolean
 displayError x = x.value /= NotSet
+
+getField :: forall a. Key -> Page a -> Maybe (Field a)
+getField key page =
+  flip findMap page.tabs \tab ->
+    flip findMap tab.sections \tabSections' -> case tabSections' of
+      TabSection section ->
+        flip findMap section.fields \field -> if field.key == key then Just field else Nothing
+      TabSequence sequence -> Nothing
 
 getValue ::
   ∀ a r.
