@@ -74,7 +74,8 @@ type RenderColumn
     }
 
 type Input
-  = View
+  = { columns :: Array Column
+    }
 
 type Query
   = Const Void
