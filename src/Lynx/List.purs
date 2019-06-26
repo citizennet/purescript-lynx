@@ -12,6 +12,7 @@ module Lynx.List
 import Prelude
 import Data.Argonaut as Data.Argonaut
 import Data.Codec.Argonaut as Data.Codec.Argonaut
+import Data.Const (Const(..))
 import Data.Either (Either(..))
 import Data.Either as Data.Either
 import Data.Maybe (Maybe(..))
@@ -75,7 +76,8 @@ type RenderColumn
 type Input
   = View
 
-data Query a
+type Query
+  = Const Void
 
 type Output
   = Void
@@ -93,7 +95,8 @@ component =
     }
 
 eval :: forall f. Query ~> f
-eval query = eval query
+eval query = case query of
+  Const x -> absurd x
 
 fromArgonaut ::
   forall a.
