@@ -34,6 +34,14 @@ forms =
   , { name: "MVP", id: Lynx.Page.Form.MVP (Data.NonEmpty.head mvpPage.tabs).link }
   ]
 
+type List
+  = { name :: String }
+
+lists :: Array List
+lists =
+  [ { name: "MVP" }
+  ]
+
 component ::
   ∀ m.
   H.Component HH.HTML Query Input Message m
@@ -53,6 +61,18 @@ component =
     Card.card_
       [ Format.heading_ [ HH.text "Forms" ]
       , Table.table_ $ renderRow <$> forms
+      , Format.heading_ [ HH.text "Lists" ]
+      , Table.table_ (map renderList lists)
+      ]
+
+  renderList :: List -> H.ComponentHTML Query
+  renderList { name } =
+    Table.row_
+      [ Table.cell_
+          [ HH.a
+              [ safeHref List ]
+              [ HH.text name ]
+          ]
       ]
 
   renderRow :: Form -> H.ComponentHTML Query
