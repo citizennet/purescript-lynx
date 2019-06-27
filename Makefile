@@ -116,7 +116,7 @@ $(BUILD)/test.out: $(BUILD)/test.js | $(BUILD)
 
 $(FORMAT)/%.purs.formatted: %.purs $(NODE_MODULES)
 ifeq '$(USER)' 'root'
-	@echo "$(RED)purty should not be ran as root, skipping"
+	@echo "$(RED)purty should not be run as root, skipping"
 else
 	npx purty --write $<
 	@mkdir -p $$(dirname $@)
