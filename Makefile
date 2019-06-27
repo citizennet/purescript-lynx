@@ -80,6 +80,9 @@ FORMAT_TESTS := $(patsubst %,$(FORMAT)/%.formatted,$(TESTS))
 RTS_ARGS ?=
 BOWER_ARGS ?=
 
+# Colors for printing
+RED := \033[0;31m
+
 .DEFAULT_GOAL := dist/main.js
 
 $(BOWER_COMPONENTS): bower.json $(NODE_MODULES)
@@ -112,9 +115,13 @@ $(BUILD)/test.out: $(BUILD)/test.js | $(BUILD)
 	mv $@.tmp $@ # Move the output where it belongs.
 
 $(FORMAT)/%.purs.formatted: %.purs $(NODE_MODULES)
+ifeq '$(USER)' 'root'
+	@echo "$(RED)purty should not be ran as root, skipping"
+else
 	npx purty --write $<
 	@mkdir -p $$(dirname $@)
 	@touch $@
+endif
 
 $(NODE_MODULES): package.json
 	npm install
