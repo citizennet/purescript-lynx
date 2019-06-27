@@ -799,8 +799,7 @@ getField :: forall a. Key -> Page a -> Maybe (Field a)
 getField key page =
   flip findMap page.tabs \tab ->
     flip findMap tab.sections \tabSections' -> case tabSections' of
-      TabSection section ->
-        flip findMap section.fields \field -> if field.key == key then Just field else Nothing
+      TabSection section -> flip findMap section.fields \field -> if field.key == key then Just field else Nothing
       TabSequence sequence -> Nothing
 
 getValue ::
