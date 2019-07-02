@@ -3,6 +3,7 @@ module Lynx.List
   , Input
   , Query
   , Output
+  , Size(..)
   , View
   , component
   , fromJSON
@@ -16,6 +17,8 @@ import Data.Codec.Argonaut as Data.Codec.Argonaut
 import Data.Const (Const(..))
 import Data.Either (Either(..))
 import Data.Either as Data.Either
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Traversable as Data.Traversable
@@ -28,7 +31,7 @@ import Ocelot.Block.Format as Ocelot.Block.Format
 import Ocelot.Block.Table as Ocelot.Block.Table
 import Ocelot.HTML.Properties as Ocelot.HTML.Properties
 
--- | The intent of providing `JSONView` as an abstraction instead of using doing
+-- | The intent of providing `JSONView` as an abstraction instead of doing
 -- | our serialization directly on `View` is that it decouples the
 -- | implementation of `View` from the serialization of the concept of a "view."
 -- | Hopefully, this should keep downstream consumers from having to change
@@ -44,6 +47,7 @@ type JSONView
 type JSONColumn
   = { name :: Lynx.Expr.Expr
     , value :: Lynx.Expr.Key
+    , width :: Maybe Size
     }
 
 -- | The respresentation of a "view" that we really want to work with.
@@ -61,6 +65,7 @@ type View
 type Column
   = { name :: Lynx.Expr.Expr
     , value :: Lynx.Expr.Key
+    , width :: Maybe Size
     }
 
 -- | The representation of a "view" that we want to render.
@@ -75,7 +80,38 @@ type RenderView
 type RenderColumn
   = { name :: Lynx.Expr.ExprType
     , value :: Lynx.Expr.Key
+    , width :: Maybe Size
     }
+
+-- | Representation of various sizing grades for use in UI
+data Size
+  = Small
+  | Medium
+  | Large
+
+derive instance eqSize :: Eq Size
+
+derive instance genericSize :: Generic Size _
+
+instance showSize :: Show Size where
+  show = genericShow
+
+instance encodeJsonSize :: Data.Argonaut.EncodeJson Size where
+  encodeJson =
+    Data.Argonaut.encodeJson
+      <<< case _ of
+          Small -> "Small"
+          Medium -> "Medium"
+          Large -> "Large"
+
+instance decodeJsonSize :: Data.Argonaut.DecodeJson Size where
+  decodeJson json = do
+    str <- Data.Argonaut.decodeJson json
+    case str of
+      "Small" -> pure Small
+      "Medium" -> pure Medium
+      "Large" -> pure Large
+      _ -> Left (str <> " is not a valid Size")
 
 type Input
   = { columns :: Array Column
@@ -137,6 +173,7 @@ initialState input = do
     pure
       { name
       , value: column'.value
+      , width: column'.width
       }
 
   lookup :: Lynx.Expr.Key -> Maybe Lynx.Expr.ExprType
@@ -159,6 +196,7 @@ jsonView =
     Data.Codec.Argonaut.object "Lynx.List.JSONColumn"
       $ Data.Codec.Argonaut.recordProp (SProxy :: _ "name") fromArgonaut
       $ Data.Codec.Argonaut.recordProp (SProxy :: _ "value") Data.Codec.Argonaut.string
+      $ Data.Codec.Argonaut.recordProp (SProxy :: _ "width") fromArgonaut
       $ Data.Codec.Argonaut.record
 
   jsonColumns :: Data.Codec.Argonaut.JsonCodec (Array JSONColumn)
@@ -201,9 +239,17 @@ render state' = case state' of
 
   column :: RenderColumn -> Halogen.HTML a f
   column column' =
-    Ocelot.Block.Table.header_
+    Ocelot.Block.Table.header
+      (columnProps column')
       [ Halogen.HTML.text (Lynx.Expr.print column'.name)
       ]
+
+  columnProps :: RenderColumn -> _
+  columnProps column' = case column'.width of
+    Just Small -> [ Ocelot.HTML.Properties.css "w-1" ]
+    Just Medium -> [ Ocelot.HTML.Properties.css "w-1/6" ]
+    Just Large -> [ Ocelot.HTML.Properties.css "w-5/6" ]
+    Nothing -> mempty
 
   evalError :: Lynx.Expr.EvalError -> Halogen.HTML a f
   evalError error = case error of

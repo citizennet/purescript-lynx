@@ -1,19 +1,25 @@
 module Lynx.Component.Router where
 
 import Prelude
+import Data.Array (catMaybes)
+import Data.DateTime (DateTime(..), Time(..), canonicalDate)
+import Data.Either (Either, hush)
 import Data.Either.Nested (Either3)
+import Data.Enum (class BoundedEnum, toEnum)
 import Data.Functor.Coproduct.Nested (Coproduct3)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromJust)
 import Data.UUID as Node.UUID
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
 import Lynx.Expr as Lynx.Expr
+import Lynx.Form as Lynx.Form
 import Lynx.List as Lynx.List
 import Lynx.Page.Form as Form
 import Lynx.Page.Home as Home
 import Lynx.Route (Route(..), form)
+import Partial.Unsafe (unsafePartial)
 import URI.Fragment as URI.Fragment
 
 type State
@@ -72,14 +78,40 @@ component =
         unit
         Lynx.List.component
         { columns:
-          [ { name: Lynx.Expr.val_ (Lynx.Expr.string_ "Artist/Venue")
-            , value: "artist"
+          [ { name: Lynx.Expr.val_ (Lynx.Expr.string_ "Name")
+            , value: "name"
+            , width: Just Lynx.List.Large
             }
           , { name: Lynx.Expr.val_ (Lynx.Expr.string_ "Start")
             , value: "start"
+            , width: Just Lynx.List.Small
             }
           ]
         , rows:
-          []
+          catMaybes
+            $ map hush
+                [ hydrateMvp "Test Order 1" (unsafeDateTime 2019 6 6)
+                , hydrateMvp "One More Just for Fun" (unsafeDateTime 2019 7 1)
+                , hydrateMvp "This is the Third" (unsafeDateTime 2019 7 3)
+                ]
         }
         absurd
+
+  hydrateMvp :: String -> DateTime -> Either Lynx.Expr.EvalError (Lynx.Form.Page Lynx.Expr.ExprType)
+  hydrateMvp name date =
+    ( Lynx.Form.eval (const Nothing)
+        <<< Lynx.Form.setValue "start" (Lynx.Form.UserInput $ Lynx.Expr.datetime_ date)
+        <<< Lynx.Form.setValue "name" (Lynx.Form.UserInput $ Lynx.Expr.string_ name)
+    )
+      Lynx.Form.mvpPage
+
+  unsafeDateTime :: Int -> Int -> Int -> DateTime
+  unsafeDateTime y m d = do
+    let
+      force :: ∀ a. BoundedEnum a => Int -> a
+      force = unsafePartial fromJust <<< toEnum
+
+      date = canonicalDate (force y) (force m) (force d)
+
+      time = Time (force 0) (force 0) (force 0) (force 0)
+    DateTime date time
