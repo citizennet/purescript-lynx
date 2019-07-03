@@ -5,10 +5,11 @@ import Control.Alt ((<|>))
 import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, jsonEmptyObject, stringify, (.:), (:=), (~>))
 import Data.BigInt as Data.BigInt
 import Data.DateTime (DateTime)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Eq (class Eq1)
 import Data.Foldable (class Foldable, fold, foldlDefault, foldrDefault)
 import Data.Formatter.DateTime (format, unformat)
+import Data.Formatter.DateTime as Data.Formatter
 import Data.Formatter.Parser.Interval (extendedDateTimeFormatInUTC)
 import Data.Functor.Coproduct.Inject (inj, prj)
 import Data.Functor.Coproduct.Nested (type (<\/>), (<\/>))
@@ -194,7 +195,7 @@ isEmptyDateTimeF = case _ of
 
 printDateTimeF :: forall a. DateTimeF a -> String
 printDateTimeF = case _ of
-  DateTime x -> format extendedDateTimeFormatInUTC x
+  DateTime x -> either identity identity (Data.Formatter.formatDateTime "MM/D/YY hh:mm a" x)
 
 newtype IntF a
   = Int Int
