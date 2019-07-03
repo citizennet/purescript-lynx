@@ -14,6 +14,7 @@ import Prelude
 import Data.Argonaut as Data.Argonaut
 import Data.Array as Data.Array
 import Data.Codec.Argonaut as Data.Codec.Argonaut
+import Data.Codec.Argonaut.Generic (nullarySum) as Data.Codec.Argonaut.Generic
 import Data.Const (Const(..))
 import Data.Either (Either(..))
 import Data.Either as Data.Either
@@ -96,25 +97,6 @@ derive instance genericSize :: Generic Size _
 
 instance showSize :: Show Size where
   show = genericShow
-
-instance encodeJsonSize :: Data.Argonaut.EncodeJson Size where
-  encodeJson =
-    Data.Argonaut.encodeJson
-      <<< case _ of
-          Auto -> "Auto"
-          Small -> "Small"
-          Medium -> "Medium"
-          Large -> "Large"
-
-instance decodeJsonSize :: Data.Argonaut.DecodeJson Size where
-  decodeJson json = do
-    str <- Data.Argonaut.decodeJson json
-    case str of
-      "Auto" -> pure Auto
-      "Small" -> pure Small
-      "Medium" -> pure Medium
-      "Large" -> pure Large
-      _ -> Left (str <> " is not a valid Size")
 
 type Input
   = { columns :: Array Column
@@ -199,7 +181,7 @@ jsonView =
     Data.Codec.Argonaut.object "Lynx.List.JSONColumn"
       $ Data.Codec.Argonaut.recordProp (SProxy :: _ "name") fromArgonaut
       $ Data.Codec.Argonaut.recordProp (SProxy :: _ "value") Data.Codec.Argonaut.string
-      $ Data.Codec.Argonaut.recordProp (SProxy :: _ "width") fromArgonaut
+      $ Data.Codec.Argonaut.recordProp (SProxy :: _ "width") (Data.Codec.Argonaut.Generic.nullarySum "Size")
       $ Data.Codec.Argonaut.record
 
   jsonColumns :: Data.Codec.Argonaut.JsonCodec (Array JSONColumn)
