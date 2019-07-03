@@ -80,11 +80,11 @@ component =
         { columns:
           [ { name: Lynx.Expr.val_ (Lynx.Expr.string_ "Name")
             , value: "name"
-            , width: Just Lynx.List.Large
+            , width: Lynx.List.Large
             }
           , { name: Lynx.Expr.val_ (Lynx.Expr.string_ "Start")
             , value: "start"
-            , width: Just Lynx.List.Small
+            , width: Lynx.List.Small
             }
           ]
         , rows:

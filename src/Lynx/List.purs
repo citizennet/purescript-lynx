@@ -47,7 +47,7 @@ type JSONView
 type JSONColumn
   = { name :: Lynx.Expr.Expr
     , value :: Lynx.Expr.Key
-    , width :: Maybe Size
+    , width :: Size
     }
 
 -- | The respresentation of a "view" that we really want to work with.
@@ -65,7 +65,7 @@ type View
 type Column
   = { name :: Lynx.Expr.Expr
     , value :: Lynx.Expr.Key
-    , width :: Maybe Size
+    , width :: Size
     }
 
 -- | The representation of a "view" that we want to render.
@@ -80,12 +80,13 @@ type RenderView
 type RenderColumn
   = { name :: Lynx.Expr.ExprType
     , value :: Lynx.Expr.Key
-    , width :: Maybe Size
+    , width :: Size
     }
 
 -- | Representation of various sizing grades for use in UI
 data Size
-  = Small
+  = Auto
+  | Small
   | Medium
   | Large
 
@@ -100,6 +101,7 @@ instance encodeJsonSize :: Data.Argonaut.EncodeJson Size where
   encodeJson =
     Data.Argonaut.encodeJson
       <<< case _ of
+          Auto -> "Auto"
           Small -> "Small"
           Medium -> "Medium"
           Large -> "Large"
@@ -108,6 +110,7 @@ instance decodeJsonSize :: Data.Argonaut.DecodeJson Size where
   decodeJson json = do
     str <- Data.Argonaut.decodeJson json
     case str of
+      "Auto" -> pure Auto
       "Small" -> pure Small
       "Medium" -> pure Medium
       "Large" -> pure Large
@@ -246,10 +249,10 @@ render state' = case state' of
 
   columnProps :: RenderColumn -> _
   columnProps column' = case column'.width of
-    Just Small -> [ Ocelot.HTML.Properties.css "w-1" ]
-    Just Medium -> [ Ocelot.HTML.Properties.css "w-1/6" ]
-    Just Large -> [ Ocelot.HTML.Properties.css "w-5/6" ]
-    Nothing -> mempty
+    Auto -> mempty
+    Small -> [ Ocelot.HTML.Properties.css "w-1" ]
+    Medium -> [ Ocelot.HTML.Properties.css "w-1/6" ]
+    Large -> [ Ocelot.HTML.Properties.css "w-5/6" ]
 
   evalError :: Lynx.Expr.EvalError -> Halogen.HTML a f
   evalError error = case error of
