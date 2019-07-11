@@ -64,6 +64,8 @@ data Query a
   | TypeaheadSingleQuery Key (Typeahead.Message Query Maybe ExprType) a
   | AddSection Key a
   | RemoveSection Key Int a
+  | Cancel a
+  | Submit a
 
 type ParentInput
   = { activeTab :: String
@@ -84,8 +86,9 @@ type ChildSlot
       \/ Key
       \/ Void
 
-type Message
-  = Void
+data Message
+  = Canceled
+  | Submitted { expr :: Page Expr }
 
 component ::
   ∀ m.
@@ -113,16 +116,24 @@ component =
               ]
           Right page ->
             HH.div_
-              [ Header.header_
-                  [ Format.headingDark_ [ HH.text page.name ]
-                  ]
-              , Header.header_
-                  [ NavigationTab.navigationTabs_
-                      { activePage: activeTab
-                      , tabs:
-                        Data.Array.fromFoldable (map (fromTab fragment) page.tabs)
-                      }
-                  ]
+              [ Header.stickyFormHeader
+                  { brand: Just "https://citizennet.com/manager/images/logo.svg"
+                  , name: [ HH.text page.name ]
+                  , title: []
+                  , buttons:
+                    [ HH.a
+                        [ HE.onClick (HE.input_ Cancel)
+                        , css "cursor-pointer no-underline text-grey-70 mr-6"
+                        ]
+                        [ HH.text "Cancel" ]
+                    , Button.buttonPrimary
+                        [ HE.onClick (HE.input_ Submit) ]
+                        [ HH.text "Submit" ]
+                    ]
+                  }
+                  { activePage: activeTab
+                  , tabs: Data.Array.fromFoldable (map (fromTab fragment) page.tabs)
+                  }
               , Layout.grid_
                   [ renderTab activeTab page.tabs
                   , Layout.side_ []
@@ -375,6 +386,13 @@ eval = case _ of
   RemoveSection key index a -> do
     { expr } <- H.get
     eval (EvalForm (Lynx.Form.unstamp key index expr) a)
+  Cancel a -> do
+    H.raise Canceled
+    pure a
+  Submit a -> do
+    { expr } <- H.get
+    H.raise (Submitted { expr })
+    pure a
 
 fromTab :: forall a. Fragment -> Tab a -> NavigationTab.Tab String
 fromTab fragment { sections: sections'', name, link } =
