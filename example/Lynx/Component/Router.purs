@@ -13,6 +13,7 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Component.ChildPath as CP
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Lynx.Expr as Lynx.Expr
 import Lynx.Form as Lynx.Form
 import Lynx.List as Lynx.List
@@ -29,7 +30,7 @@ data Query a
   = Navigate Route a
 
 type Input
-  = Unit
+  = Route
 
 type Message
   = Void
@@ -49,7 +50,7 @@ component =
     { initialState: const Home
     , eval
     , render
-    , receiver: const Nothing
+    , receiver: HE.input Navigate
     }
   where
   eval :: Query ~> H.ParentDSL State Query ChildQueries ChildSlots Message m

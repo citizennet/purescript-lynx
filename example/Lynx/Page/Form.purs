@@ -1,6 +1,7 @@
 module Lynx.Page.Form where
 
 import Prelude hiding ((/))
+
 import Data.Const (Const)
 import Data.Either.Nested (type (\/))
 import Data.Functor.Coproduct.Nested (type (<\/>))
@@ -9,6 +10,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.NonEmpty as Data.NonEmpty
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Class.Console (log, logShow)
 import Halogen as H
 import Halogen.Component.ChildPath (cp1)
 import Halogen.HTML as HH
@@ -121,4 +123,10 @@ eval = case _ of
   Initialize { fragment, route } a -> do
     H.modify_ _ { fragment = fragment, route = route }
     pure a
-  LynxQuery message _ -> absurd message
+  LynxQuery message a ->
+    case message of
+      Lynx.Canceled -> pure a
+      Lynx.Submitted { expr } -> do
+        log "Form submitted:"
+        logShow expr
+        pure a

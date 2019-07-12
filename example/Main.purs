@@ -10,7 +10,7 @@ import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
 import Lynx.AppM (runAppM)
 import Lynx.Component.Router as Router
-import Lynx.Route (routeCodec)
+import Lynx.Route (Route(..), routeCodec)
 import Routing.Duplex (parse)
 import Routing.Hash (matchesWith)
 
@@ -19,9 +19,9 @@ main =
   HA.runHalogenAff do
     body <- HA.awaitBody
     let
-      router :: H.Component HH.HTML Router.Query Unit Void Aff
+      router :: H.Component HH.HTML Router.Query Router.Input Void Aff
       router = H.hoist (runAppM {}) Router.component
-    driver <- runUI router unit body
+    driver <- runUI router Home body
     void $ H.liftEffect
       $ matchesWith (parse routeCodec) \old new ->
           when (old /= Just new) do
